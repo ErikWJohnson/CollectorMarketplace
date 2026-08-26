@@ -66,3 +66,21 @@ body {
 .item-info p {
   margin: 8px 0;
 }
+.feed {
+  height: 80vh;              /* feed takes most of the screen */
+  overflow-y: scroll;        /* vertical scrolling */
+  scroll-behavior: smooth;   /* smooth scrolling */
+  padding: 20px;
+  border-radius: 8px;
+  background: #141414;
+  border: 1px solid #222;
+}
+
+.feed-item {
+  background: #1c1c1c;
+  padding: 20px;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  border: 1px solid #2a2a2a;
+}
+
