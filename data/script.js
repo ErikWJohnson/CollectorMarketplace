@@ -19,3 +19,33 @@ async function loadItem() {
 }
 
 loadItem();
+let loading = false;
+
+async function loadMoreItems() {
+  if (loading) return;
+  loading = true;
+
+  const res = await fetch('data/listings.json');
+  const items = await res.json();
+
+  const feed = document.querySelector('.feed');
+
+  items.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'feed-item';
+    div.innerHTML = `
+      <h4>${item.name}</h4>
+      <p>$${item.price}</p>
+    `;
+    feed.appendChild(div);
+  });
+
+  loading = false;
+}
+
+document.querySelector('.feed').addEventListener('scroll', function () {
+  const feed = this;
+  if (feed.scrollTop + feed.clientHeight >= feed.scrollHeight - 50) {
+    loadMoreItems();
+  }
+});
