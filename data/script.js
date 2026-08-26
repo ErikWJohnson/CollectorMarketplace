@@ -1,4 +1,4 @@
-async function loadListings() {
+async function loadFeatured() {
   const res = await fetch('data/listings.json');
   const items = await res.json();
 
@@ -7,11 +7,11 @@ async function loadListings() {
 
   container.innerHTML = items.map(item => `
     <div class="item-card">
-      <img src="${item.image}" alt="${item.name}">
+      <img src="images/${item.image}" alt="${item.name}">
       <h4>${item.name}</h4>
       <p>$${item.price}</p>
     </div>
   `).join('');
 }
 
-loadListings();
+loadFeatured();
