@@ -7,23 +7,25 @@
 </head>
 <body>
 
-  <?php include 'header.html'; ?>
+  <header class="cm-header">
+    <h1>Collector Marketplace</h1>
+  </header>
 
   <main class="cm-main">
     <section class="item-detail">
-      <h2>Item Name</h2>
-      <img src="placeholder.jpg" class="item-img" alt="Item Image">
-
-      <div class="item-info">
-        <p><strong>Category:</strong> Watches</p>
-        <p><strong>Condition:</strong> Excellent</p>
-        <p><strong>Price:</strong> $0.00</p>
-        <p><strong>Description:</strong> Detailed description goes here.</p>
-      </div>
+      <h2 id="item-name"></h2>
+      <img id="item-img" class="item-img">
+      <div class="item-info" id="item-info"></div>
     </section>
   </main>
 
-  <?php include 'footer.html'; ?>
+  <footer class="cm-footer">
+    <p>© 2026 CollectorMarketplace.net</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
 
 </body>
 </html>
