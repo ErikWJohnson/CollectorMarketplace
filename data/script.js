@@ -1,17 +1,21 @@
-async function loadFeatured() {
+async function loadItem() {
+  const params = new URLSearchParams(window.location.search);
+  const id = Number(params.get('id'));
+
   const res = await fetch('data/listings.json');
   const items = await res.json();
 
-  const container = document.querySelector('.item-grid');
-  if (!container) return;
+  const item = items.find(i => i.id === id);
+  if (!item) return;
 
-  container.innerHTML = items.map(item => `
-    <div class="item-card">
-      <img src="images/${item.image}" alt="${item.name}">
-      <h4>${item.name}</h4>
-      <p>$${item.price}</p>
-    </div>
-  `).join('');
+  document.getElementById('item-name').textContent = item.name;
+  document.getElementById('item-img').src = `images/${item.image}`;
+  document.getElementById('item-info').innerHTML = `
+    <p><strong>Category:</strong> ${item.category}</p>
+    <p><strong>Condition:</strong> ${item.condition}</p>
+    <p><strong>Price:</strong> $${item.price}</p>
+    <p><strong>Description:</strong> ${item.description}</p>
+  `;
 }
 
-loadFeatured();
+loadItem();
