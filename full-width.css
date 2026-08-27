@@ -1,0 +1,2 @@
+/* Full browser-width desktop canvas. */
+@media(min-width:681px){.app-shell{width:100%;max-width:none}.market-stage{grid-template-columns:minmax(160px,1fr) minmax(0,620px) minmax(160px,1fr)}.listing{max-width:620px}.bottom-nav{width:100%;max-width:none}.masthead{padding-left:max(32px,calc((100vw - 1160px)/2))}.discovery{padding-left:max(26px,calc((100vw - 1050px)/2));padding-right:max(26px,calc((100vw - 1050px)/2))}}
