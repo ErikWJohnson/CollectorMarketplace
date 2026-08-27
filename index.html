@@ -1,14 +1,140 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Erik Johnson Is Here</title>
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-  <div class="container">
-    <h1>Erik Johnson of Point Loma California Is Here</h1>
-    <p>This page is my domain.</p>
-  </div>
-</body>
-</html>
+  <meta charset="UTF-8" />
+  <title>CollectorMarketplace.net – High-Value Trading Network</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      --bg: #05060a;
+      --bg-alt: #0b0d14;
+      --accent: #34d3ff;
+      --accent-soft: rgba(52, 211, 255, 0.15);
+      --text: #f5f7ff;
+      --muted: #8b92a7;
+      --danger: #ff4b81;
+      --card: #101320;
+      --border: #1b2030;
+      --success: #4ade80;
+      --warning: #facc15;
+      --radius-lg: 18px;
+      --radius-md: 10px;
+      --radius-sm: 6px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #111827 0, #020617 45%, #000 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px 16px 48px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-mark {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 0%, #34d3ff, #0ea5e9 40%, #020617 100%);
+      box-shadow: 0 0 24px rgba(52, 211, 255, 0.6);
+      position: relative;
+    }
+
+    .logo-mark::before {
+      content: "";
+      position: absolute;
+      inset: 7px;
+      border-radius: inherit;
+      border: 1px solid rgba(15, 23, 42, 0.9);
+      background: radial-gradient(circle at 50% 0%, #0f172a, #020617);
+    }
+
+    .logo-text-main {
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-size: 0.9rem;
+    }
+
+    .logo-text-sub {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 0.85rem;
+    }
+
+    nav a {
+      color: var(--muted);
+      text-decoration: none;
+      padding: 6px 10px;
+      border-radius: 999px;
+      transition: 0.15s ease;
+    }
+
+    nav a:hover {
+      color: var(--text);
+      background: rgba(15, 23, 42, 0.7);
+    }
+
+    .nav-cta {
+      padding: 7px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(52, 211, 255, 0.6);
+      color: var(--accent);
+      font-weight: 500;
+      background: rgba(15, 23, 42, 0.9);
+      box-shadow: 0 0 18px rgba(52, 211, 255, 0.35);
+      cursor: pointer;
+    }
+
+    .nav-cta:hover {
+      background: rgba(15, 23, 42, 1);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2.4fr);
+      gap: 24px;
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .hero {
+      padding: 22px 20px 24px;
+      border-radius: var(--radius-lg);
+      background: linear-gradient(
+          135deg,
+          rgba
