@@ -11,7 +11,7 @@ const id = () => crypto.randomUUID();
 const now = () => new Date().toISOString();
 
 class Store {
-  constructor() { fs.mkdirSync(dataDir, { recursive: true }); this.data = this.load(); }
+  constructor() { fs.mkdirSync(dataDir, { recursive: true }); this.data = this.load(); this.seedBrowseFeed(); this.save(); }
   load() {
     if (fs.existsSync(dataFile)) return JSON.parse(fs.readFileSync(dataFile, 'utf8'));
     const demo = { id: id(), username: 'alexcollects', email: 'alex@collector.local', password: 'password123', avatar: 'AC', bio: 'Vintage paper, space-age objects, and things with a story.', reputation: 98, following: [], createdAt: now() };
@@ -20,6 +20,20 @@ class Store {
       { id: id(), ownerId: demo.id, title: 'First Edition Design Annual', description: 'A sharp, colorful book from a beloved era of graphic design.', category: 'Books', price: 45, tradeOffer: false, images: ['https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&w=1000&q=80'], status: 'active', likes: [], createdAt: now() }
     ];
     return { users: [demo], listings, comments: [], trades: [], notifications: [], activities: listings.map(l => ({ id: id(), type: 'listing', userId: demo.id, listingId: l.id, createdAt: l.createdAt })) };
+  }
+  seedBrowseFeed() {
+    if (this.data.listings.length >= 6) return;
+    const owner = this.data.users[0];
+    const additions = [
+      ['1964 Topps Mickey Mantle', 'Clean color, strong corners, and a true centerpiece for a vintage baseball collection.', 'Cards', 900, true, 'https://images.unsplash.com/photo-1627856013091-fed6e4e30025?auto=format&fit=crop&w=1000&q=80'],
+      ['Sealed 1996 Comic Collector Set', 'Factory sealed set with original display wrap. Stored flat and away from sunlight.', 'Comics', 120, true, 'https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?auto=format&fit=crop&w=1000&q=80'],
+      ['Polaroid SX-70 Land Camera', 'Classic folding instant camera with a handsome patina. Includes original strap.', 'Vintage', 175, false, 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=1000&q=80'],
+      ['Japanese Woodblock Print', 'A framed late-century print with rich ink detail and a wonderfully calm palette.', 'Art', 240, true, 'https://images.unsplash.com/photo-1577083552431-6e5fd01aa342?auto=format&fit=crop&w=1000&q=80']
+    ];
+    additions.forEach(([title, description, category, price, tradeOffer, image]) => {
+      const listing = { id: id(), ownerId: owner.id, title, description, category, price, tradeOffer, images: [image], status: 'active', likes: [], createdAt: now() };
+      this.data.listings.push(listing); this.data.activities.unshift({ id: id(), type: 'listing', userId: owner.id, listingId: listing.id, createdAt: listing.createdAt });
+    });
   }
   save() { fs.writeFileSync(dataFile, JSON.stringify(this.data, null, 2)); }
 }
