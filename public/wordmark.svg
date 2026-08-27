@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" fill="none">
+  <path d="M18 58V23c0-10 8-18 18-18h29c9 0 16 7 16 16v17M302 58V23c0-10-8-18-18-18h-29c-9 0-16 7-16 16v17" stroke="#F4F0E8" stroke-width="4" stroke-linecap="round"/>
+  <path d="m29 13 18 27M45 8l14 30M66 8 58 38M291 13l-18 27M275 8l-14 30M254 8l8 30" stroke="#F07752" stroke-width="3"/>
+  <rect x="104" y="8" width="112" height="45" rx="5" fill="#191A16" stroke="#F4F0E8" stroke-width="2"/>
+  <path d="m123 18 10 22 8-15 8 15 10-22M171 18l10 22 8-15 8 15 10-22" stroke="#F07752" stroke-width="3" stroke-linejoin="round"/>
+  <text x="160" y="66" fill="#F4F0E8" font-family="monospace" font-size="15" font-weight="700" letter-spacing="2" text-anchor="middle">COLLECTOR MARKETPLACE</text>
+</svg>
