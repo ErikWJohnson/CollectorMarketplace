@@ -4,33 +4,41 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#11120f">
-  <meta name="description" content="Collector Marketplace — a place for objects with a story.">
+  <meta name="description" content="Collector Marketplace — buy, sell, and trade objects with a story.">
   <title>Collector Marketplace</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono&family=DM+Sans:wght@400;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="site.css">
 </head>
 <body>
   <header class="shell topbar">
-    <img src="public/wordmark.svg" alt="Collector Marketplace" class="wordmark">
-    <a class="join" href="https://github.com/ErikWJohnson/CollectorMarketplace">View project</a>
+    <button class="brand" type="button" aria-label="Go to home" data-home><img src="public/wordmark.svg" alt="Collector Marketplace"></button>
+    <nav class="desktop-nav" aria-label="Primary"><button data-home>Browse</button><button data-market>Market</button><button data-chat>Chat</button><button class="join" data-sell>Sell an item</button></nav>
   </header>
-  <main class="shell">
-    <section class="intro">
-      <p class="eyebrow">collector marketplace</p>
-      <h1>Find the next story.</h1>
-      <p>Buy, sell, and trade uncommon objects with collectors who understand the details.</p>
-      <a class="cta" href="https://github.com/ErikWJohnson/CollectorMarketplace">Explore the app</a>
+
+  <main class="shell layout">
+    <section class="feed" aria-label="Marketplace listings">
+      <header class="intro"><p class="eyebrow">collector marketplace</p><h1>Find the next story.</h1><p>Rare cards, odd artifacts, and overlooked objects—kept in circulation by people who care.</p></header>
+      <section class="discovery" aria-label="Search and filter listings">
+        <label class="search"><span>⌕</span><input id="search" type="search" autocomplete="off" placeholder="Search the marketplace"></label>
+        <div class="label-row"><span>Collector tags</span><button class="clear" id="clear-tags" hidden>Clear</button></div>
+        <div class="tag-row" id="tags"><button data-query="NASA">#SpaceFinds</button><button data-query="Mickey">#SportsCards</button><button data-query="Comic">#Comics</button><button data-query="Polaroid">#Vintage</button><button data-query="Design">#RareBooks</button></div>
+        <div class="category-row" id="categories" aria-label="Categories"></div>
+      </section>
+      <div class="stream-head"><span>Fresh drops</span><span id="result-count"></span></div>
+      <div id="listing-stream" class="listing-stream"></div>
+      <div id="sentinel" class="load-state">Scroll for more finds ↓</div>
     </section>
-    <section class="browse">
-      <div class="browse-head"><span>Fresh collector drops</span><span>01 — 03</span></div>
-      <div class="cards">
-        <article class="card"><div class="card-top">@alexcollects <span>★★★★★</span></div><img src="https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&amp;fit=crop&amp;w=900&amp;q=80" alt="Space mission patch"><h2>1976 NASA Viking Mission Patch</h2><p>Original woven patch with a story beyond the atmosphere.</p><footer>$85 <b>BUY · TRADE</b></footer></article>
-        <article class="card"><div class="card-top">@alexcollects <span>★★★★★</span></div><img src="https://images.unsplash.com/photo-1627856013091-fed6e4e30025?auto=format&amp;fit=crop&amp;w=900&amp;q=80" alt="Vintage baseball card"><h2>1964 Topps Mickey Mantle</h2><p>A centerpiece card with clean color and sharp vintage character.</p><footer>$900 <b>BUY · TRADE</b></footer></article>
-        <article class="card"><div class="card-top">@alexcollects <span>★★★★★</span></div><img src="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&amp;fit=crop&amp;w=900&amp;q=80" alt="Vintage camera"><h2>Polaroid SX-70 Land Camera</h2><p>Classic folding instant camera, ready for its next keeper.</p><footer>$175 <b>BUY NOW</b></footer></article>
-      </div>
-    </section>
+
+    <aside class="sidebar">
+      <section class="side-card"><p class="eyebrow">Own the uncommon</p><h2>Built for collectors.</h2><p>Trade the things that deserve another chapter with people who see what makes them special.</p><button class="accent" data-sell>List an item</button></section>
+      <section class="side-card"><p class="eyebrow">Trending</p><ul id="trend-list"><li><button data-query="Mickey"><b>#</b> sports cards</button></li><li><button data-query="Polaroid"><b>#</b> vintage cameras</button></li><li><button data-query="NASA"><b>#</b> space memorabilia</button></li><li><button data-query="Comic"><b>#</b> sealed comics</button></li></ul></section>
+    </aside>
   </main>
+
+  <nav class="bottom-nav" aria-label="Mobile navigation"><button class="active" data-home><b>◆</b>Browse</button><button data-market><b>▱</b>Market</button><button data-chat><b>▢</b>Chat</button><button data-sell><b>＋</b>Sell</button></nav>
+  <dialog id="modal"><button class="close" aria-label="Close">×</button><div id="modal-content"></div></dialog>
+  <script src="site.js"></script>
 </body>
 </html>

@@ -1,34 +1,23 @@
 # Collector Marketplace
 
-Dark, collector-first marketplace for buying, selling, and trading objects with a story.
+Dark, collector-first marketplace for buying, selling, and trading objects with a story. The repository root is the complete deployable website for `collectormarketplace.net` and GitHub Pages.
 
 ## What is included
 
-- A responsive collector feed with search, tags, categories, likes, comments, trade offers, activity, and notifications.
+- A responsive collector feed with working search, tags, categories, listing details, trade-interest modal, and scrolling pagination.
 - Mobile navigation for Browse, Market, Chat, and Sell.
 - A cohesive dark visual system, framed collectible-card posts, and custom SVG logo assets.
-- A static homepage at the repository root for GitHub Pages and a full Express app under `public/` for interactive use.
+- A fully static site: no server or local runtime is needed for the live website.
 
-## Run
+## Publish
 
-Install Node.js 20+ and run:
-
-```bash
-npm install
-npm start
-```
-
-Open `http://localhost:3000`. The app starts with a demo account: `alex@collector.local` / `password123`.
+Push changes to `main`. GitHub Pages serves `index.html`, `site.css`, `site.js`, and `data/listings.json` directly from the repository. The `CNAME` file keeps the site associated with `collectormarketplace.net`.
 
 ## Repository layout
 
-- `public/` — interactive browser experience and assets served by Express.
-- `server.js` — REST API and local JSON-backed demo store.
-- `index.html` and `site.css` — static GitHub Pages fallback landing page.
+- `index.html`, `site.css`, and `site.js` — complete static marketplace website.
+- `data/listings.json` — editable listing data used by the feed.
+- `public/wordmark.svg` — Collector Marketplace logo used by the static site.
 - `CNAME` — custom domain configuration for `collectormarketplace.net`.
 
-## API
-
-The API exposes the requested endpoints (`/signup`, `/login`, `/user/:id`, `/listing`, `/comment`, `/trade`, and `/feed`). Authentication uses a simple bearer token for the MVP. Data lives in `data/store.json`, which is created automatically and intentionally excluded from Git.
-
-For production, replace the small `Store` class in `server.js` with a MongoDB or PostgreSQL repository, use bcrypt and signed JWTs, validate input more strictly, and use object storage for listing images.
+The legacy local prototype files remain in the repository but are not used by the deployed website.
