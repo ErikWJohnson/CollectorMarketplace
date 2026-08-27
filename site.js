@@ -24,11 +24,14 @@ document.addEventListener('click', event => {
   if (trade) { const item = listings.find(row => row.id === trade.dataset.trade); openModal(`Trade for ${item.title}`, 'Send the owner a note about your offer. This static demo records no personal information.', '<form class="modal-form"><input required placeholder="Your offer"><button>Send trade interest</button></form>'); }
   if (event.target.matches('[data-sell]')) { activateNav('sell'); openModal('List an item', 'Create your collector profile to publish listings and accept trade offers.', '<form class="modal-form"><input required placeholder="Your email"><button>Join the marketplace</button></form>'); }
   if (event.target.matches('[data-chat]')) { activateNav('chat'); openModal('Collector chat', 'Your conversations and trade updates will appear here once you join the marketplace.'); }
+  if (event.target.matches('.like')) { event.target.textContent = event.target.textContent === '♡' ? '♥' : '♡'; event.target.classList.toggle('liked'); }
   if (event.target.matches('[data-market]') || event.target.matches('[data-home]')) { activateNav(event.target.matches('[data-market]') ? 'market' : 'home'); activeCategory = 'All'; setQuery(''); renderCategories(); renderFeed(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
   if (event.target.matches('.close')) modal.close();
 });
 search.addEventListener('input', event => setQuery(event.target.value));
 document.querySelector('#clear-tags').addEventListener('click', () => setQuery(''));
+document.querySelector('#search-tab').addEventListener('click', () => { search.closest('.discovery').scrollIntoView({ behavior: 'smooth', block: 'center' }); search.focus(); });
+document.querySelector('#tags-tab').addEventListener('click', () => document.querySelector('#tags').scrollIntoView({ behavior: 'smooth', block: 'center' }));
 modal.addEventListener('click', event => { if (event.target === modal) modal.close(); });
 document.addEventListener('submit', event => { if (event.target.closest('#modal')) { event.preventDefault(); modalContent.innerHTML = '<h2 class="modal-title">You’re on the list.</h2><p class="modal-copy">Thanks for your interest. Collector Marketplace will be ready for your listing or trade details soon.</p>'; } });
 
