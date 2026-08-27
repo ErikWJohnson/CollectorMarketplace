@@ -17,15 +17,15 @@ function setQuery(query) { activeQuery = query; search.value = query; document.q
 function activateNav(name) { document.querySelectorAll('.bottom-nav button').forEach(button => button.classList.toggle('active', button.matches(`[data-${name}]`))); }
 
 document.addEventListener('click', event => {
-  const tag = event.target.closest('[data-query]'); const category = event.target.closest('[data-category]'); const detail = event.target.closest('[data-detail]'); const trade = event.target.closest('[data-trade]');
+  const tag = event.target.closest('[data-query]'); const category = event.target.closest('[data-category]'); const detail = event.target.closest('[data-detail]'); const trade = event.target.closest('[data-trade]'); const action = event.target.closest('[data-home],[data-market],[data-chat],[data-sell]');
   if (tag) setQuery(tag.dataset.query);
   if (category) { activeCategory = category.dataset.category; renderCategories(); renderFeed(); }
   if (detail) { const item = listings.find(row => row.id === detail.dataset.detail); openModal(item.title, item.description, `<div class="modal-form"><button data-trade="${item.id}">Make a trade offer</button></div>`); }
   if (trade) { const item = listings.find(row => row.id === trade.dataset.trade); openModal(`Trade for ${item.title}`, 'Send the owner a note about your offer. This static demo records no personal information.', '<form class="modal-form"><input required placeholder="Your offer"><button>Send trade interest</button></form>'); }
-  if (event.target.matches('[data-sell]')) { activateNav('sell'); openModal('List an item', 'Create your collector profile to publish listings and accept trade offers.', '<form class="modal-form"><input required placeholder="Your email"><button>Join the marketplace</button></form>'); }
-  if (event.target.matches('[data-chat]')) { activateNav('chat'); openModal('Collector chat', 'Your conversations and trade updates will appear here once you join the marketplace.'); }
-  if (event.target.matches('.like')) { event.target.textContent = event.target.textContent === '♡' ? '♥' : '♡'; event.target.classList.toggle('liked'); }
-  if (event.target.matches('[data-market]') || event.target.matches('[data-home]')) { activateNav(event.target.matches('[data-market]') ? 'market' : 'home'); activeCategory = 'All'; setQuery(''); renderCategories(); renderFeed(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  if (action?.matches('[data-sell]')) { activateNav('sell'); openModal('List an item', 'Create your collector profile to publish listings and accept trade offers.', '<form class="modal-form"><input required placeholder="Your email"><button>Join the marketplace</button></form>'); }
+  if (action?.matches('[data-chat]')) { activateNav('chat'); openModal('Collector chat', 'Your conversations and trade updates will appear here once you join the marketplace.'); }
+  if (event.target.closest('.like')) { const like = event.target.closest('.like'); like.textContent = like.textContent === '♡' ? '♥' : '♡'; like.classList.toggle('liked'); }
+  if (action?.matches('[data-market],[data-home]')) { activateNav(action.matches('[data-market]') ? 'market' : 'home'); activeCategory = 'All'; setQuery(''); renderCategories(); renderFeed(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
   if (event.target.matches('.close')) modal.close();
 });
 search.addEventListener('input', event => setQuery(event.target.value));
