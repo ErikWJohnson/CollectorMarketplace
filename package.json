@@ -1,0 +1,9 @@
+{
+  "name": "collector-marketplace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A social marketplace for collectors",
+  "main": "server.js",
+  "scripts": { "start": "node server.js", "dev": "node --watch server.js" },
+  "dependencies": { "express": "^4.21.2" }
+}
