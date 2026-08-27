@@ -1,43 +1,25 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#11120f">
-  <meta name="description" content="Collector Marketplace — buy, sell, and trade objects with a story.">
-  <title>Collector Marketplace</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="site.css">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#151515"><title>Collector Marketplace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono&family=DM+Sans:wght@400;600;700&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet"><link rel="stylesheet" href="site.css"><link rel="stylesheet" href="layout-fixes.css">
 </head>
 <body>
-  <header class="shell topbar">
-    <button class="brand" type="button" aria-label="Go to home" data-home><img src="public/wordmark.svg" alt="Collector Marketplace"></button>
-    <nav class="desktop-nav" aria-label="Primary"><button data-home>Browse</button><button data-market>Market</button><button data-chat>Chat</button><button class="join" data-sell>Sell an item</button></nav>
-  </header>
-
-  <main class="shell layout">
-    <section class="feed" aria-label="Marketplace listings">
-      <header class="intro"><p class="eyebrow">collector marketplace</p><h1>Find the next story.</h1><p>Rare cards, odd artifacts, and overlooked objects—kept in circulation by people who care.</p></header>
-      <section class="discovery" aria-label="Search and filter listings">
-        <label class="search"><span>⌕</span><input id="search" type="search" autocomplete="off" placeholder="Search the marketplace"></label>
-        <div class="label-row"><span>Collector tags</span><button class="clear" id="clear-tags" hidden>Clear</button></div>
-        <div class="tag-row" id="tags"><button data-query="NASA">#SpaceFinds</button><button data-query="Mickey">#SportsCards</button><button data-query="Comic">#Comics</button><button data-query="Polaroid">#Vintage</button><button data-query="Design">#RareBooks</button></div>
-        <div class="category-row" id="categories" aria-label="Categories"></div>
-      </section>
-      <div class="stream-head"><span>Fresh drops</span><span id="result-count"></span></div>
-      <div id="listing-stream" class="listing-stream"></div>
-      <div id="sentinel" class="load-state">Scroll for more finds ↓</div>
+  <div class="app-shell">
+    <header class="masthead"><img src="public/wordmark.svg" alt="Collector Marketplace"><button data-sell>＋</button></header>
+    <section class="mode-tabs"><button data-home>SEARCH</button><button data-market>TAGS</button></section>
+    <section class="discovery">
+      <label class="search"><span>⌕</span><input id="search" type="search" placeholder="Search collector finds"><button class="clear" id="clear-tags" hidden>×</button></label>
+      <div class="tag-row" id="tags"><button data-query="NASA">#SPACE</button><button data-query="Mickey">#CARDS</button><button data-query="Comic">#COMICS</button><button data-query="Polaroid">#VINTAGE</button><button data-query="Design">#BOOKS</button></div>
+      <div class="category-row" id="categories"></div>
     </section>
-
-    <aside class="sidebar">
-      <section class="side-card"><p class="eyebrow">Own the uncommon</p><h2>Built for collectors.</h2><p>Trade the things that deserve another chapter with people who see what makes them special.</p><button class="accent" data-sell>List an item</button></section>
-      <section class="side-card"><p class="eyebrow">Trending</p><ul id="trend-list"><li><button data-query="Mickey"><b>#</b> sports cards</button></li><li><button data-query="Polaroid"><b>#</b> vintage cameras</button></li><li><button data-query="NASA"><b>#</b> space memorabilia</button></li><li><button data-query="Comic"><b>#</b> sealed comics</button></li></ul></section>
-    </aside>
-  </main>
-
-  <nav class="bottom-nav" aria-label="Mobile navigation"><button class="active" data-home><b>◆</b>Browse</button><button data-market><b>▱</b>Market</button><button data-chat><b>▢</b>Chat</button><button data-sell><b>＋</b>Sell</button></nav>
+    <div class="market-head"><span>FRESH DROPS</span><span id="result-count"></span></div>
+    <main class="market-stage">
+      <aside class="ad ad-left">ADS</aside><section id="listing-stream" class="listing-stream" aria-label="Marketplace listings"></section><aside class="ad ad-right">ADS</aside>
+    </main>
+    <div id="sentinel" class="load-state">SCROLL FOR MORE FINDS ↓</div>
+    <nav class="bottom-nav" aria-label="Marketplace navigation"><button class="active" data-home><b>◇</b>Browse</button><button data-market><b>▱</b>Market</button><button data-chat><b>▣</b>Chat</button><button data-sell><b>$</b>Sell</button></nav>
+  </div>
   <dialog id="modal"><button class="close" aria-label="Close">×</button><div id="modal-content"></div></dialog>
   <script src="site.js"></script>
 </body>
