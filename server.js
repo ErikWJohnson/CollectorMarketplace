@@ -2,6 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const { MongoClient } = require('mongodb');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,9 +12,11 @@ const id = () => crypto.randomUUID();
 const now = () => new Date().toISOString();
 
 class Store {
-  constructor() { fs.mkdirSync(dataDir, { recursive: true }); this.data = this.load(); this.seedBrowseFeed(); this.save(); }
+  constructor() { fs.mkdirSync(dataDir, { recursive: true }); this.data = this.load(); this.seedBrowseFeed(); this.collection = null; this.writeQueue = Promise.resolve(); }
   load() {
-    if (fs.existsSync(dataFile)) return JSON.parse(fs.readFileSync(dataFile, 'utf8'));
+    if (fs.existsSync(dataFile)) {
+      try { return JSON.parse(fs.readFileSync(dataFile, 'utf8')); } catch { console.warn('Ignoring unreadable local marketplace data.'); }
+    }
     const demo = { id: id(), username: 'alexcollects', email: 'alex@collector.local', password: 'password123', avatar: 'AC', bio: 'Vintage paper, space-age objects, and things with a story.', reputation: 98, following: [], createdAt: now() };
     const listings = [
       { id: id(), ownerId: demo.id, title: '1976 NASA Viking Mission Patch', description: 'Original woven patch, excellent condition. A beautiful piece of space history.', category: 'Memorabilia', price: 85, tradeOffer: true, images: ['https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&w=1000&q=80'], status: 'active', likes: [], createdAt: now() },
@@ -35,7 +38,28 @@ class Store {
       this.data.listings.push(listing); this.data.activities.unshift({ id: id(), type: 'listing', userId: owner.id, listingId: listing.id, createdAt: listing.createdAt });
     });
   }
-  save() { fs.writeFileSync(dataFile, JSON.stringify(this.data, null, 2)); }
+  async initialize() {
+    const uri = process.env.MONGODB_URI;
+    if (!uri) {
+      if (process.env.NODE_ENV === 'production') throw new Error('MONGODB_URI is required in production. Add it in Render Environment settings.');
+      console.warn('MONGODB_URI is not set; using local development data.');
+      this.save();
+      return;
+    }
+    const client = new MongoClient(uri);
+    await client.connect();
+    this.collection = client.db(process.env.MONGODB_DB || 'collector_marketplace').collection('marketplace_state');
+    const saved = await this.collection.findOne({ _id: 'primary' });
+    if (saved?.data) this.data = saved.data;
+    this.seedBrowseFeed();
+    await this.save();
+    console.log('Connected to MongoDB.');
+  }
+  save() {
+    fs.writeFileSync(dataFile, JSON.stringify(this.data, null, 2));
+    if (this.collection) this.writeQueue = this.writeQueue.then(() => this.collection.updateOne({ _id: 'primary' }, { $set: { data: this.data, updatedAt: now() } }, { upsert: true })).catch(error => console.error('MongoDB save failed:', error));
+    return this.writeQueue;
+  }
 }
 const store = new Store();
 app.use(express.json({ limit: '1mb' }));
@@ -96,4 +120,13 @@ app.get('/:asset', (req, res, next) => {
   return res.sendFile(path.join(__dirname, req.params.asset));
 });
 
-app.listen(PORT, () => console.log(`Collector Marketplace running at http://localhost:${PORT}`));
+async function start() {
+  try {
+    await store.initialize();
+    app.listen(PORT, () => console.log(`Collector Marketplace running at http://localhost:${PORT}`));
+  } catch (error) {
+    console.error('Collector Marketplace could not start:', error.message);
+    process.exit(1);
+  }
+}
+start();
