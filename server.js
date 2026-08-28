@@ -2,7 +2,6 @@ const express = require('express');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
-const mongoose = require('mongoose');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,15 +9,9 @@ const dataDir = path.join(__dirname, 'data');
 const dataFile = path.join(dataDir, 'store.json');
 const id = () => crypto.randomUUID();
 const now = () => new Date().toISOString();
-const marketplaceStateSchema = new mongoose.Schema({
-  _id: String,
-  data: { type: mongoose.Schema.Types.Mixed, required: true },
-  updatedAt: String
-}, { collection: 'marketplace_state', versionKey: false });
-const MarketplaceState = mongoose.models.MarketplaceState || mongoose.model('MarketplaceState', marketplaceStateSchema);
 
 class Store {
-  constructor() { fs.mkdirSync(dataDir, { recursive: true }); this.data = this.load(); this.seedBrowseFeed(); this.model = null; this.writeQueue = Promise.resolve(); }
+  constructor() { fs.mkdirSync(dataDir, { recursive: true }); this.data = this.load(); this.seedBrowseFeed(); this.save(); }
   load() {
     if (fs.existsSync(dataFile)) {
       try { return JSON.parse(fs.readFileSync(dataFile, 'utf8')); } catch { console.warn('Ignoring unreadable local marketplace data.'); }
@@ -44,27 +37,7 @@ class Store {
       this.data.listings.push(listing); this.data.activities.unshift({ id: id(), type: 'listing', userId: owner.id, listingId: listing.id, createdAt: listing.createdAt });
     });
   }
-  async initialize() {
-    const uri = process.env.MONGODB_URI;
-    if (!uri) {
-      if (process.env.NODE_ENV === 'production') throw new Error('MONGODB_URI is required in production. Add it in Render Environment settings.');
-      console.warn('MONGODB_URI is not set; using local development data.');
-      this.save();
-      return;
-    }
-    await mongoose.connect(uri, { dbName: process.env.MONGODB_DB || 'collector_marketplace' });
-    this.model = MarketplaceState;
-    const saved = await this.model.findById('primary').lean();
-    if (saved?.data) this.data = saved.data;
-    this.seedBrowseFeed();
-    await this.save();
-    console.log('Connected to MongoDB.');
-  }
-  save() {
-    fs.writeFileSync(dataFile, JSON.stringify(this.data, null, 2));
-    if (this.model) this.writeQueue = this.writeQueue.then(() => this.model.findByIdAndUpdate('primary', { data: this.data, updatedAt: now() }, { upsert: true, setDefaultsOnInsert: true })).catch(error => console.error('MongoDB save failed:', error));
-    return this.writeQueue;
-  }
+  save() { fs.writeFileSync(dataFile, JSON.stringify(this.data, null, 2)); }
 }
 const store = new Store();
 app.use(express.json({ limit: '1mb' }));
@@ -125,13 +98,4 @@ app.get('/:asset', (req, res, next) => {
   return res.sendFile(path.join(__dirname, req.params.asset));
 });
 
-async function start() {
-  try {
-    await store.initialize();
-    app.listen(PORT, () => console.log(`Collector Marketplace running at http://localhost:${PORT}`));
-  } catch (error) {
-    console.error('Collector Marketplace could not start:', error.message);
-    process.exit(1);
-  }
-}
-start();
+app.listen(PORT, () => console.log(`Collector Marketplace running at http://localhost:${PORT}`));
