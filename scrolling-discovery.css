@@ -1,2 +1,2 @@
-/* Keep the Search and Tags controls directly below the sticky header. */
-.mode-tabs{position:sticky;top:58px;z-index:80}.discovery{position:sticky;top:100px;z-index:79;box-shadow:0 5px 12px #111b}@media(max-width:680px){.mode-tabs{top:52px}.discovery{top:90px}}
+/* Search and Tags scroll naturally with the rest of the page. */
+.mode-tabs,.discovery{position:relative;top:auto;z-index:auto}.discovery{box-shadow:none}
