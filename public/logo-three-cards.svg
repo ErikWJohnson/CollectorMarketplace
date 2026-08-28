@@ -9,3 +9,8 @@
 
     <!-- Middle card -->
     <rect x="34" y="24" width="34" height="46" rx="6" transform="rotate(13 34 24)"/>
+
+    <!-- Front card -->
+    <rect x="49" y="30" width="34" height="46" rx="6" transform="rotate(31 49 30)"/>
+  </g>
+</svg>
