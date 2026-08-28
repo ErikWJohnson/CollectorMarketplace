@@ -4,7 +4,7 @@ const categories = document.querySelector('#categories');
 const sentinel = document.querySelector('#sentinel');
 const modal = document.querySelector('#modal');
 const modalContent = document.querySelector('#modal-content');
-let listings = [], activeCategory = 'All', activeQuery = '', page = 1, observer;
+let listings = [], auctions = [], activeCategory = 'All', activeQuery = '', page = 1, observer;
 
 const safe = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const filtered = () => listings.filter(item => (activeCategory === 'All' || item.category === activeCategory) && `${item.title} ${item.description} ${item.tag}`.toLowerCase().includes(activeQuery.toLowerCase()));
@@ -26,19 +26,22 @@ function updateFeeSummary() {
 }
 function setQuery(query) { activeQuery = query; search.value = query; document.querySelector('#clear-tags').hidden = !query; document.querySelectorAll('[data-query]').forEach(button => button.classList.toggle('active', button.dataset.query === query)); renderFeed(); }
 function activateNav(name) { document.querySelectorAll('.bottom-nav button').forEach(button => button.classList.toggle('active', button.matches(`[data-${name}]`))); }
+function showAuctionHouse() { if (observer) observer.disconnect(); sentinel.hidden = true; stream.innerHTML = `<section class="auction-house"><header class="auction-head"><div><p>Live bidding</p><h1>Auction House</h1></div><p>${auctions.length} active lots</p></header><div class="auction-grid">${auctions.map(lot => `<article class="auction-card"><img src="${safe(lot.image)}" alt="${safe(lot.title)}"><div class="auction-info"><h2>${safe(lot.title)}</h2><p>${safe(lot.category)}</p><div class="auction-stats"><div>Current bid<strong>${money(lot.currentBid)}</strong></div><div>Ends in<strong>${safe(lot.ends)}</strong></div><div>${lot.bids} bids</div></div><button class="auction-bid" data-bid="${lot.id}">Place bid</button></div></article>`).join('')}</div></section>`; window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
 document.addEventListener('click', event => {
-  const tag = event.target.closest('[data-query]'); const category = event.target.closest('[data-category]'); const detail = event.target.closest('[data-detail]'); const trade = event.target.closest('[data-trade]'); const action = event.target.closest('[data-home],[data-market],[data-chat],[data-sell],[data-policy]');
+  const tag = event.target.closest('[data-query]'); const category = event.target.closest('[data-category]'); const detail = event.target.closest('[data-detail]'); const trade = event.target.closest('[data-trade]'); const action = event.target.closest('[data-home],[data-market],[data-auction],[data-chat],[data-sell],[data-policy]');
   if (tag) setQuery(tag.dataset.query);
   if (category) { activeCategory = category.dataset.category; renderCategories(); renderFeed(); }
   if (detail) { const item = listings.find(row => row.id === detail.dataset.detail); openModal(item.title, item.description, `<div class="modal-form"><button data-trade="${item.id}">Make a trade offer</button></div>`); }
   if (trade) { const item = listings.find(row => row.id === trade.dataset.trade); openModal(`Trade for ${item.title}`, 'Each side is shown its own valuation fee. Curator pricing applies only to the member’s side.', feeCalculator(item, 'trade')); updateFeeSummary(); }
   const purchase = event.target.closest('[data-purchase]'); if (purchase) { const item = listings.find(row => row.id === purchase.dataset.purchase); openModal(`Buy ${item.title}`, 'Both buyer and seller pay their own marketplace fee. Your purchase will open delivery chat for follow-up and confirmation.', feeCalculator(item, 'purchase')); updateFeeSummary(); }
+  const bid = event.target.closest('[data-bid]'); if (bid) { const lot = auctions.find(row => row.id === bid.dataset.bid); openModal(`Bid on ${lot.title}`, `Current bid: ${money(lot.currentBid)}. Bids are binding only after you confirm the transaction terms.`, `<form class="modal-form"><input required type="number" min="${lot.currentBid + 1}" placeholder="Minimum bid ${lot.currentBid + 1}"><button>Place bid</button></form>`); }
   if (action?.matches('[data-sell]')) { activateNav('sell'); openModal('List an item', 'Create your collector profile to publish listings and accept trade offers.', '<form class="modal-form"><input required placeholder="Your email"><button>Join the marketplace</button></form>'); }
   if (action?.matches('[data-chat]')) { activateNav('chat'); openModal('Collector chat', 'Your conversations and trade updates will appear here once you join the marketplace.'); }
   if (action?.matches('[data-policy]')) openModal('Marketplace fees', 'Standard purchase fees are 4% per side. Curator members pay 1% on their own side for $150/month. Buyers pay taxes and delivery; courier pay is the greater of $15 or 0.5% of valuation, plus packaging. Transaction and delivery terms are policy drafts pending legal review.');
+  if (action?.matches('[data-auction]')) { activateNav('auction'); showAuctionHouse(); }
   if (event.target.closest('.like')) { const like = event.target.closest('.like'); like.textContent = like.textContent === '♡' ? '♥' : '♡'; like.classList.toggle('liked'); }
-  if (action?.matches('[data-market],[data-home]')) { activateNav(action.matches('[data-market]') ? 'market' : 'home'); activeCategory = 'All'; setQuery(''); renderCategories(); renderFeed(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  if (action?.matches('[data-market],[data-home]')) { activateNav(action.matches('[data-market]') ? 'market' : 'home'); sentinel.hidden = false; activeCategory = 'All'; setQuery(''); renderCategories(); renderFeed(); if (observer) observer.observe(sentinel); window.scrollTo({ top: 0, behavior: 'smooth' }); }
   if (event.target.matches('.close')) modal.close();
 });
 search.addEventListener('input', event => setQuery(event.target.value));
@@ -49,4 +52,4 @@ modal.addEventListener('click', event => { if (event.target === modal) modal.clo
 document.addEventListener('submit', event => { if (event.target.closest('#modal')) { event.preventDefault(); modalContent.innerHTML = '<h2 class="modal-title">You’re on the list.</h2><p class="modal-copy">Thanks for your interest. Collector Marketplace will be ready for your listing or trade details soon.</p>'; } });
 document.addEventListener('input', event => { if (event.target.closest('.fee-calculator')) updateFeeSummary(); });
 
-fetch('data/listings.json').then(response => response.json()).then(data => { listings = data.sort((a, b) => a.id === 'mantle' ? -1 : b.id === 'mantle' ? 1 : 0); renderCategories(); renderFeed(); observer = new IntersectionObserver(entries => { if (entries[0].isIntersecting && page * 4 < filtered().length) { page++; renderFeed(false); } }, { rootMargin: '250px' }); observer.observe(sentinel); }).catch(() => { stream.innerHTML = '<p class="load-state">The marketplace feed could not load. Please refresh the page.</p>'; });
+Promise.all([fetch('data/listings.json').then(response => response.json()), fetch('data/auctions.json').then(response => response.json())]).then(([listingData, auctionData]) => { listings = listingData.sort((a, b) => a.id === 'mantle' ? -1 : b.id === 'mantle' ? 1 : 0); auctions = auctionData; renderCategories(); renderFeed(); observer = new IntersectionObserver(entries => { if (entries[0].isIntersecting && page * 4 < filtered().length) { page++; renderFeed(false); } }, { rootMargin: '250px' }); observer.observe(sentinel); }).catch(() => { stream.innerHTML = '<p class="load-state">The marketplace feed could not load. Please refresh the page.</p>'; });

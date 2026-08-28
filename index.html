@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#151515"><title>Collector Marketplace</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono&family=DM+Sans:wght@400;600;700&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet"><link rel="stylesheet" href="site.css"><link rel="stylesheet" href="layout-fixes.css"><link rel="stylesheet" href="full-width.css"><link rel="stylesheet" href="immersive-feed.css"><link rel="stylesheet" href="persistent-dock.css"><link rel="stylesheet" href="marketplace-policy.css"><link rel="stylesheet" href="post-fill.css"><link rel="stylesheet" href="full-image.css"><link rel="stylesheet" href="header-optimized.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono&family=DM+Sans:wght@400;600;700&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet"><link rel="stylesheet" href="site.css"><link rel="stylesheet" href="layout-fixes.css"><link rel="stylesheet" href="full-width.css"><link rel="stylesheet" href="immersive-feed.css"><link rel="stylesheet" href="persistent-dock.css"><link rel="stylesheet" href="marketplace-policy.css"><link rel="stylesheet" href="post-fill.css"><link rel="stylesheet" href="full-image.css"><link rel="stylesheet" href="header-optimized.css"><link rel="stylesheet" href="auction-house.css">
 </head>
 <body>
   <div class="app-shell">
-    <header class="masthead"><div class="brand-group"><img src="public/logo-three-cards.svg" alt="Collector Marketplace logo"><div class="mast-word"><small>Collector’s</small><strong>Marketplace</strong></div></div><nav class="header-nav" aria-label="Website navigation"><button data-home>Browse</button><button data-market>Market</button><button data-policy>Fees</button></nav><button class="header-sell" data-sell>List item</button></header>
+    <header class="masthead"><div class="brand-group"><img src="public/logo-three-cards.svg" alt="Collector Marketplace logo"><div class="mast-word"><small>Collector’s</small><strong>Marketplace</strong></div></div><nav class="header-nav" aria-label="Website navigation"><button data-home>Browse</button><button data-auction>Auction House</button><button data-policy>Fees</button></nav><button class="header-sell" data-sell>List item</button></header>
     <section class="mode-tabs"><button id="search-tab">SEARCH</button><button id="tags-tab">TAGS</button></section>
     <section class="discovery">
       <label class="search"><span>⌕</span><input id="search" type="search" placeholder="Search collector finds"><button class="clear" id="clear-tags" hidden>×</button></label>
@@ -18,7 +18,7 @@
       <aside class="ad ad-left">ADS</aside><section id="listing-stream" class="listing-stream" aria-label="Marketplace listings"></section><aside class="ad ad-right">ADS</aside>
     </main>
     <div id="sentinel" class="load-state">SCROLL FOR MORE FINDS ↓</div>
-    <nav class="bottom-nav" aria-label="Marketplace navigation"><button class="active" data-home><b>◇</b>Browse</button><button data-market><b>▱</b>Market</button><button data-chat><b>▣</b>Chat</button><button data-sell><b>$</b>Sell</button></nav>
+    <nav class="bottom-nav" aria-label="Marketplace navigation"><button class="active" data-home><b>◇</b>Browse</button><button data-auction><b>⌂</b>Auction</button><button data-chat><b>▣</b>Chat</button><button data-sell><b>$</b>Sell</button></nav>
   </div>
   <dialog id="modal"><button class="close" aria-label="Close">×</button><div id="modal-content"></div></dialog>
   <script src="site.js"></script>
