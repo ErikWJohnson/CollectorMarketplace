@@ -1,0 +1,2 @@
+/* Undo the legacy absolute positioning applied to every header button. */
+.masthead .header-nav button,.masthead .header-sell{position:static!important;top:auto!important;right:auto!important;width:auto!important;height:auto!important;margin:0!important}.masthead .header-nav{position:static;display:flex;align-items:center;margin-left:auto}.masthead .header-sell{align-self:center}
