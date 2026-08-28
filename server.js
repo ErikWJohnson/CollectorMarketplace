@@ -12,7 +12,8 @@ const id = () => crypto.randomUUID();
 const now = () => new Date().toISOString();
 
 class Store {
-  constructor() { fs.mkdirSync(dataDir, { recursive: true }); this.data = this.load(); this.seedBrowseFeed(); this.pool = null; this.writeQueue = Promise.resolve(); }
+  constructor() { fs.mkdirSync(dataDir, { recursive: true }); this.data = this.load(); this.ensureData(); this.seedBrowseFeed(); this.pool = null; this.writeQueue = Promise.resolve(); }
+  ensureData() { ['users', 'listings', 'comments', 'trades', 'notifications', 'activities', 'deliveries'].forEach(key => { if (!Array.isArray(this.data[key])) this.data[key] = []; }); }
   load() {
     if (fs.existsSync(dataFile)) {
       try { return JSON.parse(fs.readFileSync(dataFile, 'utf8')); } catch { console.warn('Ignoring unreadable local marketplace data.'); }
@@ -22,7 +23,7 @@ class Store {
       { id: id(), ownerId: demo.id, title: '1976 NASA Viking Mission Patch', description: 'Original woven patch, excellent condition. A beautiful piece of space history.', category: 'Memorabilia', price: 85, tradeOffer: true, images: ['https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&w=1000&q=80'], status: 'active', likes: [], createdAt: now() },
       { id: id(), ownerId: demo.id, title: 'First Edition Design Annual', description: 'A sharp, colorful book from a beloved era of graphic design.', category: 'Books', price: 45, tradeOffer: false, images: ['https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&w=1000&q=80'], status: 'active', likes: [], createdAt: now() }
     ];
-    return { users: [demo], listings, comments: [], trades: [], notifications: [], activities: listings.map(l => ({ id: id(), type: 'listing', userId: demo.id, listingId: l.id, createdAt: l.createdAt })) };
+    return { users: [demo], listings, comments: [], trades: [], deliveries: [], notifications: [], activities: listings.map(l => ({ id: id(), type: 'listing', userId: demo.id, listingId: l.id, createdAt: l.createdAt })) };
   }
   seedBrowseFeed() {
     if (this.data.listings.length >= 6) return;
@@ -48,6 +49,7 @@ class Store {
     await this.pool.query('CREATE TABLE IF NOT EXISTS marketplace_state (id TEXT PRIMARY KEY, data JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())');
     const result = await this.pool.query('SELECT data FROM marketplace_state WHERE id = $1', ['primary']);
     if (result.rows[0]?.data) this.data = result.rows[0].data;
+    this.ensureData();
     this.seedBrowseFeed();
     await this.save();
     console.log('Connected to collector-db.');
@@ -93,6 +95,28 @@ app.get('/comments/:listingId', (req, res) => res.json(store.data.comments.filte
 app.post('/trade', required, (req, res) => { const { receiverId, listingId, offerDetails } = req.body; const listing = store.data.listings.find(l => l.id === listingId); if (!listing || !offerDetails?.trim()) return res.status(400).json({ error: 'Valid listing and offer details required' }); if (listing.ownerId !== receiverId || receiverId === req.user.id) return res.status(400).json({ error: 'Invalid trade recipient' }); const trade = { id: id(), senderId: req.user.id, receiverId, listingId, offerDetails: offerDetails.trim(), status: 'pending', messages: [], createdAt: now() }; store.data.trades.unshift(trade); notify(receiverId, 'trade', `${req.user.username} sent a trade offer for “${listing.title}”`, `/trade/${trade.id}`); activity('trade', req.user.id, { listingId, tradeId: trade.id }); store.save(); res.status(201).json(trade); });
 app.get('/trade/:id', required, (req, res) => { const trade = store.data.trades.find(t => t.id === req.params.id); if (!trade || (trade.senderId !== req.user.id && trade.receiverId !== req.user.id)) return res.status(404).json({ error: 'Trade not found' }); res.json(trade); });
 app.put('/trade/:id', required, (req, res) => { const trade = store.data.trades.find(t => t.id === req.params.id); if (!trade || (trade.senderId !== req.user.id && trade.receiverId !== req.user.id)) return res.status(404).json({ error: 'Trade not found' }); const { status, message } = req.body; if (status && !['pending','accepted','declined','completed'].includes(status)) return res.status(400).json({ error: 'Invalid status' }); if (status) { trade.status = status; if (status === 'completed') { const l = store.data.listings.find(l => l.id === trade.listingId); if (l) l.status = 'traded'; } notify(trade.senderId === req.user.id ? trade.receiverId : trade.senderId, 'trade', `${req.user.username} marked the trade ${status}`, `/trade/${trade.id}`); } if (message?.trim()) trade.messages.push({ id: id(), senderId: req.user.id, body: message.trim(), createdAt: now() }); store.save(); res.json(trade); });
+
+function deliveryView(delivery, userId) { const listing = store.data.listings.find(row => row.id === delivery.listingId); const buyer = store.data.users.find(row => row.id === delivery.buyerId); const seller = store.data.users.find(row => row.id === delivery.sellerId); return { ...delivery, listing, buyer: publicUser(buyer), seller: publicUser(seller), shippingAddress: delivery.buyerId === userId || delivery.sellerId === userId ? delivery.shippingAddress : undefined }; }
+app.post('/purchase', required, (req, res) => {
+  const { listingId, shippingAddress } = req.body;
+  const listing = store.data.listings.find(row => row.id === listingId && row.status === 'active');
+  if (!listing) return res.status(404).json({ error: 'Active listing not found' });
+  if (listing.ownerId === req.user.id) return res.status(400).json({ error: 'You cannot purchase your own listing' });
+  if (!shippingAddress?.trim()) return res.status(400).json({ error: 'A delivery address is required' });
+  const delivery = { id: id(), listingId: listing.id, buyerId: req.user.id, sellerId: listing.ownerId, shippingAddress: shippingAddress.trim(), status: 'awaiting_seller_dispatch', courier: '', trackingNumber: '', messages: [], createdAt: now(), updatedAt: now() };
+  listing.status = 'pending_delivery'; store.data.deliveries.unshift(delivery); notify(listing.ownerId, 'delivery', `${req.user.username} started a purchase delivery for “${listing.title}”`, `/delivery/${delivery.id}`); activity('purchase', req.user.id, { listingId: listing.id, deliveryId: delivery.id }); store.save(); res.status(201).json(deliveryView(delivery, req.user.id));
+});
+app.get('/deliveries', required, (req, res) => res.json(store.data.deliveries.filter(row => row.buyerId === req.user.id || row.sellerId === req.user.id).map(row => deliveryView(row, req.user.id))));
+app.get('/delivery/:id', required, (req, res) => { const delivery = store.data.deliveries.find(row => row.id === req.params.id); if (!delivery || (delivery.buyerId !== req.user.id && delivery.sellerId !== req.user.id)) return res.status(404).json({ error: 'Delivery not found' }); res.json(deliveryView(delivery, req.user.id)); });
+app.put('/delivery/:id', required, (req, res) => {
+  const delivery = store.data.deliveries.find(row => row.id === req.params.id); if (!delivery || (delivery.buyerId !== req.user.id && delivery.sellerId !== req.user.id)) return res.status(404).json({ error: 'Delivery not found' });
+  const sellerStatuses = ['packed', 'picked_up', 'in_transit']; const buyerStatuses = ['issue_reported']; const { status, courier, trackingNumber } = req.body;
+  if (status && !sellerStatuses.includes(status) && !(delivery.buyerId === req.user.id && buyerStatuses.includes(status))) return res.status(403).json({ error: 'This delivery update is not allowed' });
+  if (status) delivery.status = status; if (delivery.sellerId === req.user.id) { if (courier !== undefined) delivery.courier = String(courier); if (trackingNumber !== undefined) delivery.trackingNumber = String(trackingNumber); }
+  delivery.updatedAt = now(); const otherUser = delivery.buyerId === req.user.id ? delivery.sellerId : delivery.buyerId; notify(otherUser, 'delivery', `${req.user.username} updated delivery status to ${delivery.status.replaceAll('_', ' ')}`, `/delivery/${delivery.id}`); store.save(); res.json(deliveryView(delivery, req.user.id));
+});
+app.post('/delivery/:id/confirm', required, (req, res) => { const delivery = store.data.deliveries.find(row => row.id === req.params.id); if (!delivery || delivery.buyerId !== req.user.id) return res.status(404).json({ error: 'Delivery not found' }); delivery.status = 'completed'; delivery.updatedAt = now(); const listing = store.data.listings.find(row => row.id === delivery.listingId); if (listing) listing.status = 'sold'; notify(delivery.sellerId, 'delivery', `${req.user.username} confirmed delivery for “${listing?.title || 'your listing'}”`, `/delivery/${delivery.id}`); store.save(); res.json(deliveryView(delivery, req.user.id)); });
+app.post('/delivery/:id/messages', required, (req, res) => { const delivery = store.data.deliveries.find(row => row.id === req.params.id); if (!delivery || (delivery.buyerId !== req.user.id && delivery.sellerId !== req.user.id)) return res.status(404).json({ error: 'Delivery not found' }); if (!req.body.body?.trim()) return res.status(400).json({ error: 'A message is required' }); const message = { id: id(), senderId: req.user.id, body: req.body.body.trim(), createdAt: now() }; delivery.messages.push(message); delivery.updatedAt = now(); notify(delivery.buyerId === req.user.id ? delivery.sellerId : delivery.buyerId, 'delivery_message', `${req.user.username} sent a delivery message`, `/delivery/${delivery.id}`); store.save(); res.status(201).json(message); });
 app.get('/feed/global', (req, res) => res.json(store.data.activities.slice(0, 50).map(a => ({ ...a, user: publicUser(store.data.users.find(u => u.id === a.userId)), listing: a.listingId ? store.data.listings.find(l => l.id === a.listingId) : null }))));
 app.get('/feed/user/:id', (req, res) => { const user = store.data.users.find(u => u.id === req.params.id); if (!user) return res.status(404).json({ error: 'User not found' }); const people = new Set([user.id, ...user.following]); res.json(store.data.activities.filter(a => people.has(a.userId)).slice(0, 50).map(a => ({ ...a, user: publicUser(store.data.users.find(u => u.id === a.userId)), listing: a.listingId ? store.data.listings.find(l => l.id === a.listingId) : null }))); });
 app.get('/notifications', required, (req, res) => res.json(store.data.notifications.filter(n => n.userId === req.user.id)));
