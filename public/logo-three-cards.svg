@@ -1,9 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96" fill="none">
+  <!-- Background -->
   <rect x="2" y="2" width="92" height="92" rx="28" fill="#050505"/>
-  <g stroke="#F1EFE7" stroke-width="4.5" stroke-linejoin="round" fill="none">
-    <rect x="22" y="28" width="34" height="46" rx="6" transform="rotate(-8 22 28)"/>
-    <rect x="34" y="24" width="34" height="46" rx="6" transform="rotate(13 34 24)"/>
-    <rect x="49" y="30" width="34" height="46" rx="6" transform="rotate(31 49 30)"/>
-  </g>
-</svg>
 
+  <!-- Cards -->
+  <g stroke="#F1EFE7" stroke-width="4.5" stroke-linejoin="round">
+    <!-- Card 1 -->
+    <rect x="22" y="28" width="34" height="46" rx="6" transform="rotate(-8 22 28)" fill="none"/>
+
+    <!-- Card 2 -->
+    <rect x="34" y="24" width="34" height="46" rx="6" transform="rotate(13 34 24)" fill="none"/>
+
+    <!-- Card 3 (FILLED IN) -->
