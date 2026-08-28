@@ -2,7 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
-const { MongoClient } = require('mongodb');
+const mongoose = require('mongoose');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,9 +10,15 @@ const dataDir = path.join(__dirname, 'data');
 const dataFile = path.join(dataDir, 'store.json');
 const id = () => crypto.randomUUID();
 const now = () => new Date().toISOString();
+const marketplaceStateSchema = new mongoose.Schema({
+  _id: String,
+  data: { type: mongoose.Schema.Types.Mixed, required: true },
+  updatedAt: String
+}, { collection: 'marketplace_state', versionKey: false });
+const MarketplaceState = mongoose.models.MarketplaceState || mongoose.model('MarketplaceState', marketplaceStateSchema);
 
 class Store {
-  constructor() { fs.mkdirSync(dataDir, { recursive: true }); this.data = this.load(); this.seedBrowseFeed(); this.collection = null; this.writeQueue = Promise.resolve(); }
+  constructor() { fs.mkdirSync(dataDir, { recursive: true }); this.data = this.load(); this.seedBrowseFeed(); this.model = null; this.writeQueue = Promise.resolve(); }
   load() {
     if (fs.existsSync(dataFile)) {
       try { return JSON.parse(fs.readFileSync(dataFile, 'utf8')); } catch { console.warn('Ignoring unreadable local marketplace data.'); }
@@ -46,10 +52,9 @@ class Store {
       this.save();
       return;
     }
-    const client = new MongoClient(uri);
-    await client.connect();
-    this.collection = client.db(process.env.MONGODB_DB || 'collector_marketplace').collection('marketplace_state');
-    const saved = await this.collection.findOne({ _id: 'primary' });
+    await mongoose.connect(uri, { dbName: process.env.MONGODB_DB || 'collector_marketplace' });
+    this.model = MarketplaceState;
+    const saved = await this.model.findById('primary').lean();
     if (saved?.data) this.data = saved.data;
     this.seedBrowseFeed();
     await this.save();
@@ -57,7 +62,7 @@ class Store {
   }
   save() {
     fs.writeFileSync(dataFile, JSON.stringify(this.data, null, 2));
-    if (this.collection) this.writeQueue = this.writeQueue.then(() => this.collection.updateOne({ _id: 'primary' }, { $set: { data: this.data, updatedAt: now() } }, { upsert: true })).catch(error => console.error('MongoDB save failed:', error));
+    if (this.model) this.writeQueue = this.writeQueue.then(() => this.model.findByIdAndUpdate('primary', { data: this.data, updatedAt: now() }, { upsert: true, setDefaultsOnInsert: true })).catch(error => console.error('MongoDB save failed:', error));
     return this.writeQueue;
   }
 }
