@@ -1,0 +1,2 @@
+/* Keep discovery controls available while browsing the feed. */
+.mode-tabs{position:sticky;top:0;z-index:80}.discovery{position:sticky;top:42px;z-index:79;box-shadow:0 5px 12px #111b}@media(max-width:680px){.discovery{top:38px}}
