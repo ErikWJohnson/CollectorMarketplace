@@ -14,3 +14,20 @@
     flex-basis: 34px;
   }
 }
+
+.mast-word a {
+  color: #f4f1e9;
+  font: 700 15px "DM Mono";
+  letter-spacing: 1px;
+  text-decoration: none;
+  text-shadow: 1px 1px #8ca1bd;
+}
+
+.mast-word a:hover,
+.mast-word a:focus-visible {
+  color: #f3cf58;
+}
+
+@media (max-width: 680px) {
+  .mast-word a { font-size: 13px; }
+}
