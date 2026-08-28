@@ -47,8 +47,9 @@ document.addEventListener('click', event => {
 });
 search.addEventListener('input', event => setQuery(event.target.value));
 document.querySelector('#clear-tags').addEventListener('click', () => setQuery(''));
-document.querySelector('#search-tab').addEventListener('click', () => { search.closest('.discovery').scrollIntoView({ behavior: 'smooth', block: 'center' }); search.focus(); });
-document.querySelector('#tags-tab').addEventListener('click', () => document.querySelector('#tags').scrollIntoView({ behavior: 'smooth', block: 'center' }));
+function setDiscoveryMode(mode) { const discovery = search.closest('.discovery'); discovery.classList.toggle('mode-search', mode === 'search'); discovery.classList.toggle('mode-tags', mode === 'tags'); document.querySelector('#search-tab').classList.toggle('is-active', mode === 'search'); document.querySelector('#tags-tab').classList.toggle('is-active', mode === 'tags'); }
+document.querySelector('#search-tab').addEventListener('click', () => { setDiscoveryMode('search'); search.focus(); });
+document.querySelector('#tags-tab').addEventListener('click', () => { setDiscoveryMode('tags'); document.querySelector('#tags').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); });
 modal.addEventListener('click', event => { if (event.target === modal) modal.close(); });
 document.addEventListener('submit', event => { if (event.target.closest('#modal')) { event.preventDefault(); const trade = event.target.matches('.fee-calculator[data-type="trade"]'); const purchase = event.target.matches('.fee-calculator[data-type="purchase"]'); modalContent.innerHTML = trade ? '<h2 class="modal-title">Trade offer sent.</h2><p class="modal-copy">Your offer is pending with the collector. A trade chat is now open for delivery details and follow-up.</p>' : purchase ? '<h2 class="modal-title">Purchase review saved.</h2><p class="modal-copy">Your estimate is ready. Payment and fees are collected only when a purchase is confirmed.</p>' : '<h2 class="modal-title">You’re on the list.</h2><p class="modal-copy">Thanks for your interest. Collector Marketplace will be ready for your listing or trade details soon.</p>'; } });
 document.addEventListener('input', event => { if (event.target.closest('.fee-calculator')) updateFeeSummary(); });
