@@ -1,0 +1,2 @@
+/* Preserve each listing image's complete aspect ratio. */
+.media{background:#090909}.media img{object-fit:contain!important;background:#090909}
