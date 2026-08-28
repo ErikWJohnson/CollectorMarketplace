@@ -17,7 +17,7 @@ Dark, collector-first marketplace for buying, selling, and trading objects with 
 3. Confirm the service health check at `https://YOUR-RENDER-URL/healthz` returns `{ "ok": true }`.
 4. Add `collectormarketplace.net` as the custom domain in Render and follow its DNS instructions.
 
-The server currently uses `data/store.json` for its API data. Render's default filesystem is temporary, so account, comment, listing, and trade API data can reset after a deploy or restart.
+Render injects `DATABASE_URL` from the existing `collector-db` Postgres instance. The server stores account, listing, comment, trade, notification, and feed API state in that database. Local development falls back to `data/store.json` when no `DATABASE_URL` is set.
 
 ## Repository layout
 

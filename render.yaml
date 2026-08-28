@@ -5,3 +5,8 @@ services:
     buildCommand: npm ci
     startCommand: npm start
     healthCheckPath: /healthz
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: collector-db
+          property: connectionString

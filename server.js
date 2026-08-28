@@ -2,6 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const { Pool } = require('pg');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,7 +12,7 @@ const id = () => crypto.randomUUID();
 const now = () => new Date().toISOString();
 
 class Store {
-  constructor() { fs.mkdirSync(dataDir, { recursive: true }); this.data = this.load(); this.seedBrowseFeed(); this.save(); }
+  constructor() { fs.mkdirSync(dataDir, { recursive: true }); this.data = this.load(); this.seedBrowseFeed(); this.pool = null; this.writeQueue = Promise.resolve(); }
   load() {
     if (fs.existsSync(dataFile)) {
       try { return JSON.parse(fs.readFileSync(dataFile, 'utf8')); } catch { console.warn('Ignoring unreadable local marketplace data.'); }
@@ -37,11 +38,29 @@ class Store {
       this.data.listings.push(listing); this.data.activities.unshift({ id: id(), type: 'listing', userId: owner.id, listingId: listing.id, createdAt: listing.createdAt });
     });
   }
-  save() { fs.writeFileSync(dataFile, JSON.stringify(this.data, null, 2)); }
+  async initialize() {
+    if (!process.env.DATABASE_URL) {
+      console.warn('DATABASE_URL is not set; using local development data.');
+      this.save();
+      return;
+    }
+    this.pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    await this.pool.query('CREATE TABLE IF NOT EXISTS marketplace_state (id TEXT PRIMARY KEY, data JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())');
+    const result = await this.pool.query('SELECT data FROM marketplace_state WHERE id = $1', ['primary']);
+    if (result.rows[0]?.data) this.data = result.rows[0].data;
+    this.seedBrowseFeed();
+    await this.save();
+    console.log('Connected to collector-db.');
+  }
+  save() {
+    fs.writeFileSync(dataFile, JSON.stringify(this.data, null, 2));
+    if (this.pool) this.writeQueue = this.writeQueue.then(() => this.pool.query('INSERT INTO marketplace_state (id, data, updated_at) VALUES ($1, $2::jsonb, NOW()) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()', ['primary', JSON.stringify(this.data)])).catch(error => console.error('Postgres save failed:', error));
+    return this.writeQueue;
+  }
 }
 const store = new Store();
 app.use(express.json({ limit: '1mb' }));
-app.get('/healthz', (req, res) => res.status(200).json({ ok: true, service: 'CollectorMarketplace.net' }));
+app.get('/healthz', (req, res) => res.status(200).json({ ok: true, service: 'CollectorMarketplace.net', database: store.pool ? 'collector-db' : 'local' }));
 
 function publicUser(user) { if (!user) return null; const { password, ...safe } = user; return safe; }
 function currentUser(req) { const token = req.headers.authorization?.replace('Bearer ', ''); return store.data.users.find(u => u.id === token); }
@@ -98,4 +117,13 @@ app.get('/:asset', (req, res, next) => {
   return res.sendFile(path.join(__dirname, req.params.asset));
 });
 
-app.listen(PORT, () => console.log(`Collector Marketplace running at http://localhost:${PORT}`));
+async function start() {
+  try {
+    await store.initialize();
+    app.listen(PORT, () => console.log(`Collector Marketplace running at http://localhost:${PORT}`));
+  } catch (error) {
+    console.error('Collector Marketplace could not connect to collector-db:', error.message);
+    process.exit(1);
+  }
+}
+start();
