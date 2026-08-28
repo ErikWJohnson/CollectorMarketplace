@@ -39,7 +39,7 @@ class Store {
 }
 const store = new Store();
 app.use(express.json({ limit: '1mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.get('/healthz', (req, res) => res.status(200).json({ ok: true, service: 'CollectorMarketplace.net' }));
 
 function publicUser(user) { if (!user) return null; const { password, ...safe } = user; return safe; }
 function currentUser(req) { const token = req.headers.authorization?.replace('Bearer ', ''); return store.data.users.find(u => u.id === token); }
@@ -75,4 +75,25 @@ app.put('/trade/:id', required, (req, res) => { const trade = store.data.trades.
 app.get('/feed/global', (req, res) => res.json(store.data.activities.slice(0, 50).map(a => ({ ...a, user: publicUser(store.data.users.find(u => u.id === a.userId)), listing: a.listingId ? store.data.listings.find(l => l.id === a.listingId) : null }))));
 app.get('/feed/user/:id', (req, res) => { const user = store.data.users.find(u => u.id === req.params.id); if (!user) return res.status(404).json({ error: 'User not found' }); const people = new Set([user.id, ...user.following]); res.json(store.data.activities.filter(a => people.has(a.userId)).slice(0, 50).map(a => ({ ...a, user: publicUser(store.data.users.find(u => u.id === a.userId)), listing: a.listingId ? store.data.listings.find(l => l.id === a.listingId) : null }))); });
 app.get('/notifications', required, (req, res) => res.json(store.data.notifications.filter(n => n.userId === req.user.id)));
+
+// The current production website lives at the repository root. Keep the old
+// public directory available for the logo and legacy assets without exposing
+// the server's private data directory.
+const rootSiteAssets = new Set([
+  'site.js', 'site.css', 'layout-fixes.css', 'full-width.css', 'immersive-feed.css',
+  'persistent-dock.css', 'marketplace-policy.css', 'post-fill.css', 'full-image.css',
+  'header-optimized.css', 'auction-house.css', 'scrolling-header.css',
+  'scrolling-discovery.css', 'site-functionality.css', 'header-corner-fix.css',
+  'functional-discovery.css', 'logo-raster.css', 'social-posts.css', 'account-panel.css',
+  'favicon.png'
+]);
+app.use('/public', express.static(path.join(__dirname, 'public'), { index: false }));
+app.get('/data/listings.json', (req, res) => res.sendFile(path.join(__dirname, 'data', 'listings.json')));
+app.get('/data/auctions.json', (req, res) => res.sendFile(path.join(__dirname, 'data', 'auctions.json')));
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/:asset', (req, res, next) => {
+  if (!rootSiteAssets.has(req.params.asset)) return next();
+  return res.sendFile(path.join(__dirname, req.params.asset));
+});
+
 app.listen(PORT, () => console.log(`Collector Marketplace running at http://localhost:${PORT}`));
