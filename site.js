@@ -28,7 +28,7 @@ function setQuery(query) { activeQuery = query; search.value = query; document.q
 function activateNav(name) { document.querySelectorAll('.bottom-nav button').forEach(button => button.classList.toggle('active', button.matches(`[data-${name}]`))); }
 
 document.addEventListener('click', event => {
-  const tag = event.target.closest('[data-query]'); const category = event.target.closest('[data-category]'); const detail = event.target.closest('[data-detail]'); const trade = event.target.closest('[data-trade]'); const action = event.target.closest('[data-home],[data-market],[data-chat],[data-sell]');
+  const tag = event.target.closest('[data-query]'); const category = event.target.closest('[data-category]'); const detail = event.target.closest('[data-detail]'); const trade = event.target.closest('[data-trade]'); const action = event.target.closest('[data-home],[data-market],[data-chat],[data-sell],[data-policy]');
   if (tag) setQuery(tag.dataset.query);
   if (category) { activeCategory = category.dataset.category; renderCategories(); renderFeed(); }
   if (detail) { const item = listings.find(row => row.id === detail.dataset.detail); openModal(item.title, item.description, `<div class="modal-form"><button data-trade="${item.id}">Make a trade offer</button></div>`); }
@@ -36,6 +36,7 @@ document.addEventListener('click', event => {
   const purchase = event.target.closest('[data-purchase]'); if (purchase) { const item = listings.find(row => row.id === purchase.dataset.purchase); openModal(`Buy ${item.title}`, 'Both buyer and seller pay their own marketplace fee. Your purchase will open delivery chat for follow-up and confirmation.', feeCalculator(item, 'purchase')); updateFeeSummary(); }
   if (action?.matches('[data-sell]')) { activateNav('sell'); openModal('List an item', 'Create your collector profile to publish listings and accept trade offers.', '<form class="modal-form"><input required placeholder="Your email"><button>Join the marketplace</button></form>'); }
   if (action?.matches('[data-chat]')) { activateNav('chat'); openModal('Collector chat', 'Your conversations and trade updates will appear here once you join the marketplace.'); }
+  if (action?.matches('[data-policy]')) openModal('Marketplace fees', 'Standard purchase fees are 4% per side. Curator members pay 1% on their own side for $150/month. Buyers pay taxes and delivery; courier pay is the greater of $15 or 0.5% of valuation, plus packaging. Transaction and delivery terms are policy drafts pending legal review.');
   if (event.target.closest('.like')) { const like = event.target.closest('.like'); like.textContent = like.textContent === '♡' ? '♥' : '♡'; like.classList.toggle('liked'); }
   if (action?.matches('[data-market],[data-home]')) { activateNav(action.matches('[data-market]') ? 'market' : 'home'); activeCategory = 'All'; setQuery(''); renderCategories(); renderFeed(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
   if (event.target.matches('.close')) modal.close();
