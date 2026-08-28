@@ -1,0 +1,2 @@
+/* Posts occupy the full available feed canvas. */
+@media(min-width:681px){.listing-stream{width:100%;align-items:stretch}.listing{width:100%;max-width:none;margin-left:0;margin-right:0}.media{width:100%;padding:0}.media img{width:100%;object-fit:cover}.collector-head,.listing-copy{padding-left:clamp(18px,calc((100vw - 900px)/2),240px);padding-right:clamp(18px,calc((100vw - 900px)/2),240px)}.listing footer{margin-left:0;margin-right:0;padding-left:clamp(18px,calc((100vw - 900px)/2),240px);padding-right:clamp(18px,calc((100vw - 900px)/2),240px)}}
