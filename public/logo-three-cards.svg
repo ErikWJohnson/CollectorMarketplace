@@ -1,8 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" fill="none">
+  <!-- Background -->
   <rect x="2" y="2" width="92" height="92" rx="28" fill="#050505"/>
-  <g stroke="#F1EFE7" stroke-width="4.5" stroke-linejoin="round">
-    <rect x="22" y="28" width="34" height="46" rx="6" transform="rotate(-8 22 28)"/>
-    <rect x="34" y="24" width="34" height="46" rx="6" transform="rotate(13 34 24)"/>
-    <rect x="49" y="30" width="34" height="46" rx="6" transform="rotate(31 49 30)"/>
+
+  <!-- Three overlapping cards (your logo style, in your pass-code aesthetic) -->
+  <g stroke="#F1EFE7" stroke-width="4.5" stroke-linejoin="round" fill="none">
+    <!-- Back card -->
+    <rect x="26" y="24" width="34" height="46" rx="6" transform="rotate(-10 26 24)"/>
+    <!-- Middle card -->
+    <rect x="36" y="28" width="34" height="46" rx="6" transform="rotate(8 36 28)"/>
+    <!-- Front card -->
+    <rect x="46" y="32" width="34" height="46" rx="6" transform="rotate(22 46 32)"/>
   </g>
 </svg>
+
