@@ -15,6 +15,8 @@ try { session = JSON.parse(localStorage.getItem('collector-marketplace-session')
 
 const safe = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const formatListingDate = value => { const date = new Date(value); return Number.isNaN(date.valueOf()) ? 'Recently listed' : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }); };
+const deliveryCarriers = ['USPS', 'UPS', 'FedEx', 'DHL Express', 'Amazon Logistics', 'OnTrac', 'LaserShip', 'Canada Post', 'Royal Mail', 'Other courier'];
+function enableCarrierPicker(input) { if (!document.querySelector('#delivery-carriers')) { const list = document.createElement('datalist'); list.id = 'delivery-carriers'; list.innerHTML = deliveryCarriers.map(carrier => `<option value="${safe(carrier)}">`).join(''); document.body.append(list); } input.setAttribute('list', 'delivery-carriers'); input.placeholder = 'Choose a delivery company'; }
 async function api(url, options = {}) { const response = await fetch(url, { ...options, headers: { 'Content-Type': 'application/json', ...(session?.token ? { Authorization: `Bearer ${session.token}` } : {}), ...(options.headers || {}) } }); const payload = response.status === 204 ? null : await response.json(); if (!response.ok) throw new Error(payload?.error || 'Something went wrong.'); return payload; }
 function saveSession(nextSession) { session = nextSession; if (session) localStorage.setItem('collector-marketplace-session', JSON.stringify(session)); else localStorage.removeItem('collector-marketplace-session'); }
 const asFeedListing = listing => ({ ...listing, image: listing.images?.[0] || '', tags: listing.tags?.length ? listing.tags : [listing.category], tag: listing.tags?.[0] || listing.category, trade: listing.tradeOffer, ownerName: listing.owner?.username || 'JohnDoe' });
@@ -120,6 +122,7 @@ document.addEventListener('submit', async event => { if (event.target.closest('#
   } catch (error) { showError(error); }
 } });
 document.addEventListener('input', event => { if (event.target.closest('.fee-calculator')) updateFeeSummary(); if (event.target.matches('[name="imageUrls"]')) syncListingPreview(); });
+document.addEventListener('focusin', event => { if (event.target.matches('input[name="courier"]')) enableCarrierPicker(event.target); });
 document.addEventListener('change', async event => { if (!event.target.matches('[name="imageFiles"], [name="videoFiles"]')) return; try { if (event.target.name === 'imageFiles') await prepareListingFiles(event.target.files); else await prepareListingVideo(event.target.files); } catch (error) { event.target.value = ''; if (event.target.name === 'imageFiles') uploadedListingImages = []; else uploadedListingVideos = []; syncListingPreview(); showError(error); } });
 
 async function loadMarket() { const listingData = await fetch('/listings').then(response => { if (!response.ok) throw new Error('Listings API unavailable'); return response.json(); }); listings = listingData.map(asFeedListing).sort((a, b) => a.id === 'mantle' ? -1 : b.id === 'mantle' ? 1 : 0); renderTags(); renderCategories(); renderFeed(); }
