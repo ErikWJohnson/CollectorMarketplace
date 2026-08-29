@@ -95,9 +95,19 @@
 .chat-resource-section + .chat-resource-section { margin-top: 20px; }
 .chat-resource-section h4 { margin-bottom: 9px; color: #f2bc35; font-size: .76rem; letter-spacing: .1em; text-transform: uppercase; }
 .chat-dialog .delivery-row { margin-bottom: 8px; }
-.collector-thread { min-height: min(600px, calc(100dvh - 300px)); max-height: none; overflow-y: auto; padding: 14px; background: #181818; }
-.collector-thread .post-comment { width: fit-content; max-width: 82%; margin: 9px 0; padding: 10px 12px; border: 1px solid #4a4a4a; background: #292929; }
+.conversation-workspace { display: flex; flex: 1; min-height: 0; flex-direction: column; margin-top: 20px; border: 1px solid #4a4a4a; background: #181818; }
+.conversation-header { display: flex; align-items: center; gap: 10px; min-height: 64px; padding: 10px 14px; border-bottom: 1px solid #4a4a4a; }
+.conversation-header button { border: 0; padding: 0; background: transparent; color: #f2bc35; font: 700 .7rem/1 var(--mono, monospace); letter-spacing: .05em; text-transform: uppercase; }
+.conversation-header strong { color: #f5f3eb; }
+.conversation-header .chat-avatar { width: 34px; height: 34px; margin-left: auto; font-size: .8rem; }
+.collector-thread { flex: 1; min-height: 0; max-height: none; overflow-y: auto; padding: 18px; background: #181818; overscroll-behavior: contain; }
+.collector-thread .post-comment { display: grid; gap: 3px; width: fit-content; max-width: 82%; margin: 9px 0; padding: 10px 12px; border: 1px solid #4a4a4a; background: #292929; }
+.collector-thread .post-comment b { color: #f2bc35; font-size: .72rem; }
 .collector-thread .post-comment.is-own-message { margin-left: auto; border-color: #a97f1d; background: #3a2c12; }
+.collector-message-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; margin: 0; padding: 12px; border-top: 1px solid #4a4a4a; background: #202020; }
+.collector-message-form textarea { min-height: 44px; max-height: 130px; resize: vertical; padding: 12px; border: 1px solid #656565; background: #111; color: #f5f3eb; outline: 0; }
+.collector-message-form textarea:focus { border-color: #f2bc35; }
+.collector-message-form button { align-self: end; min-width: 92px; min-height: 44px; border: 1px solid #f2bc35; background: #f2bc35; color: #171717; font-weight: 800; }
 
 @media (max-width: 680px) {
   .chat-dialog { padding: 62px 16px 22px; }
@@ -106,4 +116,7 @@
   .social-chat { grid-template-columns: 1fr; gap: 14px; overflow-y: auto; }
   .chat-sidebar { min-height: 520px; }
   .chat-secondary { padding: 14px; }
+  .conversation-workspace { margin-top: 14px; }
+  .collector-message-form { grid-template-columns: 1fr; }
+  .collector-message-form button { width: 100%; }
 }
