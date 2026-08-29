@@ -79,6 +79,7 @@ app.post('/signup', (req, res) => {
 });
 app.post('/login', (req, res) => { const user = store.data.users.find(u => u.email === req.body.email && u.password === req.body.password); if (!user) return res.status(401).json({ error: 'Invalid email or password' }); res.json({ token: user.id, user: publicUser(user) }); });
 app.get('/user/:id', (req, res) => { const user = store.data.users.find(u => u.id === req.params.id); if (!user) return res.status(404).json({ error: 'User not found' }); const listings = store.data.listings.filter(l => l.ownerId === user.id); const history = store.data.trades.filter(t => (t.senderId === user.id || t.receiverId === user.id) && t.status === 'completed'); res.json({ ...publicUser(user), activeListings: listings.filter(l => l.status === 'active'), tradeHistory: history }); });
+app.get('/users/suggestions', required, (req, res) => { const excluded = new Set([req.user.id, ...req.user.following]); const users = store.data.users.filter(user => !excluded.has(user.id)).sort((a, b) => (b.reputation || 0) - (a.reputation || 0) || a.username.localeCompare(b.username)).slice(0, 8).map(user => ({ ...publicUser(user), activeListingCount: store.data.listings.filter(listing => listing.ownerId === user.id && listing.status === 'active').length })); res.json(users); });
 app.put('/user/:id', required, (req, res) => { if (req.user.id !== req.params.id) return res.status(403).json({ error: 'Not allowed' }); ['username','avatar','bio'].forEach(k => { if (req.body[k] !== undefined) req.user[k] = req.body[k]; }); activity('profile', req.user.id); store.save(); res.json(publicUser(req.user)); });
 app.post('/user/:id/follow', required, (req, res) => { if (req.user.id === req.params.id) return res.status(400).json({ error: 'You cannot follow yourself' }); if (!store.data.users.some(u => u.id === req.params.id)) return res.status(404).json({ error: 'User not found' }); const following = req.user.following; const index = following.indexOf(req.params.id); index < 0 ? following.push(req.params.id) : following.splice(index, 1); store.save(); res.json({ following: index < 0 }); });
 app.get('/user/:id/connections', required, (req, res) => { if (req.user.id !== req.params.id) return res.status(403).json({ error: 'Not allowed' }); const following = store.data.users.filter(user => req.user.following.includes(user.id)); const friends = following.filter(user => user.following.includes(req.user.id)); res.json({ following: following.map(publicUser), friends: friends.map(publicUser) }); });
@@ -144,7 +145,7 @@ const rootSiteAssets = new Set([
   'functional-discovery.css', 'logo-raster.css', 'social-posts.css', 'account-panel.css',
   'listing-images.css', 'listing-upload.css', 'listing-video.css', 'password-toggle.css',
   'listing-creation.css', 'listing-detail.css', 'listing-actions.css', 'listing-category.css',
-  'listing-sort.css', 'delivery-workspace.css', 'app-performance.css', 'account-connections.css', 'favicon.png'
+  'listing-sort.css', 'delivery-workspace.css', 'app-performance.css', 'account-connections.css', 'social-chat.css', 'favicon.png'
 ]);
 app.use('/public', express.static(path.join(__dirname, 'public'), { index: false }));
 app.get('/data/listings.json', (req, res) => res.sendFile(path.join(__dirname, 'data', 'listings.json')));
