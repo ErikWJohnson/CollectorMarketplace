@@ -7,7 +7,7 @@ const listingSort = document.querySelector('#listing-sort');
 const sentinel = document.querySelector('#sentinel');
 const modal = document.querySelector('#modal');
 const modalContent = document.querySelector('#modal-content');
-let listings = [], auctions = [], deliveries = [], uploadedListingImages = [], uploadedListingVideos = [], activeCategory = 'All', activeQuery = '', activeTags = [], sortMode = 'recent', page = 1, observer;
+let listings = [], auctions = [], deliveries = [], uploadedListingImages = [], uploadedListingVideos = [], activeCategory = 'All', activeQuery = '', activeTags = [], sortMode = 'recent', page = 1, observer, searchRenderTimer;
 let postState = {};
 try { postState = JSON.parse(localStorage.getItem('collector-marketplace-post-state') || '{}'); } catch { postState = {}; }
 let session = null;
@@ -99,8 +99,8 @@ document.addEventListener('click', event => {
   if (action?.matches('[data-market],[data-home]')) { activateNav(action.matches('[data-market]') ? 'market' : 'home'); sentinel.hidden = false; activeCategory = 'All'; activeTags = []; setQuery(''); renderTags(); renderCategories(); renderFeed(); if (observer) observer.observe(sentinel); window.scrollTo({ top: 0, behavior: 'smooth' }); }
   if (event.target.matches('.close')) modal.close();
 });
-search.addEventListener('input', event => { setDiscoveryMode('search'); setQuery(event.target.value); });
-tagSearch.addEventListener('input', event => { renderTags(event.target.value); renderFeed(); });
+search.addEventListener('input', event => { setDiscoveryMode('search'); clearTimeout(searchRenderTimer); const value = event.target.value; searchRenderTimer = setTimeout(() => setQuery(value), 140); });
+tagSearch.addEventListener('input', event => { clearTimeout(searchRenderTimer); const value = event.target.value; searchRenderTimer = setTimeout(() => { renderTags(value); renderFeed(); }, 140); });
 listingSort.addEventListener('change', event => { sortMode = event.target.value; renderFeed(); });
 tagSearch.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); const requested = event.target.value.match(/#?[a-z0-9-]+/gi) || []; const available = [...new Set(listings.flatMap(listingTags))]; const matches = requested.map(value => value.replace('#', '').toLowerCase()).filter(value => available.some(tag => tag.toLowerCase() === value)); activeTags = [...new Set([...activeTags, ...matches])]; event.target.value = ''; renderTags(); renderFeed(); } });
 document.querySelector('#clear-tags').addEventListener('click', () => setQuery(''));
