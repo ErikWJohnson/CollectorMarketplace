@@ -1,34 +1,39 @@
 /* Tags becomes a spacious browse panel when the Tags tab is selected. */
 .discovery.mode-tags {
-  padding: 18px max(26px, calc((100vw - 1180px) / 2));
+  min-height: calc(100dvh - 180px);
+  padding: 24px clamp(24px, 4vw, 72px) 34px;
   background: #242424;
 }
 
-.discovery.mode-tags .tag-search { width: min(760px, 100%); height: 46px; }
-.discovery.mode-tags .tag-search input { font-size: 12px; }
+.discovery.mode-tags .tag-search { width: min(960px, 100%); height: 52px; }
+.discovery.mode-tags .tag-search input { font-size: 14px; }
 
 .discovery.mode-tags .tag-row {
   display: grid !important;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  width: min(1180px, 100%);
-  max-height: none;
-  margin: 14px auto 0;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  width: 100%;
+  min-height: calc(100dvh - 280px);
+  margin: 22px auto 0;
   padding: 0;
   overflow: visible;
-  gap: 12px;
+  gap: 18px;
+  align-content: stretch;
+  grid-auto-rows: minmax(230px, 1fr);
 }
 
 .discovery.mode-tags .tag-group {
   min-width: 0;
   border: 1px solid #4a4a4a;
-  padding: 11px;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
   background: #202020;
 }
 
 .discovery.mode-tags .tag-group h3 {
-  margin: 0 0 10px;
+  margin: 0 0 14px;
   color: #f2bc35;
-  font: 700 11px/1 var(--mono, "DM Mono", monospace);
+  font: 700 13px/1 var(--mono, "DM Mono", monospace);
   letter-spacing: .08em;
   text-transform: uppercase;
 }
@@ -36,15 +41,15 @@
 .discovery.mode-tags .tag-group-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
+  gap: 10px;
 }
 
 .discovery.mode-tags .tag-group-buttons button {
   width: auto;
-  min-height: 38px;
-  padding: 8px 12px;
+  min-height: 46px;
+  padding: 10px 14px;
   text-align: left;
-  font-size: 12px;
+  font-size: 15px;
   line-height: 1.15;
 }
 
@@ -53,9 +58,9 @@
 }
 
 @media (max-width: 680px) {
-  .discovery.mode-tags { padding: 12px 10px 16px; }
-  .discovery.mode-tags .tag-row { grid-template-columns: 1fr; gap: 9px; }
+  .discovery.mode-tags { min-height: 0; padding: 14px 12px 22px; }
+  .discovery.mode-tags .tag-row { grid-template-columns: 1fr; min-height: 0; gap: 12px; grid-auto-rows: auto; }
   .discovery.mode-tags .tag-group { padding: 10px; }
-  .discovery.mode-tags .tag-group-buttons { gap: 6px; }
-  .discovery.mode-tags .tag-group-buttons button { min-height: 36px; padding: 8px 10px; font-size: 11px; }
+  .discovery.mode-tags .tag-group-buttons { gap: 8px; }
+  .discovery.mode-tags .tag-group-buttons button { min-height: 42px; padding: 9px 11px; font-size: 13px; }
 }
