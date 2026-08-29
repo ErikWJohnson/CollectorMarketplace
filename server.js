@@ -145,7 +145,7 @@ const rootSiteAssets = new Set([
   'functional-discovery.css', 'logo-raster.css', 'social-posts.css', 'account-panel.css',
   'listing-images.css', 'listing-upload.css', 'listing-video.css', 'password-toggle.css',
   'listing-creation.css', 'listing-detail.css', 'listing-actions.css', 'listing-category.css',
-  'listing-sort.css', 'delivery-workspace.css', 'app-performance.css', 'account-connections.css', 'social-chat.css', 'favicon.png'
+  'listing-sort.css', 'delivery-workspace.css', 'app-performance.css', 'account-connections.css', 'social-chat.css', 'account-workspace.css', 'favicon.png'
 ]);
 app.use('/public', express.static(path.join(__dirname, 'public'), { index: false }));
 app.get('/data/listings.json', (req, res) => res.sendFile(path.join(__dirname, 'data', 'listings.json')));
