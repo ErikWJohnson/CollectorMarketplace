@@ -35,6 +35,7 @@ tagGroups['Media & Entertainment'] = tagGroups['Media & Entertainment'].filter(t
 tagGroups['Adult Only (18+)'] = tagGroups['Adult Only (18+)'].filter(tag => !tag.startsWith('Adult Manga'));
 tagGroups['Media & Entertainment'].push('Manga');
 tagGroups['Adult Only (18+)'].push('Adult Manga');
+tagGroups.Technology.push('TVs', 'Record Players', 'Stereos');
 const categoryOptions = Object.values(tagGroups).flat();
 function enableCarrierPicker(input) { if (!document.querySelector('#delivery-carriers')) { const list = document.createElement('datalist'); list.id = 'delivery-carriers'; list.innerHTML = deliveryCarriers.map(carrier => `<option value="${safe(carrier)}">`).join(''); document.body.append(list); } input.setAttribute('list', 'delivery-carriers'); input.placeholder = 'Choose a delivery company'; }
 async function api(url, options = {}) { const response = await fetch(url, { ...options, headers: { 'Content-Type': 'application/json', ...(session?.token ? { Authorization: `Bearer ${session.token}` } : {}), ...(options.headers || {}) } }); const payload = response.status === 204 ? null : await response.json(); if (!response.ok) throw new Error(payload?.error || 'Something went wrong.'); return payload; }
