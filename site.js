@@ -42,6 +42,8 @@ tagGroups.Styles.push('Korean', 'Japanese', 'Chinese', 'French', 'Italian', 'Ame
 tagGroups.Styles.push('Punk', 'Camp', 'Avant Garde');
 tagGroups['Sports & Autographs'].push('Skateboards', 'Surfboards', 'Hockey Equipment');
 tagGroups.Styles.push('Skate', 'Goth', 'Cyberpunk', 'Kawaii', 'Lovecraft', 'Lovecraftian', 'Horror');
+tagGroups.Styles = tagGroups.Styles.filter(tag => tag !== 'Lovecraft');
+tagGroups.Styles.push('Rock', 'Bling');
 const categoryOptions = Object.values(tagGroups).flat();
 function enableCarrierPicker(input) { if (!document.querySelector('#delivery-carriers')) { const list = document.createElement('datalist'); list.id = 'delivery-carriers'; list.innerHTML = deliveryCarriers.map(carrier => `<option value="${safe(carrier)}">`).join(''); document.body.append(list); } input.setAttribute('list', 'delivery-carriers'); input.placeholder = 'Choose a delivery company'; }
 async function api(url, options = {}) { const response = await fetch(url, { ...options, headers: { 'Content-Type': 'application/json', ...(session?.token ? { Authorization: `Bearer ${session.token}` } : {}), ...(options.headers || {}) } }); const payload = response.status === 204 ? null : await response.json(); if (!response.ok) throw new Error(payload?.error || 'Something went wrong.'); return payload; }
