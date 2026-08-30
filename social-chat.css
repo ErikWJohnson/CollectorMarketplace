@@ -132,10 +132,18 @@ body.chat-open .app-shell { height: 100dvh; overflow: hidden !important; }
 .trade-actions span { color: #aaa69c; font-size: .78rem; }
 .trade-message-form { margin: 0; }
 .trade-message-form textarea { min-height: 52px; }
+.trade-offer-content { display: grid; align-content: start; gap: 22px; padding: clamp(18px, 3vw, 34px); }
+.trade-offer-context { display: grid; gap: 6px; border-left: 3px solid #f2bc35; padding: 2px 0 2px 12px; color: #aaa69c; font-size: .88rem; line-height: 1.45; }
+.trade-offer-context b { color: #f5f3eb; }
+.trade-offer-workspace .fee-calculator { width: min(100%, 700px); margin: 0; padding: clamp(16px, 2vw, 24px); border: 1px solid #4a4a4a; background: #202020; }
+.trade-offer-workspace .fee-calculator input { min-height: 46px; font-size: 15px; }
+.trade-offer-workspace .fee-summary { padding: 14px; font-size: 12px; }
+.trade-offer-workspace .transaction-submit { min-height: 50px; font-size: 12px; }
 
 @media (max-width: 680px) {
   .trade-dialog .conversation-workspace { margin-top: 14px; }
   .trade-actions { padding: 10px; }
   .trade-actions button { flex: 1 1 150px; min-height: 42px; }
   .trade-status { order: 3; margin-left: 0; }
+  .trade-offer-content { padding: 16px; }
 }
