@@ -92,6 +92,8 @@
 .conversation-list::-webkit-scrollbar, .suggestion-list::-webkit-scrollbar, .chat-secondary::-webkit-scrollbar { width: 8px; }
 .conversation-list::-webkit-scrollbar-thumb, .suggestion-list::-webkit-scrollbar-thumb, .chat-secondary::-webkit-scrollbar-thumb { background: #797979; border: 2px solid #202020; }
 .chat-open { overflow: hidden; }
+html:has(body.chat-open), body.chat-open { overflow: hidden !important; overscroll-behavior: none; }
+body.chat-open .app-shell { height: 100dvh; overflow: hidden !important; }
 .chat-resource-section + .chat-resource-section { margin-top: 20px; }
 .chat-resource-section h4 { margin-bottom: 9px; color: #f2bc35; font-size: .76rem; letter-spacing: .1em; text-transform: uppercase; }
 .chat-dialog .delivery-row { margin-bottom: 8px; }
@@ -119,4 +121,21 @@
   .conversation-workspace { margin-top: 14px; }
   .collector-message-form { grid-template-columns: 1fr; }
   .collector-message-form button { width: 100%; }
+}
+
+.trade-dialog .modal-copy { margin-bottom: 0; }
+.trade-dialog .conversation-workspace { margin-top: 20px; }
+.trade-status { margin-left: auto; border: 1px solid #a97f1d; padding: 5px 8px; color: #f2bc35; font: 700 .65rem/1 var(--mono, monospace); letter-spacing: .06em; text-transform: uppercase; }
+.trade-actions { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; padding: 12px; border-top: 1px solid #4a4a4a; background: #202020; }
+.trade-actions button { border: 1px solid #f2bc35; padding: 9px 12px; background: #f2bc35; color: #171717; font: 800 .7rem/1 var(--mono, monospace); letter-spacing: .04em; text-transform: uppercase; cursor: pointer; }
+.trade-actions button + button { border-color: #777; background: transparent; color: #f5f3eb; }
+.trade-actions span { color: #aaa69c; font-size: .78rem; }
+.trade-message-form { margin: 0; }
+.trade-message-form textarea { min-height: 52px; }
+
+@media (max-width: 680px) {
+  .trade-dialog .conversation-workspace { margin-top: 14px; }
+  .trade-actions { padding: 10px; }
+  .trade-actions button { flex: 1 1 150px; min-height: 42px; }
+  .trade-status { order: 3; margin-left: 0; }
 }
