@@ -36,12 +36,12 @@ tagGroups['Adult Only (18+)'] = tagGroups['Adult Only (18+)'].filter(tag => !tag
 tagGroups['Media & Entertainment'].push('Manga');
 tagGroups['Adult Only (18+)'].push('Adult Manga');
 tagGroups.Technology.push('TVs', 'Record Players', 'Stereos');
-tagGroups.Styles = ['Styles'];
+tagGroups.Styles = [];
 tagGroups.Styles.push('Minimalist', 'Modern', 'Vintage', 'Luxury', 'Classic', 'Streetwear', 'Techwear', 'Formal', 'Casual', 'Curated', 'Limited Edition', 'Museum Grade', 'Antique', 'Victorian', 'Edwardian', 'Art Deco', 'Mid Century', 'Retro', 'Contemporary');
 tagGroups.Styles.push('Korean', 'Japanese', 'Chinese', 'French', 'Italian', 'American', 'British', 'Nordic', 'Mediterranean', 'Latin American');
 tagGroups.Styles.push('Punk', 'Camp', 'Avant Garde');
 tagGroups['Sports & Autographs'].push('Skateboards', 'Surfboards', 'Hockey Equipment');
-tagGroups.Styles.push('Skate', 'Goth', 'Cyberpunk', 'Kawaii', 'Lovecraft', 'Lovecraftian', 'Horror');
+tagGroups.Styles.push('Skate', 'Gothic', 'Cyberpunk', 'Kawaii', 'Lovecraft', 'Lovecraftian', 'Horror');
 tagGroups.Styles = tagGroups.Styles.filter(tag => tag !== 'Lovecraft');
 tagGroups.Styles.push('Rock', 'Bling');
 const categoryOptions = Object.values(tagGroups).flat();
