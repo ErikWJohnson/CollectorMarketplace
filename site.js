@@ -23,6 +23,14 @@ tagSearch.closest('.tag-search')?.append(tagMatchControl);
 const renderTagMatchMode = () => tagMatchControl.querySelectorAll('[data-tag-match]').forEach(button => { const selected = button.dataset.tagMatch === tagMatchMode; button.classList.toggle('active', selected); button.setAttribute('aria-pressed', String(selected)); });
 renderTagMatchMode();
 
+const placeSportsAfterShoes = () => {
+  const groups = [...tags.querySelectorAll('.tag-group')];
+  const shoes = groups.find(group => group.querySelector('h3')?.textContent === 'Shoes & Sneakers');
+  const sports = groups.find(group => group.querySelector('h3')?.textContent === 'Sports & Autographs');
+  if (shoes && sports && shoes.nextElementSibling !== sports) shoes.after(sports);
+};
+new MutationObserver(placeSportsAfterShoes).observe(tags, { childList: true });
+
 const safe = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const accountAvatar = (user, className = 'account-avatar') => { const fallback = String(user?.avatar || user?.username || 'C').slice(0, 2).toUpperCase(); const image = String(user?.avatar || ''); return /^(https?:\/\/|data:image\/)/i.test(image) ? `<span class="${className}"><img src="${safe(image)}" alt="${safe(user?.username || 'Collector')} profile image"></span>` : `<span class="${className}">${safe(fallback)}</span>`; };
 const formatListingDate = value => { const date = new Date(value); return Number.isNaN(date.valueOf()) ? 'Recently listed' : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }); };
