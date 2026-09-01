@@ -86,4 +86,6 @@ html body .tag-match-mode button.active{background:#17130d;color:#e6cd8b;box-sha
 /* Long-press tag locks remain required while normal tags use Any / All matching. */
 html body .tag-group-buttons button.locked{border-color:#8e7542!important;background:#1b160d!important;color:#f2d78e!important;box-shadow:inset 0 0 0 1px #5f4d2c!important}
 html body .tag-group-buttons button.locked::after{content:' LOCK';margin-left:6px;color:#b7a16b;font:700 7px "DM Mono",monospace;letter-spacing:.05em}
+html body .tag-group-buttons button.void{border-color:#874d63!important;background:#1e1016!important;color:#eda8bd!important;box-shadow:inset 0 0 0 1px #613342!important}
+html body .tag-group-buttons button.void::after{content:' VOID';margin-left:6px;color:#d986a1;font:700 7px "DM Mono",monospace;letter-spacing:.05em}
 html body .collector-head{background:#0a0b0d!important;border-bottom-color:#292c30!important}html body .collector-head>b{background:#070809!important;border-color:#3a3e44!important}
