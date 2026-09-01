@@ -31,6 +31,7 @@ renderTagMatchMode();
 let tagHoldTimer = null;
 let heldTagValue = '';
 let suppressTagClick = '';
+let hoveredTagValue = '';
 const saveLockedTags = () => { localStorage.setItem('collector-marketplace-locked-tags', JSON.stringify(lockedTags)); localStorage.setItem('collector-marketplace-void-tags', JSON.stringify(voidTags)); };
 const markLockedTags = () => tags.querySelectorAll('[data-tag]').forEach(button => { const value = button.dataset.tag.toLowerCase(); const locked = lockedTags.includes(value); const voided = voidTags.includes(value); button.classList.toggle('locked', locked); button.classList.toggle('void', voided); button.title = locked ? 'Locked tag — hold briefly to unlock' : voided ? 'Void tag — hold briefly to unlock' : 'Click to select. Ctrl+hover adds; Shift+hover removes. Hold briefly to lock or void.'; button.setAttribute('aria-label', `${button.textContent.trim()}${locked ? ', locked; hold briefly to unlock' : voided ? ', voided; hold briefly to unlock' : '; Ctrl-hover adds and Shift-hover removes selected tags; hold briefly to lock or void'}`); });
 const refreshLockedTagResults = () => { renderTags(); markLockedTags(); if (auctionTagView) refreshTaggedAuction(); else renderFeed(); };
@@ -40,7 +41,10 @@ document.addEventListener('pointerdown', event => { const tag = event.target.clo
 document.addEventListener('pointerup', () => { clearTimeout(tagHoldTimer); tagHoldTimer = null; });
 document.addEventListener('pointercancel', () => { clearTimeout(tagHoldTimer); tagHoldTimer = null; });
 document.addEventListener('click', event => { const tag = event.target.closest('[data-tag]'); if (!tag) return; const value = tag.dataset.tag.toLowerCase(); if (suppressTagClick === value || lockedTags.includes(value) || voidTags.includes(value)) { event.preventDefault(); event.stopImmediatePropagation(); suppressTagClick = ''; } }, true);
-document.addEventListener('pointerover', event => { const tag = event.target.closest('[data-tag]'); if (!tag || (!event.ctrlKey && !event.metaKey && !event.shiftKey)) return; const value = tag.dataset.tag.toLowerCase(); if (lockedTags.includes(value) || voidTags.includes(value)) return; if (event.shiftKey) { if (!activeTags.includes(value)) return; activeTags = activeTags.filter(tag => tag !== value); } else { if (activeTags.includes(value)) return; activeTags = [...activeTags, value]; } refreshLockedTagResults(); });
+const applyHoverTagModifier = event => { if (!hoveredTagValue || (!event.ctrlKey && !event.metaKey && !event.shiftKey) || lockedTags.includes(hoveredTagValue) || voidTags.includes(hoveredTagValue)) return; if (event.shiftKey) { if (!activeTags.includes(hoveredTagValue)) return; activeTags = activeTags.filter(tag => tag !== hoveredTagValue); } else { if (activeTags.includes(hoveredTagValue)) return; activeTags = [...activeTags, hoveredTagValue]; } refreshLockedTagResults(); };
+document.addEventListener('pointerover', event => { const tag = event.target.closest('[data-tag]'); if (!tag) return; hoveredTagValue = tag.dataset.tag.toLowerCase(); applyHoverTagModifier(event); });
+document.addEventListener('pointerout', event => { const tag = event.target.closest('[data-tag]'); if (tag && tag.dataset.tag.toLowerCase() === hoveredTagValue) hoveredTagValue = ''; });
+document.addEventListener('keydown', event => { if (['Control', 'Meta', 'Shift'].includes(event.key)) applyHoverTagModifier(event); });
 
 const placeSportsAfterShoes = () => {
   const groups = [...tags.querySelectorAll('.tag-group')];
