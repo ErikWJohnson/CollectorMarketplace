@@ -61,6 +61,9 @@ class Store {
   }
 }
 const store = new Store();
+// Voice audio stays peer-to-peer. These short-lived rooms only carry WebRTC
+// signaling and presence, so no microphone audio is stored by the marketplace.
+const voiceRooms = new Map();
 app.use(express.json({ limit: '16mb' }));
 app.get('/healthz', (req, res) => res.status(200).json({ ok: true, service: 'CollectorMarketplace.net', database: store.pool ? 'collector-db' : 'local' }));
 
@@ -89,7 +92,61 @@ app.post('/conversations', required, (req, res) => { const recipientId = req.bod
 app.get('/conversation/:id', required, (req, res) => { const conversation = store.data.conversations.find(row => row.id === req.params.id && row.participantIds.includes(req.user.id)); if (!conversation) return res.status(404).json({ error: 'Conversation not found' }); res.json(conversationView(conversation, req.user.id)); });
 app.post('/conversation/:id/messages', required, (req, res) => { const conversation = store.data.conversations.find(row => row.id === req.params.id && row.participantIds.includes(req.user.id)); if (!conversation) return res.status(404).json({ error: 'Conversation not found' }); const body = req.body.body?.trim(); if (!body || body.length > 1000) return res.status(400).json({ error: 'Message must be between 1 and 1000 characters.' }); const message = { id: id(), senderId: req.user.id, body, createdAt: now() }; conversation.messages.push(message); conversation.updatedAt = now(); const recipientId = conversation.participantIds.find(userId => userId !== req.user.id); notify(recipientId, 'collector_message', `${req.user.username} sent you a message`, `/conversation/${conversation.id}`); store.save(); res.status(201).json(message); });
 
-app.get('/listings', (req, res) => { const { category, q, status = 'active' } = req.query; let rows = store.data.listings.filter(l => !status || l.status === status); if (category) rows = rows.filter(l => l.category === category); if (q) { const s = q.toLowerCase(); rows = rows.filter(l => `${l.title} ${l.description}`.toLowerCase().includes(s)); } res.json(rows.map(l => ({ ...l, owner: publicUser(store.data.users.find(u => u.id === l.ownerId)), likeCount: l.likes.length }))); });
+function voiceRoomAllowed(roomId, userId) {
+  const [kind, targetId] = String(roomId || '').split(':');
+  if (!targetId || !['conversation', 'trade', 'auction'].includes(kind)) return false;
+  if (kind === 'conversation') return store.data.conversations.some(row => row.id === targetId && row.participantIds.includes(userId));
+  if (kind === 'trade') return store.data.trades.some(row => row.id === targetId && (row.senderId === userId || row.receiverId === userId));
+  if (kind === 'auction') {
+    try { return JSON.parse(fs.readFileSync(path.join(dataDir, 'auctions.json'), 'utf8')).some(row => row.id === targetId); } catch { return false; }
+  }
+  return false;
+}
+function getVoiceRoom(roomId) {
+  if (!voiceRooms.has(roomId)) voiceRooms.set(roomId, { peers: new Map(), events: [], nextEventId: 1 });
+  return voiceRooms.get(roomId);
+}
+function cleanVoiceRooms() {
+  const cutoff = Date.now() - 45000;
+  for (const [roomId, room] of voiceRooms) {
+    for (const [userId, peer] of room.peers) if (peer.seenAt < cutoff) { room.peers.delete(userId); room.events.push({ id: room.nextEventId++, type: 'leave', from: userId }); }
+    if (!room.peers.size) voiceRooms.delete(roomId);
+    else if (room.events.length > 300) room.events.splice(0, room.events.length - 300);
+  }
+}
+setInterval(cleanVoiceRooms, 15000).unref();
+app.post('/voice/:roomId/join', required, (req, res) => {
+  const roomId = decodeURIComponent(req.params.roomId);
+  if (!voiceRoomAllowed(roomId, req.user.id)) return res.status(403).json({ error: 'You cannot join this voice room.' });
+  cleanVoiceRooms(); const room = getVoiceRoom(roomId);
+  const peers = [...room.peers.entries()].filter(([userId]) => userId !== req.user.id).map(([userId, peer]) => ({ userId, username: peer.username }));
+  room.peers.set(req.user.id, { username: req.user.username, seenAt: Date.now() });
+  room.events.push({ id: room.nextEventId++, type: 'join', from: req.user.id, username: req.user.username });
+  res.json({ roomId, userId: req.user.id, peers, cursor: room.nextEventId - 1 });
+});
+app.get('/voice/:roomId/events', required, (req, res) => {
+  const roomId = decodeURIComponent(req.params.roomId);
+  if (!voiceRoomAllowed(roomId, req.user.id)) return res.status(403).json({ error: 'You cannot access this voice room.' });
+  const room = getVoiceRoom(roomId); const peer = room.peers.get(req.user.id);
+  if (!peer) return res.status(409).json({ error: 'Join the voice room first.' });
+  peer.seenAt = Date.now(); const cursor = Number(req.query.after) || 0;
+  res.json({ events: room.events.filter(event => event.id > cursor && event.from !== req.user.id && (!event.to || event.to === req.user.id)), cursor: room.nextEventId - 1, participants: room.peers.size });
+});
+app.post('/voice/:roomId/signal', required, (req, res) => {
+  const roomId = decodeURIComponent(req.params.roomId); const room = voiceRooms.get(roomId);
+  if (!room || !room.peers.has(req.user.id) || !room.peers.has(req.body.to)) return res.status(404).json({ error: 'Voice participant not found.' });
+  if (!['offer', 'answer', 'candidate'].includes(req.body.type)) return res.status(400).json({ error: 'Invalid voice signal.' });
+  room.peers.get(req.user.id).seenAt = Date.now(); room.events.push({ id: room.nextEventId++, type: req.body.type, from: req.user.id, to: req.body.to, data: req.body.data });
+  res.status(202).json({ ok: true });
+});
+app.delete('/voice/:roomId', required, (req, res) => {
+  const roomId = decodeURIComponent(req.params.roomId); const room = voiceRooms.get(roomId);
+  if (room?.peers.delete(req.user.id)) room.events.push({ id: room.nextEventId++, type: 'leave', from: req.user.id });
+  if (room && !room.peers.size) voiceRooms.delete(roomId);
+  res.status(204).end();
+});
+
+app.get('/listings', (req, res) => { const { category, q, status = 'active' } = req.query; let rows = store.data.listings.filter(l => !status || l.status === status); if (category) rows = rows.filter(l => l.category === category); if (q) { const s = q.toLowerCase(); rows = rows.filter(l => `${l.title} ${l.description}`.toLowerCase().includes(s)); } res.json(rows.map(l => ({ ...l, owner: publicUser(store.data.users.find(u => u.id === l.ownerId)), likeCount: l.likes.length, commentCount: store.data.comments.filter(comment => comment.listingId === l.id).length }))); });
 app.post('/listing', required, (req, res) => { const { title, description, category, tags = [], price, tradeOffer, images = [], videos = [] } = req.body; const validImages = Array.isArray(images) && images.length > 0 && images.length <= 5 && images.every(image => typeof image === 'string' && image.length <= 2_000_000 && (/^https?:\/\//i.test(image) || /^data:image\/(jpeg|png|webp);base64,/i.test(image))); const validVideos = Array.isArray(videos) && videos.length <= 1 && videos.every(video => typeof video === 'string' && video.length <= 6_000_000 && /^data:video\/(mp4|webm|quicktime);base64,/i.test(video)); if (!title?.trim() || !description?.trim() || !category?.trim()) return res.status(400).json({ error: 'title, description, and category are required' }); const normalizedTags = [...new Set([category.trim(), ...(Array.isArray(tags) ? tags : []).map(tag => typeof tag === 'string' ? tag.trim().replace(/^#/, '') : '').filter(Boolean)])]; const validTags = normalizedTags.length <= 8 && normalizedTags.every(tag => tag.length <= 60); if (!validTags) return res.status(400).json({ error: 'Use up to 8 tags, each 60 characters or less.' }); if (!validImages) return res.status(400).json({ error: 'Add 1–5 valid image links or uploads.' }); if (!validVideos) return res.status(400).json({ error: 'Add at most one valid uploaded video.' }); const listing = { id: id(), ownerId: req.user.id, title: title.trim(), description: description.trim(), category: category.trim(), tags: normalizedTags, price: Number(price) || 0, tradeOffer: Boolean(tradeOffer), images, videos, status: 'active', likes: [], createdAt: now() }; store.data.listings.unshift(listing); activity('listing', req.user.id, { listingId: listing.id }); store.save(); res.status(201).json(listing); });
 app.get('/listing/:id', (req, res) => { const listing = store.data.listings.find(l => l.id === req.params.id); if (!listing) return res.status(404).json({ error: 'Listing not found' }); res.json({ ...listing, owner: publicUser(store.data.users.find(u => u.id === listing.ownerId)), likeCount: listing.likes.length }); });
 app.put('/listing/:id', required, (req, res) => { const listing = store.data.listings.find(l => l.id === req.params.id); if (!listing) return res.status(404).json({ error: 'Listing not found' }); if (listing.ownerId !== req.user.id) return res.status(403).json({ error: 'Not allowed' }); ['title','description','category','tags','price','tradeOffer','images','status'].forEach(k => { if (req.body[k] !== undefined) listing[k] = req.body[k]; }); store.save(); res.json(listing); });
@@ -97,8 +154,10 @@ app.delete('/listing/:id', required, (req, res) => { const i = store.data.listin
 app.post('/listing/:id/like', required, (req, res) => { const listing = store.data.listings.find(l => l.id === req.params.id); if (!listing) return res.status(404).json({ error: 'Listing not found' }); const i = listing.likes.indexOf(req.user.id); if (i < 0) { listing.likes.push(req.user.id); if (listing.ownerId !== req.user.id) notify(listing.ownerId, 'like', `${req.user.username} liked “${listing.title}”`, `/listing/${listing.id}`); activity('like', req.user.id, { listingId: listing.id }); } else listing.likes.splice(i, 1); store.save(); res.json({ liked: i < 0, likeCount: listing.likes.length }); });
 app.post('/listing/:id/favorite', required, (req, res) => { const listing = store.data.listings.find(l => l.id === req.params.id); if (!listing) return res.status(404).json({ error: 'Listing not found' }); if (!Array.isArray(listing.favorites)) listing.favorites = []; const i = listing.favorites.indexOf(req.user.id); if (i < 0) listing.favorites.push(req.user.id); else listing.favorites.splice(i, 1); store.save(); res.json({ favorited: i < 0, favoriteCount: listing.favorites.length }); });
 
-app.post('/comment', required, (req, res) => { const { listingId, body, parentId } = req.body; const listing = store.data.listings.find(l => l.id === listingId); const parent = parentId ? store.data.comments.find(c => c.id === parentId) : null; if (!listing || !body?.trim()) return res.status(400).json({ error: 'Valid listingId and body required' }); if (parentId && (!parent || parent.listingId !== listingId)) return res.status(400).json({ error: 'Reply must belong to the same listing' }); const comment = { id: id(), listingId, userId: req.user.id, body: body.trim(), parentId: parentId || null, createdAt: now() }; store.data.comments.push(comment); const owner = parent ? parent.userId : listing.ownerId; if (owner && owner !== req.user.id) notify(owner, 'comment', `${req.user.username} commented on “${listing.title}”`, `/listing/${listing.id}`); activity('comment', req.user.id, { listingId, commentId: comment.id }); store.save(); res.status(201).json({ ...comment, user: publicUser(req.user) }); });
-app.get('/comments/:listingId', (req, res) => res.json(store.data.comments.filter(c => c.listingId === req.params.listingId).sort((a, b) => a.createdAt.localeCompare(b.createdAt)).map(c => ({ ...c, user: publicUser(store.data.users.find(u => u.id === c.userId)) }))));
+app.post('/comment', required, (req, res) => { const { listingId, body, parentId } = req.body; const listing = store.data.listings.find(l => l.id === listingId); const parent = parentId ? store.data.comments.find(c => c.id === parentId) : null; if (!listing || !body?.trim()) return res.status(400).json({ error: 'Valid listingId and body required' }); if (parentId && (!parent || parent.listingId !== listingId)) return res.status(400).json({ error: 'Reply must belong to the same listing' }); const comment = { id: id(), listingId, userId: req.user.id, body: body.trim(), parentId: parentId || null, votes: {}, createdAt: now() }; store.data.comments.push(comment); const owner = parent ? parent.userId : listing.ownerId; if (owner && owner !== req.user.id) notify(owner, 'comment', `${req.user.username} commented on “${listing.title}”`, `/listing/${listing.id}`); activity('comment', req.user.id, { listingId, commentId: comment.id }); store.save(); res.status(201).json({ ...comment, score: 0, myVote: 0, user: publicUser(req.user) }); });
+function commentView(comment, userId) { const votes = comment.votes && typeof comment.votes === 'object' ? comment.votes : {}; return { ...comment, votes: undefined, score: Object.values(votes).reduce((total, vote) => total + Number(vote || 0), 0), myVote: Number(votes[userId] || 0), user: publicUser(store.data.users.find(user => user.id === comment.userId)) }; }
+app.get('/comments/:listingId', (req, res) => { const user = currentUser(req); res.json(store.data.comments.filter(c => c.listingId === req.params.listingId).sort((a, b) => a.createdAt.localeCompare(b.createdAt)).map(comment => commentView(comment, user?.id))); });
+app.post('/comment/:id/vote', required, (req, res) => { const comment = store.data.comments.find(row => row.id === req.params.id); if (!comment) return res.status(404).json({ error: 'Comment not found' }); const direction = Number(req.body.direction); if (![1, -1].includes(direction)) return res.status(400).json({ error: 'Vote must be an upvote or downvote.' }); if (!comment.votes || typeof comment.votes !== 'object') comment.votes = {}; comment.votes[req.user.id] === direction ? delete comment.votes[req.user.id] : comment.votes[req.user.id] = direction; store.save(); const view = commentView(comment, req.user.id); res.json({ score: view.score, myVote: view.myVote }); });
 
 app.post('/trade', required, (req, res) => { const { receiverId, listingId, offerDetails } = req.body; const listing = store.data.listings.find(l => l.id === listingId); if (!listing || !offerDetails?.trim()) return res.status(400).json({ error: 'Valid listing and offer details required' }); if (listing.ownerId !== receiverId || receiverId === req.user.id) return res.status(400).json({ error: 'Invalid trade recipient' }); const trade = { id: id(), senderId: req.user.id, receiverId, listingId, offerDetails: offerDetails.trim(), status: 'pending', messages: [], createdAt: now() }; store.data.trades.unshift(trade); notify(receiverId, 'trade', `${req.user.username} sent a trade offer for “${listing.title}”`, `/trade/${trade.id}`); activity('trade', req.user.id, { listingId, tradeId: trade.id }); store.save(); res.status(201).json(trade); });
 function tradeView(trade, userId) { const listing = store.data.listings.find(row => row.id === trade.listingId); const otherUser = store.data.users.find(row => row.id === (trade.senderId === userId ? trade.receiverId : trade.senderId)); return { ...trade, listing, otherUser: publicUser(otherUser) }; }
@@ -145,7 +204,7 @@ const rootSiteAssets = new Set([
   'functional-discovery.css', 'logo-raster.css', 'social-posts.css', 'account-panel.css',
   'listing-images.css', 'listing-upload.css', 'listing-video.css', 'password-toggle.css',
   'listing-creation.css', 'listing-detail.css', 'listing-actions.css', 'listing-category.css',
-  'listing-sort.css', 'delivery-workspace.css', 'app-performance.css', 'account-connections.css', 'social-chat.css', 'account-workspace.css', 'tags-expanded.css', 'favicon.png'
+  'listing-sort.css', 'delivery-workspace.css', 'app-performance.css', 'account-connections.css', 'social-chat.css', 'voice-chat.css', 'account-workspace.css', 'tags-expanded.css', 'favicon.png'
 ]);
 app.use('/public', express.static(path.join(__dirname, 'public'), { index: false }));
 app.get('/data/listings.json', (req, res) => res.sendFile(path.join(__dirname, 'data', 'listings.json')));
