@@ -82,4 +82,8 @@ html body .tag-match-mode button{min-width:44px;height:28px;padding:0 8px;border
 html body .tag-match-mode button:last-child{border-right:0}
 html body .tag-match-mode button.active{background:#17130d;color:#e6cd8b;box-shadow:inset 0 -2px #8a7144}
 @media(max-width:680px){html body .tag-search{gap:4px}html body .tag-match-mode button{min-width:39px;padding:0 5px;font-size:8px}}
+
+/* Long-press tag locks remain required while normal tags use Any / All matching. */
+html body .tag-group-buttons button.locked{border-color:#8e7542!important;background:#1b160d!important;color:#f2d78e!important;box-shadow:inset 0 0 0 1px #5f4d2c!important}
+html body .tag-group-buttons button.locked::after{content:' LOCK';margin-left:6px;color:#b7a16b;font:700 7px "DM Mono",monospace;letter-spacing:.05em}
 html body .collector-head{background:#0a0b0d!important;border-bottom-color:#292c30!important}html body .collector-head>b{background:#070809!important;border-color:#3a3e44!important}

@@ -14,6 +14,8 @@ let session = null;
 try { session = JSON.parse(localStorage.getItem('collector-marketplace-session') || 'null'); } catch { session = null; }
 
 let tagMatchMode = 'any';
+let lockedTags = [];
+try { lockedTags = JSON.parse(localStorage.getItem('collector-marketplace-locked-tags') || '[]').filter(tag => typeof tag === 'string'); } catch { lockedTags = []; }
 const tagMatchControl = document.createElement('div');
 tagMatchControl.className = 'tag-match-mode';
 tagMatchControl.setAttribute('role', 'group');
@@ -22,6 +24,19 @@ tagMatchControl.innerHTML = '<button type="button" data-tag-match="any" aria-pre
 tagSearch.closest('.tag-search')?.append(tagMatchControl);
 const renderTagMatchMode = () => tagMatchControl.querySelectorAll('[data-tag-match]').forEach(button => { const selected = button.dataset.tagMatch === tagMatchMode; button.classList.toggle('active', selected); button.setAttribute('aria-pressed', String(selected)); });
 renderTagMatchMode();
+
+let tagHoldTimer = null;
+let heldTagValue = '';
+let suppressTagClick = '';
+const saveLockedTags = () => localStorage.setItem('collector-marketplace-locked-tags', JSON.stringify(lockedTags));
+const markLockedTags = () => tags.querySelectorAll('[data-tag]').forEach(button => { const locked = lockedTags.includes(button.dataset.tag.toLowerCase()); button.classList.toggle('locked', locked); button.title = locked ? 'Locked tag — hold for 2 seconds to unlock' : 'Hold for 2 seconds to lock this tag'; button.setAttribute('aria-label', `${button.textContent.trim()}${locked ? ', locked; hold for 2 seconds to unlock' : '; hold for 2 seconds to lock'}`); });
+const refreshLockedTagResults = () => { renderTags(); markLockedTags(); if (auctionTagView) renderTaggedAuctionHouse(); else renderFeed(); };
+const toggleLockedTag = value => { const locked = lockedTags.includes(value); lockedTags = locked ? lockedTags.filter(tag => tag !== value) : [...lockedTags, value]; if (!locked) activeTags = activeTags.filter(tag => tag !== value); saveLockedTags(); refreshLockedTagResults(); };
+new MutationObserver(markLockedTags).observe(tags, { childList: true });
+document.addEventListener('pointerdown', event => { const tag = event.target.closest('[data-tag]'); if (!tag || event.button !== 0) return; heldTagValue = tag.dataset.tag.toLowerCase(); tagHoldTimer = setTimeout(() => { suppressTagClick = heldTagValue; toggleLockedTag(heldTagValue); navigator.vibrate?.(35); }, 2000); });
+document.addEventListener('pointerup', () => { clearTimeout(tagHoldTimer); tagHoldTimer = null; });
+document.addEventListener('pointercancel', () => { clearTimeout(tagHoldTimer); tagHoldTimer = null; });
+document.addEventListener('click', event => { const tag = event.target.closest('[data-tag]'); if (!tag) return; const value = tag.dataset.tag.toLowerCase(); if (suppressTagClick === value || lockedTags.includes(value)) { event.preventDefault(); event.stopImmediatePropagation(); suppressTagClick = ''; } }, true);
 
 const placeSportsAfterShoes = () => {
   const groups = [...tags.querySelectorAll('.tag-group')];
@@ -73,7 +88,7 @@ function saveSession(nextSession) { session = nextSession; if (session) localSto
 const asFeedListing = listing => ({ ...listing, image: listing.images?.[0] || '', tags: listing.tags?.length ? listing.tags : [listing.category], tag: listing.tags?.[0] || listing.category, trade: listing.tradeOffer, ownerName: listing.owner?.username || 'JohnDoe' });
 const listingTags = item => Array.isArray(item.tags) ? item.tags : [item.tag].filter(Boolean);
 const searchedTagTerms = () => (tagSearch.value.match(/#?[a-z0-9-]+/gi) || []).map(value => value.replace('#', '').toLowerCase());
-const filtered = () => listings.filter(item => { const itemTags = listingTags(item).map(tag => tag.toLowerCase()); const typedTags = searchedTagTerms(); const matches = terms => !terms.length || (tagMatchMode === 'all' ? terms.every(term => itemTags.some(tag => tag.includes(term))) : terms.some(term => itemTags.some(tag => tag.includes(term)))); return (activeCategory === 'All' || item.category === activeCategory) && `${item.title} ${item.description} ${itemTags.join(' ')}`.toLowerCase().includes(activeQuery.toLowerCase()) && matches(activeTags) && matches(typedTags); }).sort((left, right) => { const leftDate = new Date(left.createdAt || 0).valueOf(); const rightDate = new Date(right.createdAt || 0).valueOf(); if (sortMode === 'oldest') return leftDate - rightDate; if (sortMode === 'popular') return ((right.likes?.length || 0) + (right.favorites?.length || 0) + stateFor(right.id).score) - ((left.likes?.length || 0) + (left.favorites?.length || 0) + stateFor(left.id).score); return rightDate - leftDate; });
+const filtered = () => listings.filter(item => { const itemTags = listingTags(item).map(tag => tag.toLowerCase()); const typedTags = searchedTagTerms(); const matches = terms => !terms.length || (tagMatchMode === 'all' ? terms.every(term => itemTags.some(tag => tag.includes(term))) : terms.some(term => itemTags.some(tag => tag.includes(term)))); return (activeCategory === 'All' || item.category === activeCategory) && `${item.title} ${item.description} ${itemTags.join(' ')}`.toLowerCase().includes(activeQuery.toLowerCase()) && matches(activeTags) && matches(typedTags) && lockedTags.every(tag => itemTags.some(itemTag => itemTag.includes(tag))); }).sort((left, right) => { const leftDate = new Date(left.createdAt || 0).valueOf(); const rightDate = new Date(right.createdAt || 0).valueOf(); if (sortMode === 'oldest') return leftDate - rightDate; if (sortMode === 'popular') return ((right.likes?.length || 0) + (right.favorites?.length || 0) + stateFor(right.id).score) - ((left.likes?.length || 0) + (left.favorites?.length || 0) + stateFor(left.id).score); return rightDate - leftDate; });
 const stateFor = id => postState[id] || (postState[id] = { score: 0, vote: 0, comments: [] });
 const savePostState = () => localStorage.setItem('collector-marketplace-post-state', JSON.stringify(postState));
 const card = item => { const state = stateFor(item.id); const owner = item.owner?.username || item.ownerName || 'collector'; const avatar = owner.slice(0, 1).toUpperCase(); const imageCount = item.images?.length || 1; const videoCount = item.videos?.length || 0; return `<article class="listing"><header class="collector-head"><b>${safe(avatar)}</b><div><strong>@${safe(owner)} <em>CURATOR</em></strong><small>★★★★★ <i>(${item.owner?.reputation || 0})</i></small></div><time datetime="${safe(item.createdAt || '')}">${safe(formatListingDate(item.createdAt))}</time></header><div class="listing-main"><button class="media" data-detail="${item.id}"><img src="${safe(item.image)}" alt="${safe(item.title)}"><span class="grade">${safe(item.category)}</span>${imageCount > 1 || videoCount ? `<span class="image-count">${imageCount} photo${imageCount === 1 ? '' : 's'}${videoCount ? ` · ${videoCount} video${videoCount === 1 ? '' : 's'}` : ''}</span>` : ''}</button><section class="listing-copy"><h2>${safe(item.title)}</h2><div class="meta">COLLECTORMARKETPLACE.NET</div><p><b>@${safe(owner)} ★★★★★</b><br>${safe(item.description)}</p><footer class="listing-actions"><button class="listing-action action-buy" data-purchase="${item.id}"><span>BUY</span><b>$${item.price}</b></button><button class="listing-action" data-trade="${item.id}"><span>⇄</span> TRADE</button><span class="vote-control"><button type="button" class="listing-action vote ${state.vote === 1 ? 'selected' : ''}" data-vote="up" data-post="${item.id}" aria-label="Upvote ${safe(item.title)}">▲</button><output>${state.score}</output><button type="button" class="listing-action vote ${state.vote === -1 ? 'selected' : ''}" data-vote="down" data-post="${item.id}" aria-label="Downvote ${safe(item.title)}">▼</button></span><button type="button" class="listing-action favorite-button ${state.favorite ? 'selected' : ''}" data-favorite="${item.id}" aria-pressed="${state.favorite ? 'true' : 'false'}" aria-label="Favorite ${safe(item.title)}">♥</button><button type="button" class="listing-action comment-button" data-comments="${item.id}">◌ <span>COMMENTS</span></button></footer></section></div></article>`; };
@@ -200,7 +215,7 @@ const filteredAuctions = () => auctions.filter(lot => {
   const typedTags = searchedTagTerms();
   const matches = terms => !terms.length || (tagMatchMode === 'all' ? terms.every(term => lotTags.some(tag => tag.includes(term))) : terms.some(term => lotTags.some(tag => tag.includes(term))));
   const searchable = `${lot.title} ${lot.description || ''} ${lotTags.join(' ')}`.toLowerCase();
-  return (activeCategory === 'All' || lot.category === activeCategory || lotTags.includes(activeCategory.toLowerCase())) && searchable.includes(activeQuery.toLowerCase()) && matches(activeTags) && matches(typedTags);
+  return (activeCategory === 'All' || lot.category === activeCategory || lotTags.includes(activeCategory.toLowerCase())) && searchable.includes(activeQuery.toLowerCase()) && matches(activeTags) && matches(typedTags) && lockedTags.every(tag => lotTags.some(lotTag => lotTag.includes(tag)));
 });
 const renderTaggedAuctionHouse = () => {
   if (observer) observer.disconnect();
