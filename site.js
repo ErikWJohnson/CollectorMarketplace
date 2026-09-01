@@ -27,7 +27,9 @@ const placeSportsAfterShoes = () => {
   const groups = [...tags.querySelectorAll('.tag-group')];
   const shoes = groups.find(group => group.querySelector('h3')?.textContent === 'Shoes & Sneakers');
   const sports = groups.find(group => group.querySelector('h3')?.textContent === 'Sports & Autographs');
+  const home = groups.find(group => group.querySelector('h3')?.textContent === 'Home, Decor & Kitchen');
   if (shoes && sports && shoes.nextElementSibling !== sports) shoes.after(sports);
+  if (sports && home && sports.nextElementSibling !== home) sports.after(home);
 };
 new MutationObserver(placeSportsAfterShoes).observe(tags, { childList: true });
 
