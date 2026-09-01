@@ -43,8 +43,10 @@ const placeSportsAfterShoes = () => {
   const shoes = groups.find(group => group.querySelector('h3')?.textContent === 'Shoes & Sneakers');
   const sports = groups.find(group => group.querySelector('h3')?.textContent === 'Sports & Autographs');
   const home = groups.find(group => group.querySelector('h3')?.textContent === 'Home, Decor & Kitchen');
+  const vanity = groups.find(group => group.querySelector('h3')?.textContent === 'Vanity');
   if (shoes && sports && shoes.nextElementSibling !== sports) shoes.after(sports);
   if (sports && home && sports.nextElementSibling !== home) sports.after(home);
+  if (home && vanity && home.nextElementSibling !== vanity) home.after(vanity);
 };
 new MutationObserver(placeSportsAfterShoes).observe(tags, { childList: true });
 
@@ -81,6 +83,7 @@ tagGroups.Styles = tagGroups.Styles.filter(tag => tag !== 'Lovecraft');
 tagGroups.Styles.push('Rock', 'Bling');
 tagGroups['Fashion & Luxury'] = tagGroups['Fashion & Luxury'].filter(tag => !['Sneakers', 'Dress Shoes', 'Boots'].includes(tag));
 tagGroups['Shoes & Sneakers'] = ['Shoes', 'Sneakers', 'Athletic Shoes', 'Running Shoes', 'Walking Shoes', 'Training Shoes', 'Basketball Shoes', 'Football Cleats', 'Soccer Cleats', 'Baseball Cleats', 'Golf Shoes', 'Tennis Shoes', 'Skate Shoes', 'Hiking Boots', 'Work Boots', 'Rain Boots', 'Snow Boots', 'Cowboy Boots', 'Combat Boots', 'Chelsea Boots', 'Ankle Boots', 'Knee-High Boots', 'Dress Shoes', 'Oxford Shoes', 'Loafers', 'Derby Shoes', 'Brogues', 'Monk Strap Shoes', 'Moccasins', 'Boat Shoes', 'Espadrilles', 'Sandals', 'Slides', 'Flip-Flops', 'Clogs', 'Mules', 'Ballet Flats', 'Flats', 'Mary Janes', 'Heels', 'Stilettos', 'Pumps', 'Wedges', 'Platform Shoes', 'Slingbacks', 'Peep-Toe Heels', 'Slippers', 'House Shoes', 'Orthopedic Shoes', 'Vintage Shoes', 'Designer Shoes', 'Limited Edition Sneakers', 'Kids Shoes', 'Baby Shoes'];
+tagGroups.Vanity = ['Makeup', 'Skincare', 'Foundation', 'Concealer', 'Face Powder', 'Blush', 'Bronzer', 'Highlighter', 'Primer', 'Setting Spray', 'Lipstick', 'Lip Gloss', 'Lip Liner', 'Lip Balm', 'Eyeshadow', 'Eyeshadow Palettes', 'Eyeliner', 'Mascara', 'False Lashes', 'Brow Pencil', 'Brow Gel', 'Makeup Brushes', 'Makeup Sponges', 'Beauty Tools', 'Nail Polish', 'Nail Care', 'Makeup Remover', 'Facial Cleanser', 'Face Wash', 'Toner', 'Face Serum', 'Face Moisturizer', 'Face Oil', 'Sunscreen', 'Face Masks', 'Eye Cream', 'Lip Care', 'Acne Care', 'Exfoliants', 'Retinol Skincare', 'K-Beauty Skincare', 'Travel Makeup', 'Vintage Makeup'];
 const categoryOptions = Object.values(tagGroups).flat();
 function enableCarrierPicker(input) { if (!document.querySelector('#delivery-carriers')) { const list = document.createElement('datalist'); list.id = 'delivery-carriers'; list.innerHTML = deliveryCarriers.map(carrier => `<option value="${safe(carrier)}">`).join(''); document.body.append(list); } input.setAttribute('list', 'delivery-carriers'); input.placeholder = 'Choose a delivery company'; }
 async function api(url, options = {}) { const response = await fetch(url, { ...options, headers: { 'Content-Type': 'application/json', ...(session?.token ? { Authorization: `Bearer ${session.token}` } : {}), ...(options.headers || {}) } }); const payload = response.status === 204 ? null : await response.json(); if (!response.ok) throw new Error(payload?.error || 'Something went wrong.'); return payload; }
