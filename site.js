@@ -25,17 +25,13 @@ tagSearch.closest('.tag-search')?.append(tagMatchControl);
 const renderTagMatchMode = () => tagMatchControl.querySelectorAll('[data-tag-match]').forEach(button => { const selected = button.dataset.tagMatch === tagMatchMode; button.classList.toggle('active', selected); button.setAttribute('aria-pressed', String(selected)); });
 renderTagMatchMode();
 
-let tagHoldTimer = null;
-let heldTagValue = '';
 let suppressTagClick = '';
 const saveLockedTags = () => localStorage.setItem('collector-marketplace-locked-tags', JSON.stringify(lockedTags));
-const markLockedTags = () => tags.querySelectorAll('[data-tag]').forEach(button => { const locked = lockedTags.includes(button.dataset.tag.toLowerCase()); button.classList.toggle('locked', locked); button.title = locked ? 'Locked tag — hold for 2 seconds to unlock' : 'Hold for 2 seconds to lock this tag'; button.setAttribute('aria-label', `${button.textContent.trim()}${locked ? ', locked; hold for 2 seconds to unlock' : '; hold for 2 seconds to lock'}`); });
+const markLockedTags = () => tags.querySelectorAll('[data-tag]').forEach(button => { const locked = lockedTags.includes(button.dataset.tag.toLowerCase()); button.classList.toggle('locked', locked); button.title = locked ? 'Locked tag — press to unlock' : 'Press and hold to lock this tag'; button.setAttribute('aria-label', `${button.textContent.trim()}${locked ? ', locked; press to unlock' : '; press and hold to lock'}`); });
 const refreshLockedTagResults = () => { renderTags(); markLockedTags(); if (auctionTagView) renderTaggedAuctionHouse(); else renderFeed(); };
 const toggleLockedTag = value => { const locked = lockedTags.includes(value); lockedTags = locked ? lockedTags.filter(tag => tag !== value) : [...lockedTags, value]; if (!locked) activeTags = activeTags.filter(tag => tag !== value); saveLockedTags(); refreshLockedTagResults(); };
 new MutationObserver(markLockedTags).observe(tags, { childList: true });
-document.addEventListener('pointerdown', event => { const tag = event.target.closest('[data-tag]'); if (!tag || event.button !== 0) return; heldTagValue = tag.dataset.tag.toLowerCase(); tagHoldTimer = setTimeout(() => { suppressTagClick = heldTagValue; toggleLockedTag(heldTagValue); navigator.vibrate?.(35); }, 2000); });
-document.addEventListener('pointerup', () => { clearTimeout(tagHoldTimer); tagHoldTimer = null; });
-document.addEventListener('pointercancel', () => { clearTimeout(tagHoldTimer); tagHoldTimer = null; });
+document.addEventListener('pointerdown', event => { const tag = event.target.closest('[data-tag]'); if (!tag || event.button !== 0) return; const value = tag.dataset.tag.toLowerCase(); suppressTagClick = value; toggleLockedTag(value); navigator.vibrate?.(35); });
 document.addEventListener('click', event => { const tag = event.target.closest('[data-tag]'); if (!tag) return; const value = tag.dataset.tag.toLowerCase(); if (suppressTagClick === value || lockedTags.includes(value)) { event.preventDefault(); event.stopImmediatePropagation(); suppressTagClick = ''; } }, true);
 
 const placeSportsAfterShoes = () => {
