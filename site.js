@@ -194,4 +194,29 @@ document.addEventListener('change', async event => { if (!event.target.matches('
 document.addEventListener('click', async event => { const link = event.target.closest('[data-copy-url]'); if (!link) return; event.preventDefault(); const url = link.dataset.copyUrl; try { await navigator.clipboard.writeText(url); const original = link.textContent; link.textContent = 'URL copied'; link.setAttribute('aria-label', 'URL copied to clipboard'); setTimeout(() => { link.textContent = original; link.setAttribute('aria-label', 'Copy CollectorMarketplace.net URL'); }, 1400); } catch { link.title = `Copy this URL: ${url}`; } });
 
 async function loadMarket() { const listingData = await fetch('/listings').then(response => { if (!response.ok) throw new Error('Listings API unavailable'); return response.json(); }); listings = listingData.map(asFeedListing).sort((a, b) => a.id === 'mantle' ? -1 : b.id === 'mantle' ? 1 : 0); renderTags(); renderCategories(); renderFeed(); }
+const auctionLotTags = lot => [lot.category, ...(Array.isArray(lot.tags) ? lot.tags : [])].filter(Boolean).map(tag => tag.toLowerCase());
+const filteredAuctions = () => auctions.filter(lot => {
+  const lotTags = auctionLotTags(lot);
+  const typedTags = searchedTagTerms();
+  const matches = terms => !terms.length || (tagMatchMode === 'all' ? terms.every(term => lotTags.some(tag => tag.includes(term))) : terms.some(term => lotTags.some(tag => tag.includes(term))));
+  const searchable = `${lot.title} ${lot.description || ''} ${lotTags.join(' ')}`.toLowerCase();
+  return (activeCategory === 'All' || lot.category === activeCategory || lotTags.includes(activeCategory.toLowerCase())) && searchable.includes(activeQuery.toLowerCase()) && matches(activeTags) && matches(typedTags);
+});
+const renderTaggedAuctionHouse = () => {
+  if (observer) observer.disconnect();
+  sentinel.hidden = true;
+  const lots = filteredAuctions();
+  stream.innerHTML = `<section class="auction-house"><header class="auction-head"><div><p>Live bidding</p><h1>Auction House</h1></div><p>${lots.length} matching lot${lots.length === 1 ? '' : 's'} open now</p></header>${lots.length ? `<div class="auction-grid">${lots.map(lot => `<article class="auction-card"><img src="${safe(lot.image)}" alt="${safe(lot.title)}"><div class="auction-info"><h2>${safe(lot.title)}</h2><p>${safe(lot.category)}</p><div class="auction-stats"><div>Current bid<strong>${money(lot.currentBid)}</strong></div><div>Ends in<strong>${safe(lot.ends)}</strong></div><div>${lot.bids} bids</div></div><button class="auction-bid" data-bid="${lot.id}">Place bid</button></div></article>`).join('')}</div>` : '<p class="load-state">No active auction lots match those tags. Try removing a tag or choose ANY matching.</p>'}</section>`;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+let auctionTagView = false;
+showAuctionHouse = () => { auctionTagView = true; renderTaggedAuctionHouse(); };
+const refreshTaggedAuction = () => { if (auctionTagView) renderTaggedAuctionHouse(); };
+document.addEventListener('click', event => {
+  if (event.target.closest('[data-home], [data-market]')) auctionTagView = false;
+  if (event.target.closest('[data-tag], [data-category], [data-tag-match]')) queueMicrotask(refreshTaggedAuction);
+});
+tagSearch.addEventListener('input', () => setTimeout(refreshTaggedAuction, 160));
+tagSearch.addEventListener('keydown', event => { if (event.key === 'Enter') setTimeout(refreshTaggedAuction, 0); });
+
 Promise.all([loadMarket(), fetch('data/auctions.json').then(response => response.json())]).then(([, auctionData]) => { auctions = auctionData; observer = new IntersectionObserver(entries => { if (entries[0].isIntersecting && page * 4 < filtered().length) { page++; renderFeed(false); } }, { rootMargin: '250px' }); observer.observe(sentinel); }).catch(() => { stream.innerHTML = '<p class="load-state">The marketplace feed could not load. Please refresh the page.</p>'; });
