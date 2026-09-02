@@ -35,7 +35,7 @@ let hoveredTagValue = '';
 const saveLockedTags = () => { localStorage.setItem('collector-marketplace-locked-tags', JSON.stringify(lockedTags)); localStorage.setItem('collector-marketplace-void-tags', JSON.stringify(voidTags)); };
 const markLockedTags = () => tags.querySelectorAll('[data-tag]').forEach(button => { const value = button.dataset.tag.toLowerCase(); const locked = lockedTags.includes(value); const voided = voidTags.includes(value); button.classList.toggle('locked', locked); button.classList.toggle('void', voided); button.title = locked ? 'Locked tag — hold briefly to unlock' : voided ? 'Void tag — hold briefly to unlock' : 'Click to select. Shift+hover adds; Ctrl+hover removes. Hold briefly to lock or void.'; button.setAttribute('aria-label', `${button.textContent.trim()}${locked ? ', locked; hold briefly to unlock' : voided ? ', voided; hold briefly to unlock' : '; Shift-hover adds and Ctrl-hover removes selected tags; hold briefly to lock or void'}`); });
 const refreshLockedTagResults = () => { renderTags(); markLockedTags(); if (auctionTagView) refreshTaggedAuction(); else renderFeed(); };
-const toggleLockedTag = value => { const locked = lockedTags.includes(value); const voided = voidTags.includes(value); if (locked) lockedTags = lockedTags.filter(tag => tag !== value); else if (voided) voidTags = voidTags.filter(tag => tag !== value); else if (activeTags.includes(value)) { lockedTags = [...lockedTags, value]; activeTags = activeTags.filter(tag => tag !== value); } else voidTags = [...voidTags, value]; saveLockedTags(); refreshLockedTagResults(); };
+const toggleLockedTag = value => { const locked = lockedTags.includes(value); const voided = voidTags.includes(value); if (locked) lockedTags = lockedTags.filter(tag => tag !== value); else if (voided) voidTags = voidTags.filter(tag => tag !== value); else if (activeTags.includes(value)) { lockedTags = [...lockedTags, value]; activeTags = activeTags.filter(tag => tag !== value); } else voidTags = [...voidTags, value]; saveLockedTags(); syncTagRoute(); refreshLockedTagResults(); };
 new MutationObserver(markLockedTags).observe(tags, { childList: true });
 document.addEventListener('pointerdown', event => { const tag = event.target.closest('[data-tag]'); if (!tag || event.button !== 0) return; heldTagValue = tag.dataset.tag.toLowerCase(); tagHoldTimer = setTimeout(() => { suppressTagClick = heldTagValue; toggleLockedTag(heldTagValue); navigator.vibrate?.(35); }, 450); });
 document.addEventListener('pointerup', () => { clearTimeout(tagHoldTimer); tagHoldTimer = null; });
@@ -242,16 +242,18 @@ const routeTags = () => {
   const mode = first === 'all' || first === 'any' ? first : 'any';
   const slugs = (first === 'all' || first === 'any' ? rest : parts).join('/').split('+').filter(Boolean);
   const knownTags = [...new Set([...categoryOptions, ...Object.values(tagGroups).flat(), ...listings.flatMap(listingTags)])];
-  return { mode, tags: slugs.map(slug => knownTags.find(tag => tagSlug(tag) === slug)).filter(Boolean) };
+  const resolve = slug => knownTags.find(tag => tagSlug(tag) === slug) || '';
+  const tagged = slugs.map(slug => ({ state: slug.startsWith('l-') ? 'locked' : slug.startsWith('v-') ? 'void' : 'active', tag: resolve(slug.replace(/^[lv]-/, '')) })).filter(row => row.tag);
+  return { mode, active: tagged.filter(row => row.state === 'active').map(row => row.tag), locked: tagged.filter(row => row.state === 'locked').map(row => row.tag), voided: tagged.filter(row => row.state === 'void').map(row => row.tag) };
 };
 const syncTagRoute = (replace = false) => {
   const mode = tagMatchMode === 'all' ? 'all' : 'any';
-  const tagsPath = activeTags.map(tagSlug).filter(Boolean).join('+');
+  const tagsPath = [...activeTags.map(tagSlug), ...lockedTags.map(tag => `l-${tagSlug(tag)}`), ...voidTags.map(tag => `v-${tagSlug(tag)}`)].filter(Boolean).join('+');
   const path = `/${mode}/${tagsPath ? `${tagsPath}/` : ''}`;
   if (location.pathname === path) return;
   history[replace ? 'replaceState' : 'pushState']({}, '', path);
 };
-const applyTagRoute = () => { const route = routeTags(); tagMatchMode = route.mode; activeTags = route.tags.map(tag => tag.toLowerCase()); if (route.tags.length) syncTagRoute(true); renderTagMatchMode(); setDiscoveryMode(route.tags.length ? 'tags' : 'search'); renderTags(); renderFeed(); };
+const applyTagRoute = () => { const route = routeTags(); tagMatchMode = route.mode; activeTags = route.active.map(tag => tag.toLowerCase()); lockedTags = route.locked.map(tag => tag.toLowerCase()); voidTags = route.voided.map(tag => tag.toLowerCase()); saveLockedTags(); if ([...route.active, ...route.locked, ...route.voided].length) syncTagRoute(true); renderTagMatchMode(); setDiscoveryMode([...route.active, ...route.locked, ...route.voided].length ? 'tags' : 'search'); renderTags(); renderFeed(); };
 function toggleTag(tag, multiSelect = false) { const value = tag.toLowerCase(); if (multiSelect) activeTags = activeTags.includes(value) ? activeTags.filter(current => current !== value) : [...activeTags, value]; else activeTags = activeTags.length === 1 && activeTags[0] === value ? [] : [value]; syncTagRoute(); renderTags(); renderFeed(); }
 function activateNav(name) { document.querySelectorAll('.bottom-nav button').forEach(button => button.classList.toggle('active', button.matches(`[data-${name}]`))); }
 function auctionTime(lot) { const left = Math.max(0, Math.floor((lot.endAt - Date.now()) / 1000)); const hours = String(Math.floor(left / 3600)).padStart(2, '0'); const minutes = String(Math.floor(left % 3600 / 60)).padStart(2, '0'); const seconds = String(left % 60).padStart(2, '0'); return `${hours}:${minutes}:${seconds}`; }
