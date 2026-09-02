@@ -135,7 +135,7 @@ app.get('/voice/:roomId/events', required, (req, res) => {
 app.post('/voice/:roomId/signal', required, (req, res) => {
   const roomId = decodeURIComponent(req.params.roomId); const room = voiceRooms.get(roomId);
   if (!room || !room.peers.has(req.user.id) || !room.peers.has(req.body.to)) return res.status(404).json({ error: 'Voice participant not found.' });
-  if (!['offer', 'answer', 'candidate'].includes(req.body.type)) return res.status(400).json({ error: 'Invalid voice signal.' });
+  if (!['offer', 'answer', 'candidate', 'media-state'].includes(req.body.type)) return res.status(400).json({ error: 'Invalid voice signal.' });
   room.peers.get(req.user.id).seenAt = Date.now(); room.events.push({ id: room.nextEventId++, type: req.body.type, from: req.user.id, to: req.body.to, data: req.body.data });
   res.status(202).json({ ok: true });
 });
@@ -172,8 +172,10 @@ app.post('/purchase', required, (req, res) => {
   const listing = store.data.listings.find(row => row.id === listingId && row.status === 'active');
   if (!listing) return res.status(404).json({ error: 'Active listing not found' });
   if (listing.ownerId === req.user.id) return res.status(400).json({ error: 'You cannot purchase your own listing' });
-  if (!shippingAddress?.trim()) return res.status(400).json({ error: 'A delivery address is required' });
-  const delivery = { id: id(), listingId: listing.id, buyerId: req.user.id, sellerId: listing.ownerId, shippingAddress: shippingAddress.trim(), status: 'awaiting_seller_dispatch', courier: '', trackingNumber: '', messages: [], history: [], createdAt: now(), updatedAt: now() }; recordDeliveryUpdate(delivery, req.user.id, delivery.status, 'Purchase created');
+  const address = typeof shippingAddress === 'string' ? shippingAddress.trim() : '';
+  if (!address) return res.status(400).json({ error: 'A delivery address is required' });
+  if (address.length > 500) return res.status(400).json({ error: 'Keep the delivery address under 500 characters.' });
+  const delivery = { id: id(), listingId: listing.id, buyerId: req.user.id, sellerId: listing.ownerId, shippingAddress: address, itemPrice: Number(listing.price) || 0, status: 'awaiting_seller_dispatch', courier: '', trackingNumber: '', messages: [], history: [], createdAt: now(), updatedAt: now() }; recordDeliveryUpdate(delivery, req.user.id, delivery.status, 'Order placed; seller dispatch is pending.');
   listing.status = 'pending_delivery'; store.data.deliveries.unshift(delivery); notify(listing.ownerId, 'delivery', `${req.user.username} started a purchase delivery for “${listing.title}”`, `/delivery/${delivery.id}`); activity('purchase', req.user.id, { listingId: listing.id, deliveryId: delivery.id }); store.save(); res.status(201).json(deliveryView(delivery, req.user.id));
 });
 app.get('/deliveries', required, (req, res) => res.json(store.data.deliveries.filter(row => row.buyerId === req.user.id || row.sellerId === req.user.id).map(row => deliveryView(row, req.user.id))));

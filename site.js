@@ -46,6 +46,35 @@ document.addEventListener('pointerover', event => { const tag = event.target.clo
 document.addEventListener('pointerout', event => { const tag = event.target.closest('[data-tag]'); if (tag && tag.dataset.tag.toLowerCase() === hoveredTagValue) hoveredTagValue = ''; });
 document.addEventListener('keydown', event => { if (['Control', 'Meta', 'Shift'].includes(event.key)) applyHoverTagModifier(event); });
 
+/* Hold ↑ or ↓ to move through the marketplace continuously. Form fields and
+   full-screen workspaces keep their normal keyboard behavior. */
+const heldScrollKeys = new Set();
+let heldScrollFrame = 0;
+const canUseHeldScroll = target => {
+  if (modal.open) return false;
+  /* Tags mode focuses its empty search box automatically; arrows should still
+     browse the full tag catalogue until the collector begins typing. */
+  if (target === tagSearch && !tagSearch.value) return true;
+  return !(target instanceof Element && target.closest('input, textarea, select, [contenteditable="true"]'));
+};
+const runHeldScroll = () => {
+  const direction = heldScrollKeys.has('ArrowDown') ? 1 : heldScrollKeys.has('ArrowUp') ? -1 : 0;
+  if (!direction) { heldScrollFrame = 0; return; }
+  window.scrollBy({ top: direction * 18, left: 0, behavior: 'auto' });
+  heldScrollFrame = requestAnimationFrame(runHeldScroll);
+};
+document.addEventListener('keydown', event => {
+  if (!['ArrowUp', 'ArrowDown'].includes(event.key) || !canUseHeldScroll(event.target)) return;
+  event.preventDefault();
+  heldScrollKeys.add(event.key);
+  if (!heldScrollFrame) heldScrollFrame = requestAnimationFrame(runHeldScroll);
+});
+document.addEventListener('keyup', event => {
+  if (!['ArrowUp', 'ArrowDown'].includes(event.key)) return;
+  heldScrollKeys.delete(event.key);
+});
+window.addEventListener('blur', () => { heldScrollKeys.clear(); });
+
 const placeSportsAfterShoes = () => {
   const groups = [...tags.querySelectorAll('.tag-group')];
   const shoes = groups.find(group => group.querySelector('h3')?.textContent === 'Shoes & Sneakers');
@@ -59,7 +88,7 @@ const placeSportsAfterShoes = () => {
 new MutationObserver(placeSportsAfterShoes).observe(tags, { childList: true });
 
 const voiceChat = {
-  roomId: null, label: '', stream: null, peers: new Map(), names: new Map(), cursor: 0, timer: null, muted: false,
+  roomId: null, label: '', stream: null, peers: new Map(), names: new Map(), remoteVideos: new Map(), videoStates: new Map(), cursor: 0, timer: null, muted: false, videoEnabled: false,
   async join(roomId, label) {
     if (!session) return openAuthPanel('login');
     if (!navigator.mediaDevices?.getUserMedia || !window.RTCPeerConnection) return openModal('Voice unavailable', 'This browser does not support live voice chat. Try a current version of Chrome, Edge, Firefox, or Safari.');
@@ -79,7 +108,7 @@ const voiceChat = {
     const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun.cloudflare.com:3478' }] });
     pc.pendingCandidates = []; this.stream.getTracks().forEach(track => pc.addTrack(track, this.stream));
     pc.onicecandidate = event => { if (event.candidate && this.roomId) this.signal(userId, 'candidate', event.candidate).catch(() => {}); };
-    pc.ontrack = event => { let audio = document.querySelector(`[data-voice-audio="${CSS.escape(userId)}"]`); if (!audio) { audio = document.createElement('audio'); audio.autoplay = true; audio.dataset.voiceAudio = userId; document.body.append(audio); } audio.srcObject = event.streams[0]; };
+    pc.ontrack = event => { if (event.track.kind === 'video') { this.remoteVideos.set(userId, event.streams[0]); if (!this.videoStates.has(userId)) this.videoStates.set(userId, true); this.render(); return; } let audio = document.querySelector(`[data-voice-audio="${CSS.escape(userId)}"]`); if (!audio) { audio = document.createElement('audio'); audio.autoplay = true; audio.dataset.voiceAudio = userId; document.body.append(audio); } audio.srcObject = event.streams[0]; };
     pc.onconnectionstatechange = () => { if (['failed', 'closed'].includes(pc.connectionState)) this.removePeer(userId); this.render(); };
     this.peers.set(userId, pc); this.render();
     if (makeOffer) { await pc.setLocalDescription(await pc.createOffer()); await this.signal(userId, 'offer', pc.localDescription); }
@@ -89,6 +118,7 @@ const voiceChat = {
   async handle(event) {
     if (event.type === 'join') { this.names.set(event.from, event.username || 'Collector'); this.render(); return; }
     if (event.type === 'leave') { this.removePeer(event.from); return; }
+    if (event.type === 'media-state') { this.videoStates.set(event.from, Boolean(event.data?.videoEnabled)); this.render(); return; }
     const pc = await this.connect(event.from);
     if (event.type === 'offer') { await pc.setRemoteDescription(event.data); while (pc.pendingCandidates.length) await pc.addIceCandidate(pc.pendingCandidates.shift()); await pc.setLocalDescription(await pc.createAnswer()); await this.signal(event.from, 'answer', pc.localDescription); }
     if (event.type === 'answer') { await pc.setRemoteDescription(event.data); while (pc.pendingCandidates.length) await pc.addIceCandidate(pc.pendingCandidates.shift()); }
@@ -99,14 +129,16 @@ const voiceChat = {
     try { const result = await api(`/voice/${encodeURIComponent(this.roomId)}/events?after=${this.cursor}`); this.cursor = result.cursor; for (const event of result.events) await this.handle(event); this.render(result.participants); } catch (error) { if (this.roomId) console.warn('Voice polling paused:', error.message); }
     if (this.roomId) this.timer = setTimeout(() => this.poll(), 1200);
   },
-  removePeer(userId) { this.peers.get(userId)?.close(); this.peers.delete(userId); this.names.delete(userId); document.querySelector(`[data-voice-audio="${CSS.escape(userId)}"]`)?.remove(); this.render(); },
+  removePeer(userId) { this.peers.get(userId)?.close(); this.peers.delete(userId); this.names.delete(userId); this.remoteVideos.delete(userId); this.videoStates.delete(userId); document.querySelector(`[data-voice-audio="${CSS.escape(userId)}"]`)?.remove(); this.render(); },
   toggleMute() { this.muted = !this.muted; this.stream?.getAudioTracks().forEach(track => { track.enabled = !this.muted; }); this.render(); },
-  async leave() { const roomId = this.roomId; this.roomId = null; clearTimeout(this.timer); this.peers.forEach(peer => peer.close()); this.peers.clear(); this.names.clear(); this.stream?.getTracks().forEach(track => track.stop()); this.stream = null; document.querySelectorAll('[data-voice-audio]').forEach(node => node.remove()); document.querySelector('.voice-dock')?.remove(); if (roomId && session) await api(`/voice/${encodeURIComponent(roomId)}`, { method: 'DELETE' }).catch(() => {}); },
+  async toggleVideo() { if (!this.roomId || !this.stream) return; let track = this.stream.getVideoTracks()[0]; if (!track) { const camera = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 960 }, height: { ideal: 540 } }, audio: false }); track = camera.getVideoTracks()[0]; this.stream.addTrack(track); for (const [userId, peer] of this.peers) { peer.addTrack(track, this.stream); await peer.setLocalDescription(await peer.createOffer()); await this.signal(userId, 'offer', peer.localDescription); } } this.videoEnabled = !this.videoEnabled; track.enabled = this.videoEnabled; await Promise.all([...this.peers.keys()].map(userId => this.signal(userId, 'media-state', { videoEnabled: this.videoEnabled }).catch(() => {}))); this.render(); },
+  async leave() { const roomId = this.roomId; this.roomId = null; clearTimeout(this.timer); this.peers.forEach(peer => peer.close()); this.peers.clear(); this.names.clear(); this.remoteVideos.clear(); this.videoStates.clear(); this.videoEnabled = false; this.stream?.getTracks().forEach(track => track.stop()); this.stream = null; document.querySelectorAll('[data-voice-audio]').forEach(node => node.remove()); document.querySelector('.voice-dock')?.remove(); if (roomId && session) await api(`/voice/${encodeURIComponent(roomId)}`, { method: 'DELETE' }).catch(() => {}); },
   render(participantCount) {
     if (!this.roomId) return; let dock = document.querySelector('.voice-dock');
     if (!dock) { dock = document.createElement('aside'); dock.className = 'voice-dock'; document.body.append(dock); }
-    dock.classList.toggle('is-muted', this.muted); const people = [...this.names.values()];
-    dock.innerHTML = `<header><i class="voice-pulse"></i><div><strong>${safe(this.label)}</strong><small>Live voice · ${participantCount || Math.max(1, people.length)} listening</small></div></header><div class="voice-participants">${people.map(name => `<span>@${safe(name)}</span>`).join('')}</div><div class="voice-controls"><button type="button" data-voice-mute>${this.muted ? 'Unmute mic' : 'Mute mic'}</button><button type="button" class="voice-leave" data-voice-leave>Leave</button></div>`;
+    dock.classList.toggle('is-muted', this.muted); const people = [...this.names.values()]; const remoteTiles = [...this.remoteVideos.entries()].filter(([userId]) => this.videoStates.get(userId) !== false).map(([userId]) => `<figure class="voice-video-tile"><video data-voice-video="${safe(userId)}" autoplay playsinline muted></video><figcaption>@${safe(this.names.get(userId) || 'collector')}</figcaption></figure>`).join('');
+    dock.innerHTML = `<header><i class="voice-pulse"></i><div><strong>${safe(this.label)}</strong><small>Live voice · ${participantCount || Math.max(1, people.length)} listening</small></div></header>${this.videoEnabled || remoteTiles ? `<section class="voice-video-grid">${this.videoEnabled ? `<figure class="voice-video-tile is-local"><video data-voice-local autoplay muted playsinline></video><figcaption>You</figcaption></figure>` : ''}${remoteTiles}</section>` : ''}<div class="voice-participants">${people.map(name => `<span>@${safe(name)}</span>`).join('')}</div><div class="voice-controls"><button type="button" data-voice-mute>${this.muted ? 'Unmute mic' : 'Mute mic'}</button><button type="button" data-voice-video>${this.videoEnabled ? 'Hide video' : 'Show video'}</button><button type="button" class="voice-leave" data-voice-leave>Leave</button></div>`;
+    const localVideo = dock.querySelector('[data-voice-local]'); if (localVideo) localVideo.srcObject = this.stream; this.remoteVideos.forEach((stream, userId) => { const video = dock.querySelector(`[data-voice-video="${CSS.escape(userId)}"]`); if (video) video.srcObject = stream; });
   }
 };
 
@@ -188,10 +220,13 @@ async function toggleFavorite(id) { if (!session) return openAuthPanel('login');
 function money(value) { return `$${Number(value).toFixed(2)}`; }
 function feeCalculator(item, type) {
   const trade = type === 'trade';
-  const fields = trade ? `<label>Your trade valuation<input id="buyer-value" type="number" min="0" value="${item.price}"></label><label>Other side’s valuation<input id="seller-value" type="number" min="0" value="${item.price}"></label><label>Offer note<input required id="offer-note" placeholder="Describe the item you are offering"></label>` : `<label>Item price<input id="buyer-value" type="number" min="0" value="${item.price}"></label><label>Estimated buyer tax<input id="tax" type="number" min="0" value="0"></label><label>Courier packaging cost<input id="packaging" type="number" min="0" value="0"></label>`;
-  const action = trade ? 'Send trade offer & open chat' : 'Continue to purchase review';
+  const fields = trade ? `<label>Your trade valuation<input id="buyer-value" type="number" min="0" value="${item.price}"></label><label>Other side’s valuation<input id="seller-value" type="number" min="0" value="${item.price}"></label><label>Offer note<input required id="offer-note" placeholder="Describe the item you are offering"></label>` : `<label>Item price<input id="buyer-value" type="number" min="0" value="${item.price}" readonly aria-readonly="true"></label><label>Estimated buyer tax<input id="tax" type="number" min="0" value="0"></label><label>Courier packaging cost<input id="packaging" type="number" min="0" value="0"></label>`;
+  const action = trade ? 'Send trade offer & open chat' : 'Place order & open delivery';
   const address = trade ? '' : '<label>Delivery address<textarea required id="shipping-address" maxlength="500" placeholder="Address for this delivery"></textarea></label>';
-  return `<form class="fee-calculator" data-type="${type}" data-listing="${item.id}">${fields}${address}<label class="check"><input id="buyer-curator" type="checkbox"> Buyer has Curator membership ($150/month)</label><label class="check"><input id="seller-curator" type="checkbox"> Seller has Curator membership ($150/month)</label><div id="fee-summary" class="fee-summary"></div><p class="policy-note">Policy draft: payments and transaction fees apply only to completed purchases. Buyers pay taxes and shipping. Courier delivery pay is the greater of $15 or 0.5% of the valuation, plus documented packaging costs. Delivery, fraud, and enforcement rules require legal review before launch.</p><button type="submit" class="transaction-submit">${action}</button></form>`;
+  const memberships = '<label class="check"><input id="buyer-curator" type="checkbox"> Buyer has Curator membership ($150/month)</label><label class="check"><input id="seller-curator" type="checkbox"> Seller has Curator membership ($150/month)</label>';
+  if (trade) return `<form class="fee-calculator" data-type="${type}" data-listing="${item.id}">${fields}${memberships}<div id="fee-summary" class="fee-summary"></div><p class="policy-note">Policy draft: delivery, fraud, and enforcement rules require legal review before launch.</p><button type="submit" class="transaction-submit">${action}</button></form>`;
+  const agreement = '<label class="check purchase-agreement"><input required type="checkbox" id="purchase-agreement"> I confirm this order and delivery address.</label>';
+  return `<form class="fee-calculator purchase-checkout" data-type="${type}" data-listing="${item.id}"><section class="purchase-fields"><header><span>1</span><div><b>Delivery details</b><small>Confirm where this collector item should go.</small></div></header>${fields}${address}${memberships}</section><aside class="purchase-review"><header><span>2</span><div><b>Order review</b><small>Your order remains private until delivery is confirmed.</small></div></header><div id="fee-summary" class="fee-summary"></div>${agreement}<p class="policy-note">Placing an order reserves this listing and opens a private delivery thread with the seller. Payment collection is not enabled until the Square checkout connection is configured. Buyers pay taxes and shipping. Courier delivery pay is the greater of $15 or 0.5% of the valuation, plus documented packaging costs.</p><button type="submit" class="transaction-submit">${action}</button></aside></form>`;
 }
 function updateFeeSummary() {
   const box = document.querySelector('.fee-calculator'); if (!box) return;
@@ -217,6 +252,7 @@ document.addEventListener('click', event => {
   const tagMatch = event.target.closest('[data-tag-match]'); if (tagMatch) { tagMatchMode = tagMatch.dataset.tagMatch; renderTagMatchMode(); renderFeed(); return; }
   const voiceStart = event.target.closest('[data-voice-room]'); if (voiceStart) { voiceChat.join(voiceStart.dataset.voiceRoom, voiceStart.dataset.voiceLabel).catch(showError); return; }
   if (event.target.closest('[data-voice-mute]')) { voiceChat.toggleMute(); return; }
+  if (event.target.closest('[data-voice-video]')) { voiceChat.toggleVideo().catch(showError); return; }
   if (event.target.closest('[data-voice-leave]')) { voiceChat.leave(); return; }
   const auctionSelect = event.target.closest('[data-auction-select]'); if (auctionSelect) { activeAuctionId = auctionSelect.dataset.auctionSelect; renderFilteredAuctionHouse(); document.querySelector('.auction-stage')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
   const bidAdd = event.target.closest('[data-bid-add]'); if (bidAdd) { const input = bidAdd.closest('form').querySelector('[name="amount"]'); input.value = Number(input.value || input.min) + Number(bidAdd.dataset.bidAdd); input.focus(); return; }
@@ -277,7 +313,7 @@ document.addEventListener('submit', async event => { if (event.target.closest('#
     const tradeMessage = form.closest('.trade-message-form'); if (tradeMessage) { const fields = new FormData(tradeMessage); await api(`/trade/${tradeMessage.dataset.trade}`, { method: 'PUT', body: JSON.stringify({ message: fields.get('body') }) }); await openTradeChat(tradeMessage.dataset.trade); return; }
     const collectorMessage = form.closest('.collector-message-form'); if (collectorMessage) { const fields = new FormData(collectorMessage); const body = String(fields.get('body') || '').trim(); if (!body) return; const button = collectorMessage.querySelector('button[type="submit"]'); button.disabled = true; button.textContent = 'Sending…'; await api(`/conversation/${collectorMessage.dataset.conversation}/messages`, { method: 'POST', body: JSON.stringify({ body }) }); await openConversation(collectorMessage.dataset.conversation); return; }
     const tradeForm = form.matches('.fee-calculator[data-type="trade"]'); if (tradeForm) { if (!session) return openAuthPanel('login'); const item = listings.find(row => row.id === form.dataset.listing); const note = form.querySelector('#offer-note').value.trim(); if (!item || !note) return; const trade = await api('/trade', { method: 'POST', body: JSON.stringify({ listingId: item.id, receiverId: item.ownerId, offerDetails: note }) }); await openTradeChat(trade.id); return; }
-    const trade = form.matches('.fee-calculator[data-type="trade"]'); const purchase = form.matches('.fee-calculator[data-type="purchase"]'); if (purchase) { if (!session) return openAuthPanel('login'); const delivery = await api('/purchase', { method: 'POST', body: JSON.stringify({ listingId: form.dataset.listing, shippingAddress: form.querySelector('#shipping-address').value }) }); await loadDeliveries(); await loadMarket(); await openDelivery(delivery.id); return; } modalContent.innerHTML = trade ? '<h2 class="modal-title">Trade offer sent.</h2><p class="modal-copy">Your offer is pending with the collector. A trade chat is now open for delivery details and follow-up.</p>' : '<h2 class="modal-title">Saved.</h2><p class="modal-copy">Your update was saved.</p>';
+    const trade = form.matches('.fee-calculator[data-type="trade"]'); const purchase = form.matches('.fee-calculator[data-type="purchase"]'); if (purchase) { if (!session) return openAuthPanel('login'); const submit = form.querySelector('.transaction-submit'); submit.disabled = true; submit.textContent = 'Creating order…'; const delivery = await api('/purchase', { method: 'POST', body: JSON.stringify({ listingId: form.dataset.listing, shippingAddress: form.querySelector('#shipping-address').value }) }); await loadDeliveries(); await loadMarket(); await openDelivery(delivery.id); return; } modalContent.innerHTML = trade ? '<h2 class="modal-title">Trade offer sent.</h2><p class="modal-copy">Your offer is pending with the collector. A trade chat is now open for delivery details and follow-up.</p>' : '<h2 class="modal-title">Saved.</h2><p class="modal-copy">Your update was saved.</p>';
   } catch (error) { showError(error); }
 } });
 document.addEventListener('submit', event => { const form = event.target.closest('[data-auction-bid-form]'); if (!form) return; event.preventDefault(); if (!session) return openAuthPanel('login'); const lot = auctions.find(row => row.id === form.dataset.auctionBidForm); const amount = Number(new FormData(form).get('amount')); if (!lot || amount < Number(lot.currentBid) + 5) { form.querySelector('input').setCustomValidity(`Enter at least ${money(Number(lot?.currentBid || 0) + 5)}.`); form.reportValidity(); return; } form.querySelector('input').setCustomValidity(''); lot.currentBid = amount; lot.bids = Number(lot.bids) + 1; auctionActivity.unshift({ lotId: lot.id, initials: String(session.user.username).slice(0, 2).toUpperCase(), name: `@${session.user.username}`, amount, time: 'Just now' }); renderFilteredAuctionHouse(); const panel = document.querySelector('.auction-price'); panel?.classList.add('bid-confirmed'); setTimeout(() => panel?.classList.remove('bid-confirmed'), 1200); });
