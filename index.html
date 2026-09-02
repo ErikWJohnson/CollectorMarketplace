@@ -11,7 +11,7 @@
     <section class="mode-tabs" role="tablist" aria-label="Browse controls"><button type="button" id="search-tab" class="is-active" role="tab" aria-selected="true" aria-controls="search">SEARCH</button><button type="button" id="tags-tab" role="tab" aria-selected="false" aria-controls="tags">TAGS</button></section>
     <section class="discovery mode-search">
       <label class="search"><span>⌕</span><input id="search" type="search" placeholder="Search collector finds"><button class="clear" id="clear-tags" hidden>×</button></label>
-      <label class="tag-search"><span>#</span><input id="tag-search" type="search" placeholder="Search tags, then press Enter"></label>
+      <div class="tag-search-layout"><label class="tag-search"><span>#</span><input id="tag-search" type="search" placeholder="Search tags, then press Enter"></label><section class="audience-quick-tags" aria-label="Audience tags"><b>Audience</b><div id="audience-tags"></div></section></div>
       <div class="tag-row" id="tags" aria-label="Listing tags"></div>
       <div class="category-row" id="categories"></div><label class="sort-listings">Sort listings<select id="listing-sort" aria-label="Sort listings"><option value="recent">Most recent</option><option value="oldest">Oldest first</option><option value="popular">Most popular</option></select></label>
     </section>
