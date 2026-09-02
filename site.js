@@ -257,7 +257,9 @@ const syncTagRoute = (replace = false) => {
   if (location.pathname === path) return;
   history[replace ? 'replaceState' : 'pushState']({}, '', path);
 };
-const reloadTagRoute = () => { const path = currentTagPath(); if (location.pathname === path) location.reload(); else location.assign(path); };
+// Keep tag URLs shareable without a full document navigation, which caused a
+// visible flash every time collectors adjusted their filters.
+const reloadTagRoute = () => { syncTagRoute(); renderTagMatchMode(); renderTags(); if (auctionTagView) refreshTaggedAuction(); else renderFeed(); };
 const applyTagRoute = () => { const route = routeTags(); tagMatchMode = route.mode; activeTags = route.active.map(tag => tag.toLowerCase()); lockedTags = route.locked.map(tag => tag.toLowerCase()); voidTags = route.voided.map(tag => tag.toLowerCase()); saveLockedTags(); if ([...route.active, ...route.locked, ...route.voided].length) syncTagRoute(true); renderTagMatchMode(); setDiscoveryMode(route.isTagRoute || [...route.active, ...route.locked, ...route.voided].length ? 'tags' : 'search'); renderTags(); renderFeed(); };
 function toggleTag(tag, action = 'toggle') { const value = tag.toLowerCase(); const selected = activeTags.includes(value); if (action === 'add') { if (!selected) activeTags = [...activeTags, value]; else return; } else if (action === 'remove') { if (!selected) return; activeTags = activeTags.filter(current => current !== value); } else activeTags = selected ? activeTags.filter(current => current !== value) : [...activeTags, value]; reloadTagRoute(); }
 function activateNav(name) { document.querySelectorAll('.bottom-nav button').forEach(button => button.classList.toggle('active', button.matches(`[data-${name}]`))); }
