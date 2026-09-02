@@ -234,19 +234,24 @@ function updateFeeSummary() {
   document.querySelector('#fee-summary').innerHTML = type === 'trade' ? `<b>Trade valuation estimate</b><span>Buyer-side fee (${buyerRate * 100}%): ${money(buyerValue * buyerRate)}</span><span>Other-side fee (${sellerRate * 100}%): ${money(sellerValue * sellerRate)}</span><strong>Total valuation fees: ${money(buyerValue * buyerRate + sellerValue * sellerRate)}</strong>` : `<b>Purchase estimate</b><span>Buyer marketplace fee (${buyerRate * 100}%): ${money(buyerValue * buyerRate)}</span><span>Seller marketplace fee (${sellerRate * 100}%): ${money(buyerValue * sellerRate)}</span><span>Buyer tax: ${money(tax)} · Buyer shipping/courier: ${money(courier)}</span><strong>Buyer due: ${money(buyerValue + buyerValue * buyerRate + tax + courier)}</strong><strong>Seller fee: ${money(buyerValue * sellerRate)}</strong>`;
 }
 function setQuery(query) { activeQuery = query.trim(); search.value = activeQuery; document.querySelector('#clear-tags').hidden = !activeQuery; renderFeed(); }
-const tagPath = tag => `/${String(tag).toLowerCase().trim().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}/`;
-const routeTag = () => {
-  const slug = decodeURIComponent(location.pathname).replace(/^\/+|\/+$/g, '').toLowerCase();
-  if (!slug || slug.includes('/')) return '';
+const tagSlug = tag => String(tag).toLowerCase().trim().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const tagPath = tag => `/${tagSlug(tag)}/`;
+const routeTags = () => {
+  const parts = decodeURIComponent(location.pathname).replace(/^\/+|\/+$/g, '').toLowerCase().split('/').filter(Boolean);
+  const [first, ...rest] = parts;
+  const mode = first === 'all' || first === 'any' ? first : 'any';
+  const slugs = (first === 'all' || first === 'any' ? rest : parts).join('/').split('+').filter(Boolean);
   const knownTags = [...new Set([...categoryOptions, ...Object.values(tagGroups).flat(), ...listings.flatMap(listingTags)])];
-  return knownTags.find(tag => tagPath(tag) === `/${slug}/`) || '';
+  return { mode, tags: slugs.map(slug => knownTags.find(tag => tagSlug(tag) === slug)).filter(Boolean) };
 };
 const syncTagRoute = (replace = false) => {
-  const path = activeTags.length === 1 ? tagPath(activeTags[0]) : '/';
+  const mode = tagMatchMode === 'all' ? 'all' : 'any';
+  const tagsPath = activeTags.map(tagSlug).filter(Boolean).join('+');
+  const path = `/${mode}/${tagsPath ? `${tagsPath}/` : ''}`;
   if (location.pathname === path) return;
   history[replace ? 'replaceState' : 'pushState']({}, '', path);
 };
-const applyTagRoute = () => { const tag = routeTag(); activeTags = tag ? [tag.toLowerCase()] : []; setDiscoveryMode(tag ? 'tags' : 'search'); renderTags(); renderFeed(); };
+const applyTagRoute = () => { const route = routeTags(); tagMatchMode = route.mode; activeTags = route.tags.map(tag => tag.toLowerCase()); if (route.tags.length) syncTagRoute(true); renderTagMatchMode(); setDiscoveryMode(route.tags.length ? 'tags' : 'search'); renderTags(); renderFeed(); };
 function toggleTag(tag, multiSelect = false) { const value = tag.toLowerCase(); if (multiSelect) activeTags = activeTags.includes(value) ? activeTags.filter(current => current !== value) : [...activeTags, value]; else activeTags = activeTags.length === 1 && activeTags[0] === value ? [] : [value]; syncTagRoute(); renderTags(); renderFeed(); }
 function activateNav(name) { document.querySelectorAll('.bottom-nav button').forEach(button => button.classList.toggle('active', button.matches(`[data-${name}]`))); }
 function auctionTime(lot) { const left = Math.max(0, Math.floor((lot.endAt - Date.now()) / 1000)); const hours = String(Math.floor(left / 3600)).padStart(2, '0'); const minutes = String(Math.floor(left % 3600 / 60)).padStart(2, '0'); const seconds = String(left % 60).padStart(2, '0'); return `${hours}:${minutes}:${seconds}`; }
@@ -262,7 +267,7 @@ function showAuctionHouse() { if (observer) observer.disconnect(); clearInterval
 
 document.addEventListener('click', event => {
   if (event.target.closest('.delivery-update-form, .delivery-message-form, .trade-message-form')) return;
-  const tagMatch = event.target.closest('[data-tag-match]'); if (tagMatch) { tagMatchMode = tagMatch.dataset.tagMatch; renderTagMatchMode(); renderFeed(); return; }
+  const tagMatch = event.target.closest('[data-tag-match]'); if (tagMatch) { tagMatchMode = tagMatch.dataset.tagMatch; syncTagRoute(); renderTagMatchMode(); renderFeed(); return; }
   const voiceStart = event.target.closest('[data-voice-room]'); if (voiceStart) { voiceChat.join(voiceStart.dataset.voiceRoom, voiceStart.dataset.voiceLabel).catch(showError); return; }
   if (event.target.closest('[data-voice-mute]')) { voiceChat.toggleMute(); return; }
   if (event.target.closest('[data-voice-video]')) { voiceChat.toggleVideo().catch(showError); return; }
@@ -307,7 +312,7 @@ document.addEventListener('click', event => {
 search.addEventListener('input', event => { setDiscoveryMode('search'); clearTimeout(searchRenderTimer); const value = event.target.value; searchRenderTimer = setTimeout(() => setQuery(value), 140); });
 tagSearch.addEventListener('input', event => { clearTimeout(searchRenderTimer); const value = event.target.value; searchRenderTimer = setTimeout(() => { renderTags(value); renderFeed(); }, 140); });
 listingSort.addEventListener('change', event => { sortMode = event.target.value; renderFeed(); });
-tagSearch.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); const requested = event.target.value.match(/#?[a-z0-9-]+/gi) || []; const available = [...new Set(listings.flatMap(listingTags))]; const matches = requested.map(value => value.replace('#', '').toLowerCase()).filter(value => available.some(tag => tag.toLowerCase() === value)); activeTags = [...new Set([...activeTags, ...matches])]; event.target.value = ''; renderTags(); renderFeed(); } });
+tagSearch.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); const requested = event.target.value.match(/#?[a-z0-9-]+/gi) || []; const available = [...new Set(listings.flatMap(listingTags))]; const matches = requested.map(value => value.replace('#', '').toLowerCase()).filter(value => available.some(tag => tag.toLowerCase() === value)); activeTags = [...new Set([...activeTags, ...matches])]; syncTagRoute(); event.target.value = ''; renderTags(); renderFeed(); } });
 document.querySelector('#clear-tags').addEventListener('click', () => setQuery(''));
 function setDiscoveryMode(mode) { const discovery = search.closest('.discovery'); const isSearch = mode === 'search'; discovery.classList.toggle('mode-search', isSearch); discovery.classList.toggle('mode-tags', !isSearch); document.querySelector('#search-tab').classList.toggle('is-active', isSearch); document.querySelector('#tags-tab').classList.toggle('is-active', !isSearch); document.querySelector('#search-tab').setAttribute('aria-selected', String(isSearch)); document.querySelector('#tags-tab').setAttribute('aria-selected', String(!isSearch)); }
 document.querySelector('#search-tab').addEventListener('click', () => { setDiscoveryMode('search'); search.focus(); });
