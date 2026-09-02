@@ -239,12 +239,13 @@ const tagPath = tag => `/${tagSlug(tag)}/`;
 const routeTags = () => {
   const parts = decodeURIComponent(location.pathname).replace(/^\/+|\/+$/g, '').toLowerCase().split('/').filter(Boolean);
   const [first, ...rest] = parts;
-  const mode = first === 'all' || first === 'any' ? first : 'any';
-  const slugs = (first === 'all' || first === 'any' ? rest : parts).join('/').split('+').filter(Boolean);
+  const isTagRoute = first === 'all' || first === 'any';
+  const mode = isTagRoute ? first : 'any';
+  const slugs = (isTagRoute ? rest : parts).join('/').split('+').filter(Boolean);
   const knownTags = [...new Set([...categoryOptions, ...Object.values(tagGroups).flat(), ...listings.flatMap(listingTags)])];
   const resolve = slug => knownTags.find(tag => tagSlug(tag) === slug) || '';
   const tagged = slugs.map(slug => ({ state: slug.startsWith('l-') ? 'locked' : slug.startsWith('v-') ? 'void' : 'active', tag: resolve(slug.replace(/^[lv]-/, '')) })).filter(row => row.tag);
-  return { mode, active: tagged.filter(row => row.state === 'active').map(row => row.tag), locked: tagged.filter(row => row.state === 'locked').map(row => row.tag), voided: tagged.filter(row => row.state === 'void').map(row => row.tag) };
+  return { mode, isTagRoute, active: tagged.filter(row => row.state === 'active').map(row => row.tag), locked: tagged.filter(row => row.state === 'locked').map(row => row.tag), voided: tagged.filter(row => row.state === 'void').map(row => row.tag) };
 };
 const currentTagPath = () => {
   const mode = tagMatchMode === 'all' ? 'all' : 'any';
@@ -257,7 +258,7 @@ const syncTagRoute = (replace = false) => {
   history[replace ? 'replaceState' : 'pushState']({}, '', path);
 };
 const reloadTagRoute = () => { const path = currentTagPath(); if (location.pathname === path) location.reload(); else location.assign(path); };
-const applyTagRoute = () => { const route = routeTags(); tagMatchMode = route.mode; activeTags = route.active.map(tag => tag.toLowerCase()); lockedTags = route.locked.map(tag => tag.toLowerCase()); voidTags = route.voided.map(tag => tag.toLowerCase()); saveLockedTags(); if ([...route.active, ...route.locked, ...route.voided].length) syncTagRoute(true); renderTagMatchMode(); setDiscoveryMode([...route.active, ...route.locked, ...route.voided].length ? 'tags' : 'search'); renderTags(); renderFeed(); };
+const applyTagRoute = () => { const route = routeTags(); tagMatchMode = route.mode; activeTags = route.active.map(tag => tag.toLowerCase()); lockedTags = route.locked.map(tag => tag.toLowerCase()); voidTags = route.voided.map(tag => tag.toLowerCase()); saveLockedTags(); if ([...route.active, ...route.locked, ...route.voided].length) syncTagRoute(true); renderTagMatchMode(); setDiscoveryMode(route.isTagRoute || [...route.active, ...route.locked, ...route.voided].length ? 'tags' : 'search'); renderTags(); renderFeed(); };
 function toggleTag(tag, action = 'toggle') { const value = tag.toLowerCase(); const selected = activeTags.includes(value); if (action === 'add') { if (!selected) activeTags = [...activeTags, value]; else return; } else if (action === 'remove') { if (!selected) return; activeTags = activeTags.filter(current => current !== value); } else activeTags = selected ? activeTags.filter(current => current !== value) : [...activeTags, value]; reloadTagRoute(); }
 function activateNav(name) { document.querySelectorAll('.bottom-nav button').forEach(button => button.classList.toggle('active', button.matches(`[data-${name}]`))); }
 function auctionTime(lot) { const left = Math.max(0, Math.floor((lot.endAt - Date.now()) / 1000)); const hours = String(Math.floor(left / 3600)).padStart(2, '0'); const minutes = String(Math.floor(left % 3600 / 60)).padStart(2, '0'); const seconds = String(left % 60).padStart(2, '0'); return `${hours}:${minutes}:${seconds}`; }
