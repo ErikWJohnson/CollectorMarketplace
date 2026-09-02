@@ -216,6 +216,12 @@ app.get('/:asset', (req, res, next) => {
   if (!rootSiteAssets.has(req.params.asset)) return next();
   return res.sendFile(path.join(__dirname, req.params.asset));
 });
+// Tag links are shareable routes (for example /art/). The client reads the
+// path and applies the matching filter after the marketplace data loads.
+app.get('*', (req, res, next) => {
+  if (path.extname(req.path)) return next();
+  return res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 async function start() {
   try {

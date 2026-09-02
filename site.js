@@ -234,7 +234,20 @@ function updateFeeSummary() {
   document.querySelector('#fee-summary').innerHTML = type === 'trade' ? `<b>Trade valuation estimate</b><span>Buyer-side fee (${buyerRate * 100}%): ${money(buyerValue * buyerRate)}</span><span>Other-side fee (${sellerRate * 100}%): ${money(sellerValue * sellerRate)}</span><strong>Total valuation fees: ${money(buyerValue * buyerRate + sellerValue * sellerRate)}</strong>` : `<b>Purchase estimate</b><span>Buyer marketplace fee (${buyerRate * 100}%): ${money(buyerValue * buyerRate)}</span><span>Seller marketplace fee (${sellerRate * 100}%): ${money(buyerValue * sellerRate)}</span><span>Buyer tax: ${money(tax)} · Buyer shipping/courier: ${money(courier)}</span><strong>Buyer due: ${money(buyerValue + buyerValue * buyerRate + tax + courier)}</strong><strong>Seller fee: ${money(buyerValue * sellerRate)}</strong>`;
 }
 function setQuery(query) { activeQuery = query.trim(); search.value = activeQuery; document.querySelector('#clear-tags').hidden = !activeQuery; renderFeed(); }
-function toggleTag(tag, multiSelect = false) { const value = tag.toLowerCase(); if (multiSelect) activeTags = activeTags.includes(value) ? activeTags.filter(current => current !== value) : [...activeTags, value]; else activeTags = activeTags.length === 1 && activeTags[0] === value ? [] : [value]; renderTags(); renderFeed(); }
+const tagPath = tag => `/${String(tag).toLowerCase().trim().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}/`;
+const routeTag = () => {
+  const slug = decodeURIComponent(location.pathname).replace(/^\/+|\/+$/g, '').toLowerCase();
+  if (!slug || slug.includes('/')) return '';
+  const knownTags = [...new Set([...categoryOptions, ...Object.values(tagGroups).flat(), ...listings.flatMap(listingTags)])];
+  return knownTags.find(tag => tagPath(tag) === `/${slug}/`) || '';
+};
+const syncTagRoute = (replace = false) => {
+  const path = activeTags.length === 1 ? tagPath(activeTags[0]) : '/';
+  if (location.pathname === path) return;
+  history[replace ? 'replaceState' : 'pushState']({}, '', path);
+};
+const applyTagRoute = () => { const tag = routeTag(); activeTags = tag ? [tag.toLowerCase()] : []; setDiscoveryMode(tag ? 'tags' : 'search'); renderTags(); renderFeed(); };
+function toggleTag(tag, multiSelect = false) { const value = tag.toLowerCase(); if (multiSelect) activeTags = activeTags.includes(value) ? activeTags.filter(current => current !== value) : [...activeTags, value]; else activeTags = activeTags.length === 1 && activeTags[0] === value ? [] : [value]; syncTagRoute(); renderTags(); renderFeed(); }
 function activateNav(name) { document.querySelectorAll('.bottom-nav button').forEach(button => button.classList.toggle('active', button.matches(`[data-${name}]`))); }
 function auctionTime(lot) { const left = Math.max(0, Math.floor((lot.endAt - Date.now()) / 1000)); const hours = String(Math.floor(left / 3600)).padStart(2, '0'); const minutes = String(Math.floor(left % 3600 / 60)).padStart(2, '0'); const seconds = String(left % 60).padStart(2, '0'); return `${hours}:${minutes}:${seconds}`; }
 function updateAuctionClocks() { document.querySelectorAll('[data-auction-clock]').forEach(node => { const lot = auctions.find(row => row.id === node.dataset.auctionClock); if (lot) { node.textContent = auctionTime(lot); node.closest('.auction-countdown')?.classList.toggle('is-urgent', lot.endAt - Date.now() < 3600000); } }); }
@@ -358,4 +371,5 @@ tagSearch.addEventListener('input', () => setTimeout(refreshTaggedAuction, 160))
 tagSearch.addEventListener('keydown', event => { if (event.key === 'Enter') setTimeout(refreshTaggedAuction, 0); });
 
 async function loadMarket() { const listingData = await fetch('/listings').then(response => { if (!response.ok) throw new Error('Listings API unavailable'); return response.json(); }); listings = listingData.map(asFeedListing).sort((a, b) => a.id === 'mantle' ? -1 : b.id === 'mantle' ? 1 : 0); renderTags(); renderCategories(); renderFeed(); }
-Promise.all([loadMarket(), fetch('data/auctions.json').then(response => response.json())]).then(([, auctionData]) => { auctions = auctionData.map(lot => { const [hours, minutes, seconds] = lot.ends.split(':').map(Number); return { ...lot, endAt: Date.now() + ((hours * 3600 + minutes * 60 + seconds) * 1000) }; }); observer = new IntersectionObserver(entries => { if (entries[0].isIntersecting && page * 4 < filtered().length) { page++; renderFeed(false); } }, { rootMargin: '250px' }); observer.observe(sentinel); }).catch(() => { stream.innerHTML = '<p class="load-state">The marketplace feed could not load. Please refresh the page.</p>'; });
+Promise.all([loadMarket(), fetch('data/auctions.json').then(response => response.json())]).then(([, auctionData]) => { auctions = auctionData.map(lot => { const [hours, minutes, seconds] = lot.ends.split(':').map(Number); return { ...lot, endAt: Date.now() + ((hours * 3600 + minutes * 60 + seconds) * 1000) }; }); applyTagRoute(); observer = new IntersectionObserver(entries => { if (entries[0].isIntersecting && page * 4 < filtered().length) { page++; renderFeed(false); } }, { rootMargin: '250px' }); observer.observe(sentinel); }).catch(() => { stream.innerHTML = '<p class="load-state">The marketplace feed could not load. Please refresh the page.</p>'; });
+window.addEventListener('popstate', () => { if (listings.length) applyTagRoute(); });
