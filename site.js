@@ -41,7 +41,7 @@ document.addEventListener('pointerdown', event => { const tag = event.target.clo
 document.addEventListener('pointerup', () => { clearTimeout(tagHoldTimer); tagHoldTimer = null; });
 document.addEventListener('pointercancel', () => { clearTimeout(tagHoldTimer); tagHoldTimer = null; });
 document.addEventListener('click', event => { const tag = event.target.closest('[data-tag]'); if (!tag) return; const value = tag.dataset.tag.toLowerCase(); if (suppressTagClick === value || lockedTags.includes(value) || voidTags.includes(value)) { event.preventDefault(); event.stopImmediatePropagation(); suppressTagClick = ''; } }, true);
-const applyHoverTagModifier = event => { if (!hoveredTagValue || (!event.ctrlKey && !event.metaKey && !event.shiftKey) || lockedTags.includes(hoveredTagValue) || voidTags.includes(hoveredTagValue)) return; if (event.shiftKey) { if (activeTags.includes(hoveredTagValue)) return; activeTags = [...activeTags, hoveredTagValue]; } else { if (!activeTags.includes(hoveredTagValue)) return; activeTags = activeTags.filter(tag => tag !== hoveredTagValue); } syncTagRoute(); refreshLockedTagResults(); };
+const applyHoverTagModifier = event => { if (!hoveredTagValue || (!event.ctrlKey && !event.metaKey && !event.shiftKey) || lockedTags.includes(hoveredTagValue) || voidTags.includes(hoveredTagValue)) return; if (event.shiftKey) { if (activeTags.includes(hoveredTagValue)) return; activeTags = [...activeTags, hoveredTagValue]; reloadTagRoute(); return; } if (!activeTags.includes(hoveredTagValue)) return; activeTags = activeTags.filter(tag => tag !== hoveredTagValue); syncTagRoute(); refreshLockedTagResults(); };
 document.addEventListener('pointerover', event => { const tag = event.target.closest('[data-tag]'); if (!tag) return; hoveredTagValue = tag.dataset.tag.toLowerCase(); applyHoverTagModifier(event); });
 document.addEventListener('pointerout', event => { const tag = event.target.closest('[data-tag]'); if (tag && tag.dataset.tag.toLowerCase() === hoveredTagValue) hoveredTagValue = ''; });
 document.addEventListener('keydown', event => { if (['Control', 'Meta', 'Shift'].includes(event.key)) applyHoverTagModifier(event); });
@@ -246,15 +246,19 @@ const routeTags = () => {
   const tagged = slugs.map(slug => ({ state: slug.startsWith('l-') ? 'locked' : slug.startsWith('v-') ? 'void' : 'active', tag: resolve(slug.replace(/^[lv]-/, '')) })).filter(row => row.tag);
   return { mode, active: tagged.filter(row => row.state === 'active').map(row => row.tag), locked: tagged.filter(row => row.state === 'locked').map(row => row.tag), voided: tagged.filter(row => row.state === 'void').map(row => row.tag) };
 };
-const syncTagRoute = (replace = false) => {
+const currentTagPath = () => {
   const mode = tagMatchMode === 'all' ? 'all' : 'any';
   const tagsPath = [...activeTags.map(tagSlug), ...lockedTags.map(tag => `l-${tagSlug(tag)}`), ...voidTags.map(tag => `v-${tagSlug(tag)}`)].filter(Boolean).join('+');
-  const path = `/${mode}/${tagsPath ? `${tagsPath}/` : ''}`;
+  return `/${mode}/${tagsPath ? `${tagsPath}/` : ''}`;
+};
+const syncTagRoute = (replace = false) => {
+  const path = currentTagPath();
   if (location.pathname === path) return;
   history[replace ? 'replaceState' : 'pushState']({}, '', path);
 };
+const reloadTagRoute = () => { const path = currentTagPath(); if (location.pathname === path) location.reload(); else location.assign(path); };
 const applyTagRoute = () => { const route = routeTags(); tagMatchMode = route.mode; activeTags = route.active.map(tag => tag.toLowerCase()); lockedTags = route.locked.map(tag => tag.toLowerCase()); voidTags = route.voided.map(tag => tag.toLowerCase()); saveLockedTags(); if ([...route.active, ...route.locked, ...route.voided].length) syncTagRoute(true); renderTagMatchMode(); setDiscoveryMode([...route.active, ...route.locked, ...route.voided].length ? 'tags' : 'search'); renderTags(); renderFeed(); };
-function toggleTag(tag, action = 'toggle') { const value = tag.toLowerCase(); if (action === 'add') { if (!activeTags.includes(value)) activeTags = [...activeTags, value]; } else if (action === 'remove') activeTags = activeTags.filter(current => current !== value); else activeTags = activeTags.includes(value) ? activeTags.filter(current => current !== value) : [...activeTags, value]; syncTagRoute(); renderTags(); renderFeed(); }
+function toggleTag(tag, action = 'toggle') { const value = tag.toLowerCase(); const selected = activeTags.includes(value); if (action === 'add') { if (!selected) { activeTags = [...activeTags, value]; reloadTagRoute(); return; } } else if (action === 'remove') activeTags = activeTags.filter(current => current !== value); else if (selected) activeTags = activeTags.filter(current => current !== value); else { activeTags = [...activeTags, value]; reloadTagRoute(); return; } syncTagRoute(); renderTags(); renderFeed(); }
 function activateNav(name) { document.querySelectorAll('.bottom-nav button').forEach(button => button.classList.toggle('active', button.matches(`[data-${name}]`))); }
 function auctionTime(lot) { const left = Math.max(0, Math.floor((lot.endAt - Date.now()) / 1000)); const hours = String(Math.floor(left / 3600)).padStart(2, '0'); const minutes = String(Math.floor(left % 3600 / 60)).padStart(2, '0'); const seconds = String(left % 60).padStart(2, '0'); return `${hours}:${minutes}:${seconds}`; }
 function updateAuctionClocks() { document.querySelectorAll('[data-auction-clock]').forEach(node => { const lot = auctions.find(row => row.id === node.dataset.auctionClock); if (lot) { node.textContent = auctionTime(lot); node.closest('.auction-countdown')?.classList.toggle('is-urgent', lot.endAt - Date.now() < 3600000); } }); }
@@ -314,7 +318,7 @@ document.addEventListener('click', event => {
 search.addEventListener('input', event => { setDiscoveryMode('search'); clearTimeout(searchRenderTimer); const value = event.target.value; searchRenderTimer = setTimeout(() => setQuery(value), 140); });
 tagSearch.addEventListener('input', event => { clearTimeout(searchRenderTimer); const value = event.target.value; searchRenderTimer = setTimeout(() => { renderTags(value); renderFeed(); }, 140); });
 listingSort.addEventListener('change', event => { sortMode = event.target.value; renderFeed(); });
-tagSearch.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); const requested = event.target.value.match(/#?[a-z0-9-]+/gi) || []; const available = [...new Set(listings.flatMap(listingTags))]; const matches = requested.map(value => value.replace('#', '').toLowerCase()).filter(value => available.some(tag => tag.toLowerCase() === value)); activeTags = [...new Set([...activeTags, ...matches])]; syncTagRoute(); event.target.value = ''; renderTags(); renderFeed(); } });
+tagSearch.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); const requested = event.target.value.match(/#?[a-z0-9-]+/gi) || []; const available = [...new Set(listings.flatMap(listingTags))]; const matches = requested.map(value => value.replace('#', '').toLowerCase()).filter(value => available.some(tag => tag.toLowerCase() === value)); const nextTags = [...new Set([...activeTags, ...matches])]; const added = nextTags.length > activeTags.length; activeTags = nextTags; if (added) { reloadTagRoute(); return; } syncTagRoute(); event.target.value = ''; renderTags(); renderFeed(); } });
 document.querySelector('#clear-tags').addEventListener('click', () => setQuery(''));
 function setDiscoveryMode(mode) { const discovery = search.closest('.discovery'); const isSearch = mode === 'search'; discovery.classList.toggle('mode-search', isSearch); discovery.classList.toggle('mode-tags', !isSearch); document.querySelector('#search-tab').classList.toggle('is-active', isSearch); document.querySelector('#tags-tab').classList.toggle('is-active', !isSearch); document.querySelector('#search-tab').setAttribute('aria-selected', String(isSearch)); document.querySelector('#tags-tab').setAttribute('aria-selected', String(!isSearch)); }
 document.querySelector('#search-tab').addEventListener('click', () => { setDiscoveryMode('search'); search.focus(); });
