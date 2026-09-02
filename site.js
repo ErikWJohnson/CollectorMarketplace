@@ -241,7 +241,8 @@ const routeTags = () => {
   const [first, ...rest] = parts;
   const isTagRoute = first === 'all' || first === 'any';
   const mode = isTagRoute ? first : 'any';
-  const slugs = (isTagRoute ? rest : parts).join('/').split('+').filter(Boolean);
+  const routeSegments = (isTagRoute ? rest : parts).filter(segment => !/^posts\+\d+$/.test(segment));
+  const slugs = routeSegments.join('/').split('+').filter(Boolean);
   const knownTags = [...new Set([...categoryOptions, ...Object.values(tagGroups).flat(), ...listings.flatMap(listingTags)])];
   const resolve = slug => knownTags.find(tag => tagSlug(tag) === slug) || '';
   const tagged = slugs.map(slug => ({ state: slug.startsWith('l-') ? 'locked' : slug.startsWith('v-') ? 'void' : 'active', tag: resolve(slug.replace(/^[lv]-/, '')) })).filter(row => row.tag);
@@ -250,7 +251,9 @@ const routeTags = () => {
 const currentTagPath = () => {
   const mode = tagMatchMode === 'all' ? 'all' : 'any';
   const tagsPath = [...activeTags.map(tagSlug), ...lockedTags.map(tag => `l-${tagSlug(tag)}`), ...voidTags.map(tag => `v-${tagSlug(tag)}`)].filter(Boolean).join('+');
-  return `/${mode}/${tagsPath ? `${tagsPath}/` : ''}`;
+  const hasTagState = Boolean(tagsPath);
+  const postSuffix = hasTagState ? `posts+${filtered().length}/` : '';
+  return `/${mode}/${tagsPath ? `${tagsPath}/` : ''}${postSuffix}`;
 };
 const syncTagRoute = (replace = false) => {
   const path = currentTagPath();
