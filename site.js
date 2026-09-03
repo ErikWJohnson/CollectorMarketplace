@@ -127,13 +127,14 @@ document.addEventListener('keydown', event => {
   event.preventDefault();
   toggleAutoScroll();
 });
-const keyboardNavigation = { l: '[data-sell]', a: '[data-auction]', b: '[data-home]', c: '[data-chat]', u: '[data-account]' };
+const keyboardNavigation = { l: { selector: '[data-sell]', hash: 'list-item' }, a: { selector: '[data-auction]', hash: 'auction-house' }, b: { selector: '[data-home]', hash: 'browse' }, c: { selector: '[data-chat]', hash: 'chat' }, u: { selector: '[data-account]', hash: 'account' } };
 document.addEventListener('keydown', event => {
   if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || !canUseAutoScroll(event.target)) return;
-  const target = keyboardNavigation[event.key.toLowerCase()];
-  if (!target) return;
+  const destination = keyboardNavigation[event.key.toLowerCase()];
+  if (!destination) return;
   event.preventDefault();
-  document.querySelector(target)?.click();
+  history.pushState({}, '', `${location.pathname}${location.search}#${destination.hash}`);
+  document.querySelector(destination.selector)?.click();
 });
 const openDiscoveryShortcut = mode => {
   const target = mode === 'search' ? search : tags;
@@ -147,6 +148,13 @@ document.addEventListener('keydown', event => {
   if (event.key.toLowerCase() === 's') { event.preventDefault(); openDiscoveryShortcut('search'); }
   if (event.key.toLowerCase() === 't') { event.preventDefault(); openDiscoveryShortcut('tags'); }
 });
+const applyHashLocation = () => {
+  const hash = location.hash.slice(1).toLowerCase();
+  if (hash === 'search' || hash === 'tags') { openDiscoveryShortcut(hash); return; }
+  const destination = Object.values(keyboardNavigation).find(item => item.hash === hash);
+  if (destination) document.querySelector(destination.selector)?.click();
+};
+window.addEventListener('hashchange', () => { if (listings.length) applyHashLocation(); });
 document.addEventListener('wheel', stopAutoScroll, { passive: true });
 document.addEventListener('touchstart', stopAutoScroll, { passive: true });
 document.addEventListener('keydown', event => { if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End'].includes(event.key)) stopAutoScroll(); });
@@ -495,5 +503,5 @@ tagSearch.addEventListener('input', () => setTimeout(refreshTaggedAuction, 160))
 tagSearch.addEventListener('keydown', event => { if (event.key === 'Enter') setTimeout(refreshTaggedAuction, 0); });
 
 async function loadMarket() { const listingData = await fetch('/listings').then(response => { if (!response.ok) throw new Error('Listings API unavailable'); return response.json(); }); listings = listingData.map(asFeedListing).sort((a, b) => a.id === 'mantle' ? -1 : b.id === 'mantle' ? 1 : 0); renderTags(); renderCategories(); renderFeed(); }
-Promise.all([loadMarket(), fetch('data/auctions.json').then(response => response.json())]).then(([, auctionData]) => { auctions = auctionData.map(lot => { const [hours, minutes, seconds] = lot.ends.split(':').map(Number); return { ...lot, endAt: Date.now() + ((hours * 3600 + minutes * 60 + seconds) * 1000) }; }); applyTagRoute(); observer = new IntersectionObserver(entries => { if (entries[0].isIntersecting && page * 4 < filtered().length) { page++; renderFeed(false); } }, { rootMargin: '250px' }); observer.observe(sentinel); }).catch(() => { stream.innerHTML = '<p class="load-state">The marketplace feed could not load. Please refresh the page.</p>'; });
+Promise.all([loadMarket(), fetch('data/auctions.json').then(response => response.json())]).then(([, auctionData]) => { auctions = auctionData.map(lot => { const [hours, minutes, seconds] = lot.ends.split(':').map(Number); return { ...lot, endAt: Date.now() + ((hours * 3600 + minutes * 60 + seconds) * 1000) }; }); applyTagRoute(); applyHashLocation(); observer = new IntersectionObserver(entries => { if (entries[0].isIntersecting && page * 4 < filtered().length) { page++; renderFeed(false); } }, { rootMargin: '250px' }); observer.observe(sentinel); }).catch(() => { stream.innerHTML = '<p class="load-state">The marketplace feed could not load. Please refresh the page.</p>'; });
 window.addEventListener('popstate', () => { if (listings.length) applyTagRoute(); });
