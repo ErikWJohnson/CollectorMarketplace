@@ -58,7 +58,8 @@ const numpadCursor = document.createElement('div');
 numpadCursor.id = 'numpad-cursor'; numpadCursor.hidden = true; numpadCursor.setAttribute('aria-hidden', 'true'); document.body.append(numpadCursor);
 const platformCursorTargets = () => [...(modal.open ? modal : document).querySelectorAll('button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [role="button"]')].filter(element => element.getClientRects().length && !element.closest('[hidden], [aria-hidden="true"]'));
 const renderNumpadCursor = () => { if (!numpadCursorEnabled || !platformCursorTarget?.isConnected) { numpadCursor.hidden = true; return; } const rect = platformCursorTarget.getBoundingClientRect(); numpadCursor.hidden = !rect.width || !rect.height; numpadCursor.style.left = `${rect.left}px`; numpadCursor.style.top = `${rect.top}px`; numpadCursor.style.width = `${rect.width}px`; numpadCursor.style.height = `${rect.height}px`; };
-const focusPlatformTarget = target => { platformCursorTarget = target || null; target?.focus({ preventScroll: true }); target?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' }); requestAnimationFrame(renderNumpadCursor); };
+const trackPlatformTarget = target => { platformCursorTarget = target || null; target?.focus({ preventScroll: true }); requestAnimationFrame(renderNumpadCursor); };
+const focusPlatformTarget = target => { trackPlatformTarget(target); target?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' }); };
 const setNumpadCursorEnabled = enabled => { numpadCursorEnabled = enabled; document.body.classList.toggle('numpad-cursor-enabled', enabled); if (!enabled) return renderNumpadCursor(); const targets = platformCursorTargets(); focusPlatformTarget(targets.includes(platformCursorTarget) ? platformCursorTarget : targets[0]); };
 const nextPlatformTarget = (current, direction, targets) => {
   const currentRect = current.getBoundingClientRect(); const currentX = currentRect.left + currentRect.width / 2; const currentY = currentRect.top + currentRect.height / 2; const [moveX, moveY] = direction;
@@ -105,7 +106,25 @@ document.addEventListener('keydown', event => {
   }
   focusPlatformTarget(nextPlatformTarget(current, direction, targets) || current);
 });
-window.addEventListener('scroll', () => requestAnimationFrame(renderNumpadCursor), { passive: true });
+const followNumpadCursorWhileScrolling = () => {
+  if (!numpadCursorEnabled || !autoScrollActive || modal.open) return requestAnimationFrame(renderNumpadCursor);
+  const currentRect = platformCursorTarget?.getBoundingClientRect();
+  const currentIsPersistent = platformCursorTarget?.closest('.masthead, .bottom-nav');
+  const currentVisible = currentRect && currentRect.bottom > 10 && currentRect.top < window.innerHeight - 10;
+  if (currentVisible && !currentIsPersistent) return requestAnimationFrame(renderNumpadCursor);
+  const visible = platformCursorTargets().filter(target => {
+    if (target.closest('.masthead, .bottom-nav')) return false;
+    const rect = target.getBoundingClientRect();
+    return rect.bottom > 10 && rect.top < window.innerHeight - 10;
+  });
+  if (!visible.length) return requestAnimationFrame(renderNumpadCursor);
+  const next = visible.sort((left, right) => {
+    const leftRect = left.getBoundingClientRect(); const rightRect = right.getBoundingClientRect();
+    return autoScrollDirection > 0 ? leftRect.top - rightRect.top : rightRect.bottom - leftRect.bottom;
+  })[0];
+  trackPlatformTarget(next);
+};
+window.addEventListener('scroll', followNumpadCursorWhileScrolling, { passive: true });
 window.addEventListener('resize', renderNumpadCursor);
 
 /* Hold ↑ or ↓ to move through the marketplace continuously. Form fields and
