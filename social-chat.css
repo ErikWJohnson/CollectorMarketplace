@@ -153,6 +153,23 @@ body.chat-open .app-shell { height: 100dvh; overflow: hidden !important; }
 .community-reply-form { grid-template-columns: 1fr auto; align-items: end; margin-top: 12px; }
 .community-reply-form textarea { min-height: 44px; }
 @media (max-width: 680px) { .community-workspace { margin-top: 14px; } .community-post-form, .community-thread-list { padding: 14px; } .community-reply-form { grid-template-columns: 1fr; } }
+.entity-workspace { display: flex; width: min(1080px, 100%); min-height: min(620px, calc(100dvh - 130px)); flex-direction: column; margin: 20px auto 0; border: 1px solid #4a4a4a; background: #181818; }
+.entity-workspace > header { padding: clamp(24px, 4vw, 54px); border-bottom: 1px solid #4a4a4a; background: linear-gradient(120deg, #1b1b1b, #28251f); }
+.entity-workspace > header span { color: #f2bc35; font: 700 .7rem/1 var(--mono, monospace); letter-spacing: .12em; text-transform: uppercase; }
+.entity-workspace > header h3 { margin: 10px 0; color: #f5f3eb; font-size: clamp(2rem, 5vw, 4rem); }
+.entity-workspace > header p { margin: 0; color: #bcb8ad; }
+.entity-tags { display: flex; flex-wrap: wrap; gap: 8px; padding: 22px; border-bottom: 1px solid #4a4a4a; }
+.entity-tags h3, .entity-tags p { width: 100%; margin: 0 0 4px; }
+.entity-tags h3 { color: #f2bc35; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; }
+.entity-tags p { color: #aaa; }
+.entity-tags button { border: 1px solid #666; padding: 8px 10px; background: #222; color: #cbd7e8; font: .75rem/1 var(--mono, monospace); }
+.entity-post-list { flex: 1; padding: 22px; }
+.entity-post-list h3 { margin: 0 0 12px; color: #f2bc35; font-size: .8rem; text-transform: uppercase; }
+.entity-post-list button { display: flex; width: 100%; justify-content: space-between; border: 0; border-bottom: 1px solid #444; padding: 12px 0; background: transparent; color: #f5f3eb; text-align: left; }
+.entity-post-list button span { color: #f2bc35; }
+.entity-workspace footer { display: flex; flex-wrap: wrap; gap: 10px; margin-top: auto; padding: 18px 22px; border-top: 1px solid #4a4a4a; }
+.entity-primary { border: 1px solid #f2bc35; padding: 11px 14px; background: #f2bc35; color: #171717; font: 800 .72rem/1 var(--mono, monospace); letter-spacing: .05em; text-transform: uppercase; }
+@media (max-width: 680px) { .entity-workspace { min-height: calc(100dvh - 98px); margin-top: 14px; } .entity-workspace > header { padding: 24px 18px; } .entity-tags, .entity-post-list { padding: 18px; } }
 .trade-dialog .conversation-workspace { margin-top: 20px; }
 .trade-status { margin-left: auto; border: 1px solid #a97f1d; padding: 5px 8px; color: #f2bc35; font: 700 .65rem/1 var(--mono, monospace); letter-spacing: .06em; text-transform: uppercase; }
 .trade-actions { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; padding: 12px; border-top: 1px solid #4a4a4a; background: #202020; }
