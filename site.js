@@ -16,6 +16,7 @@ let postState = {};
 try { postState = JSON.parse(localStorage.getItem('collector-marketplace-post-state') || '{}'); } catch { postState = {}; }
 let session = null;
 try { session = JSON.parse(localStorage.getItem('collector-marketplace-session') || 'null'); } catch { session = null; }
+let viewerLocation = null;
 
 const ensurePublicListingLocation = () => {
   const form = modalContent.querySelector('.listing-form');
@@ -24,7 +25,7 @@ const ensurePublicListingLocation = () => {
   if (!tagField) return;
   const locationField = document.createElement('label');
   locationField.className = 'listing-location-field';
-  locationField.innerHTML = 'Public item location <i>Required · city, region, country only</i><input required name="location" maxlength="120" autocomplete="address-level2" placeholder="e.g. Seattle, Washington, USA">';
+  locationField.innerHTML = 'Public item location <i>Required · city, region, country only</i><input required name="location" maxlength="120" autocomplete="address-level2" placeholder="e.g. Seattle, Washington, USA"><input type="hidden" name="locationLat"><input type="hidden" name="locationLng"><button type="button" class="location-capture" data-capture-location>Use my approximate location</button><small class="location-capture-note">Optional for the “Closest to you” filter. Exact coordinates are never shown publicly.</small>';
   tagField.before(locationField);
   const required = form.querySelector('.listing-publish-bar span');
   if (required) required.textContent = 'Required: title, tags, public item location, price, description, and at least one photo.';
@@ -387,7 +388,31 @@ const asFeedListing = listing => ({ ...listing, image: listing.images?.[0] || ''
 const listingTags = item => Array.isArray(item.tags) ? item.tags : [item.tag].filter(Boolean);
 const searchedTagTerms = () => (tagSearch.value.match(/#?[a-z0-9-]+/gi) || []).map(value => value.replace('#', '').toLowerCase());
 const priceRangeValue = input => { const value = input?.value.trim(); if (!value) return null; const number = Number(value); return Number.isFinite(number) && number >= 0 ? number : null; };
-const filtered = () => { const minimumPrice = priceRangeValue(priceMin); const maximumPrice = priceRangeValue(priceMax); return listings.filter(item => { const itemTags = listingTags(item).map(tag => tag.toLowerCase()); const typedTags = searchedTagTerms(); const matches = terms => !terms.length || (tagMatchMode === 'all' ? terms.every(term => itemTags.some(tag => tag.includes(term))) : terms.some(term => itemTags.some(tag => tag.includes(term)))); const price = Number(item.price) || 0; return (activeCategory === 'All' || item.category === activeCategory) && `${item.title} ${item.description} ${itemTags.join(' ')}`.toLowerCase().includes(activeQuery.toLowerCase()) && matches(activeTags) && matches(typedTags) && lockedTags.every(tag => itemTags.some(itemTag => itemTag.includes(tag))) && !voidTags.some(tag => itemTags.some(itemTag => itemTag.includes(tag))) && (minimumPrice === null || price >= minimumPrice) && (maximumPrice === null || price <= maximumPrice); }).sort((left, right) => { const leftDate = new Date(left.createdAt || 0).valueOf(); const rightDate = new Date(right.createdAt || 0).valueOf(); if (sortMode === 'oldest') return leftDate - rightDate; if (sortMode === 'popular') return ((right.likes?.length || 0) + (right.favorites?.length || 0) + stateFor(right.id).score) - ((left.likes?.length || 0) + (left.favorites?.length || 0) + stateFor(left.id).score); if (sortMode === 'price-high') return (Number(right.price) || 0) - (Number(left.price) || 0); return rightDate - leftDate; }); };
+const distanceFromViewer = item => {
+  const coordinates = item.locationCoordinates;
+  if (!viewerLocation || !coordinates || !Number.isFinite(Number(coordinates.lat)) || !Number.isFinite(Number(coordinates.lng))) return Infinity;
+  const radians = value => value * Math.PI / 180;
+  const lat1 = radians(viewerLocation.lat); const lat2 = radians(Number(coordinates.lat));
+  const deltaLat = lat2 - lat1; const deltaLng = radians(Number(coordinates.lng) - viewerLocation.lng);
+  const a = Math.sin(deltaLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLng / 2) ** 2;
+  return 3958.8 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+const filtered = () => {
+  const minimumPrice = priceRangeValue(priceMin); const maximumPrice = priceRangeValue(priceMax);
+  return listings.filter(item => {
+    const itemTags = listingTags(item).map(tag => tag.toLowerCase()); const typedTags = searchedTagTerms();
+    const matches = terms => !terms.length || (tagMatchMode === 'all' ? terms.every(term => itemTags.some(tag => tag.includes(term))) : terms.some(term => itemTags.some(tag => tag.includes(term))));
+    const price = Number(item.price) || 0;
+    return (activeCategory === 'All' || item.category === activeCategory) && `${item.title} ${item.description} ${item.location || ''} ${itemTags.join(' ')}`.toLowerCase().includes(activeQuery.toLowerCase()) && matches(activeTags) && matches(typedTags) && lockedTags.every(tag => itemTags.some(itemTag => itemTag.includes(tag))) && !voidTags.some(tag => itemTags.some(itemTag => itemTag.includes(tag))) && (minimumPrice === null || price >= minimumPrice) && (maximumPrice === null || price <= maximumPrice);
+  }).sort((left, right) => {
+    const leftDate = new Date(left.createdAt || 0).valueOf(); const rightDate = new Date(right.createdAt || 0).valueOf();
+    if (sortMode === 'oldest') return leftDate - rightDate;
+    if (sortMode === 'popular') return ((right.likes?.length || 0) + (right.favorites?.length || 0) + stateFor(right.id).score) - ((left.likes?.length || 0) + (left.favorites?.length || 0) + stateFor(left.id).score);
+    if (sortMode === 'price-high') return (Number(right.price) || 0) - (Number(left.price) || 0);
+    if (sortMode === 'closest') return distanceFromViewer(left) - distanceFromViewer(right) || rightDate - leftDate;
+    return rightDate - leftDate;
+  });
+};
 const stateFor = id => postState[id] || (postState[id] = { score: 0, vote: 0, comments: [] });
 const savePostState = () => localStorage.setItem('collector-marketplace-post-state', JSON.stringify(postState));
 const card = item => {
@@ -552,7 +577,22 @@ document.addEventListener('click', event => {
 });
 search.addEventListener('input', event => { setDiscoveryMode('search'); clearTimeout(searchRenderTimer); const value = event.target.value; searchRenderTimer = setTimeout(() => setQuery(value), 140); });
 tagSearch.addEventListener('input', event => { clearTimeout(searchRenderTimer); const value = event.target.value; searchRenderTimer = setTimeout(() => { renderTags(value); renderFeed(); }, 140); });
-listingSort.addEventListener('change', event => { sortMode = event.target.value; renderFeed(); });
+const requestViewerLocation = () => {
+  if (!navigator.geolocation) { listingSort.value = 'recent'; sortMode = 'recent'; listingSort.title = 'Closest to you needs browser location support.'; return; }
+  listingSort.disabled = true;
+  listingSort.title = 'Requesting your approximate location…';
+  navigator.geolocation.getCurrentPosition(position => {
+    viewerLocation = { lat: position.coords.latitude, lng: position.coords.longitude };
+    listingSort.disabled = false;
+    listingSort.title = 'Using your approximate device location for this browsing session.';
+    renderFeed();
+  }, () => {
+    sortMode = 'recent'; listingSort.value = 'recent'; listingSort.disabled = false;
+    listingSort.title = 'Location permission was not granted, so closest sorting is unavailable.';
+    renderFeed();
+  }, { enableHighAccuracy: false, maximumAge: 300000, timeout: 10000 });
+};
+listingSort.addEventListener('change', event => { sortMode = event.target.value; if (sortMode === 'closest' && !viewerLocation) return requestViewerLocation(); renderFeed(); });
 priceMin.addEventListener('input', () => renderFeed());
 priceMax.addEventListener('input', () => renderFeed());
 tagSearch.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); const requested = event.target.value.match(/#?[a-z0-9-]+/gi) || []; const available = [...new Set(listings.flatMap(listingTags))]; const matches = requested.map(value => value.replace('#', '').toLowerCase()).filter(value => available.some(tag => tag.toLowerCase() === value)); const nextTags = [...new Set([...activeTags, ...matches])]; const added = nextTags.length > activeTags.length; activeTags = nextTags; if (added) { reloadTagRoute(); return; } syncTagRoute(); event.target.value = ''; renderTags(); renderFeed(); } });
@@ -565,6 +605,20 @@ document.querySelector('#remove-tags').addEventListener('click', () => {
   saveLockedTags();
   reloadTagRoute();
 });
+document.addEventListener('click', event => {
+  const capture = event.target.closest('[data-capture-location]');
+  if (!capture) return;
+  event.preventDefault();
+  if (!navigator.geolocation) { capture.textContent = 'Location is unavailable in this browser'; return; }
+  capture.disabled = true; capture.textContent = 'Saving approximate location…';
+  navigator.geolocation.getCurrentPosition(position => {
+    const form = capture.closest('.listing-form');
+    const round = value => Math.round(value * 100) / 100;
+    form?.querySelector('[name="locationLat"]')?.setAttribute('value', String(round(position.coords.latitude)));
+    form?.querySelector('[name="locationLng"]')?.setAttribute('value', String(round(position.coords.longitude)));
+    capture.textContent = 'Approximate location saved';
+  }, () => { capture.disabled = false; capture.textContent = 'Location permission was not granted'; }, { enableHighAccuracy: false, maximumAge: 300000, timeout: 10000 });
+});
 function setDiscoveryMode(mode) { const discovery = search.closest('.discovery'); const isSearch = mode === 'search'; discovery.classList.toggle('mode-search', isSearch); discovery.classList.toggle('mode-tags', !isSearch); document.querySelector('#search-tab').classList.toggle('is-active', isSearch); document.querySelector('#tags-tab').classList.toggle('is-active', !isSearch); document.querySelector('#search-tab').setAttribute('aria-selected', String(isSearch)); document.querySelector('#tags-tab').setAttribute('aria-selected', String(!isSearch)); }
 document.querySelector('#search-tab').addEventListener('click', () => { setDiscoveryMode('search'); search.focus(); });
 document.querySelector('#tags-tab').addEventListener('click', () => { setDiscoveryMode('tags'); tagSearch.focus(); });
@@ -575,7 +629,7 @@ document.addEventListener('submit', async event => { if (event.target.closest('#
   try {
     const authForm = form.closest('.auth-form'); if (authForm) { const fields = new FormData(authForm); const mode = authForm.dataset.mode; const body = mode === 'login' ? { email: fields.get('email'), password: fields.get('password') } : { username: fields.get('username'), email: fields.get('email'), password: fields.get('password') }; const result = await api(mode === 'login' ? '/login' : '/signup', { method: 'POST', body: JSON.stringify(body) }); saveSession(result); await loadDeliveries(); openAccountPanel(); return; }
     const profileForm = form.closest('.profile-form'); if (profileForm) { const fields = new FormData(profileForm); const file = fields.get('avatarFile'); let avatar = String(fields.get('avatarUrl') || '').trim(); if (file instanceof File && file.size) { if (!file.type.startsWith('image/') || file.size > 2 * 1024 * 1024) throw new Error('Use a JPG, PNG, or WEBP profile image under 2 MB.'); avatar = await optimizeListingImage(file); } if (avatar && !/^(https?:\/\/|data:image\/)/i.test(avatar)) throw new Error('Use a valid profile image URL.'); const user = await api(`/user/${session.user.id}`, { method: 'PUT', body: JSON.stringify({ username: fields.get('username'), bio: fields.get('bio'), avatar }) }); saveSession({ ...session, user }); openAccountPanel(); return; }
-    const listingForm = form.closest('.listing-form'); if (listingForm) { const fields = new FormData(listingForm); const images = [...uploadedListingImages, ...imageUrls(fields.get('imageUrls') || '')].slice(0, 5); const tags = parseListingTags(fields.get('tags'), fields.get('category')); if (!images.length) throw new Error('Add at least one listing photo or image link.'); if (tags.length > 8) throw new Error('Use up to 8 tags, including the category.'); const button = listingForm.querySelector('button[type="submit"], button:not([type])'); button.disabled = true; button.textContent = 'Publishing…'; await api('/listing', { method: 'POST', body: JSON.stringify({ title: fields.get('title'), description: fields.get('description'), category: fields.get('category'), tags, location: fields.get('location'), price: fields.get('price'), tradeOffer: fields.get('tradeOffer') === 'on', images, videos: uploadedListingVideos }) }); await loadMarket(); modal.close(); return; }
+    const listingForm = form.closest('.listing-form'); if (listingForm) { const fields = new FormData(listingForm); const images = [...uploadedListingImages, ...imageUrls(fields.get('imageUrls') || '')].slice(0, 5); const tags = parseListingTags(fields.get('tags'), fields.get('category')); if (!images.length) throw new Error('Add at least one listing photo or image link.'); if (tags.length > 8) throw new Error('Use up to 8 tags, including the category.'); const button = listingForm.querySelector('button[type="submit"], button:not([type])'); button.disabled = true; button.textContent = 'Publishing…'; await api('/listing', { method: 'POST', body: JSON.stringify({ title: fields.get('title'), description: fields.get('description'), category: fields.get('category'), tags, location: fields.get('location'), locationCoordinates: fields.get('locationLat') && fields.get('locationLng') ? { lat: fields.get('locationLat'), lng: fields.get('locationLng') } : null, price: fields.get('price'), tradeOffer: fields.get('tradeOffer') === 'on', images, videos: uploadedListingVideos }) }); await loadMarket(); modal.close(); return; }
     const commentForm = form.closest('.comment-form'); if (commentForm) { const item = listings.find(row => row.id === commentForm.dataset.post); const comment = commentForm.querySelector('textarea').value.trim(); if (!session) return openAuthPanel('login'); if (comment) { await api('/comment', { method: 'POST', body: JSON.stringify({ listingId: item.id, body: comment, parentId: commentForm.dataset.parent || undefined }) }); await loadMarket(); const refreshed = listings.find(row => row.id === item.id) || item; await openComments(refreshed); } return; }
     const deliveryUpdate = form.closest('.delivery-update-form'); if (deliveryUpdate) { const fields = new FormData(deliveryUpdate); await api(`/delivery/${deliveryUpdate.dataset.delivery}`, { method: 'PUT', body: JSON.stringify({ status: fields.get('status'), courier: fields.get('courier'), trackingNumber: fields.get('trackingNumber'), note: fields.get('note') }) }); await openDelivery(deliveryUpdate.dataset.delivery); return; }
     const deliveryMessage = form.closest('.delivery-message-form'); if (deliveryMessage) { const fields = new FormData(deliveryMessage); await api(`/delivery/${deliveryMessage.dataset.delivery}/messages`, { method: 'POST', body: JSON.stringify({ body: fields.get('body') }) }); await openDelivery(deliveryMessage.dataset.delivery); return; }
