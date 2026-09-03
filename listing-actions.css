@@ -5,3 +5,4 @@
 .listing-actions .action-buy b{color:#91e5af}
 .listing-actions .action-buy:hover,.listing-actions .action-buy:focus-visible{border-color:#8ae0a8;background:#1f563f;color:#fff;box-shadow:0 0 0 1px #285e45;outline:0}
 .listing-actions .action-buy:hover b,.listing-actions .action-buy:focus-visible b{color:#d0f7dc}
+.listing-copy .listing-location{margin:8px 0;padding:7px 9px;border-left:3px solid #5eb77c;background:#101714;color:#d7f6e1;font:700 10px "DM Mono",monospace;letter-spacing:.03em}
