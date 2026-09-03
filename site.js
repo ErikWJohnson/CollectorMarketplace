@@ -60,7 +60,18 @@ const platformCursorTargets = () => [...(modal.open ? modal : document).querySel
 const renderNumpadCursor = () => { if (!numpadCursorEnabled || !platformCursorTarget?.isConnected) { numpadCursor.hidden = true; return; } const rect = platformCursorTarget.getBoundingClientRect(); numpadCursor.hidden = !rect.width || !rect.height; numpadCursor.style.left = `${rect.left}px`; numpadCursor.style.top = `${rect.top}px`; numpadCursor.style.width = `${rect.width}px`; numpadCursor.style.height = `${rect.height}px`; };
 const trackPlatformTarget = target => { platformCursorTarget = target || null; target?.focus({ preventScroll: true }); requestAnimationFrame(renderNumpadCursor); };
 const focusPlatformTarget = target => { trackPlatformTarget(target); target?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' }); };
-const setNumpadCursorEnabled = enabled => { numpadCursorEnabled = enabled; document.body.classList.toggle('numpad-cursor-enabled', enabled); if (!enabled) return renderNumpadCursor(); const targets = platformCursorTargets(); focusPlatformTarget(targets.includes(platformCursorTarget) ? platformCursorTarget : targets[0]); };
+const setNumpadCursorEnabled = enabled => {
+  numpadCursorEnabled = enabled;
+  document.body.classList.toggle('numpad-cursor-enabled', enabled);
+  if (!enabled) return renderNumpadCursor();
+  const targets = platformCursorTargets();
+  const rect = platformCursorTarget?.getBoundingClientRect();
+  const targetIsVisible = targets.includes(platformCursorTarget) && rect && rect.bottom > 10 && rect.top < window.innerHeight - 10;
+  if (targetIsVisible) return trackPlatformTarget(platformCursorTarget);
+  // Re-enable exactly where the collector is reading; never scroll the page
+  // merely because Num Lock was switched back on.
+  moveNumpadCursorToViewport('top');
+};
 const nextPlatformTarget = (current, direction, targets) => {
   const currentRect = current.getBoundingClientRect(); const currentX = currentRect.left + currentRect.width / 2; const currentY = currentRect.top + currentRect.height / 2; const [moveX, moveY] = direction;
   const candidates = targets.filter(target => { if (target === current) return false; const rect = target.getBoundingClientRect(); const x = rect.left + rect.width / 2 - currentX; const y = rect.top + rect.height / 2 - currentY; return (!moveX || x * moveX > 2) && (!moveY || y * moveY > 2); });
