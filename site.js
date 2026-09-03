@@ -91,7 +91,7 @@ const stopAutoScroll = () => {
 const runAutoScroll = () => {
   if (!autoScrollActive || modal.open || document.hidden) return stopAutoScroll();
   const before = window.scrollY;
-  window.scrollBy({ top: 1.2, left: 0, behavior: 'auto' });
+  window.scrollBy({ top: 3.5, left: 0, behavior: 'auto' });
   const atBottom = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
   if (atBottom && window.scrollY === before) return stopAutoScroll();
   autoScrollFrame = requestAnimationFrame(runAutoScroll);
