@@ -80,12 +80,17 @@ document.addEventListener('keydown', event => {
   const direction = numpadDirections[event.code];
   if (typeof event.getModifierState?.('NumLock') === 'boolean' && event.getModifierState('NumLock') !== numpadCursorEnabled) setNumpadCursorEnabled(event.getModifierState('NumLock'));
   const tagState = event.code === 'NumpadAdd' ? 'locked' : event.code === 'NumpadSubtract' ? 'void' : '';
-  if ((!direction && event.code !== 'Numpad5' && !tagState) || event.repeat || !numpadCursorEnabled) return;
+  const isNumpadKey = event.code.startsWith('Numpad');
+  if (!numpadCursorEnabled || !isNumpadKey) return;
+  // Reserve the physical NumPad for the marketplace cursor so the browser,
+  // page, and focused form controls never also perform their native action.
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  if ((!direction && event.code !== 'Numpad5' && !tagState) || event.repeat) return;
   const targets = platformCursorTargets(); if (!targets.length) return;
   const focused = document.activeElement instanceof Element ? document.activeElement : null;
   const current = targets.includes(focused) ? focused : targets.includes(platformCursorTarget) ? platformCursorTarget : targets[0];
-  if (tagState) { if (!toggleNumpadTagState(current, tagState)) return; event.preventDefault(); event.stopImmediatePropagation(); return; }
-  event.preventDefault(); event.stopImmediatePropagation();
+  if (tagState) { if (!toggleNumpadTagState(current, tagState)) return; return; }
   if (event.code === 'Numpad5') {
     if (focused !== current) return focusPlatformTarget(current);
     const activatedTarget = current;
