@@ -124,6 +124,18 @@ body.chat-open .app-shell { height: 100dvh; overflow: hidden !important; }
 }
 
 .trade-dialog .modal-copy { margin-bottom: 0; }
+.trade-dialog .trade-builder-form, .trade-dialog .trade-delivery-form { width: min(1120px, 100%); max-width: none; margin: 20px auto 0; padding: clamp(16px, 3vw, 30px); border: 1px solid #4a4a4a; background: #181818; overflow: auto; }
+.trade-delivery-fields { display: grid; gap: 12px; padding: 16px; border: 1px solid #4a4a4a; background: #202020; }
+.trade-delivery-fields h3, .trade-delivery-fields p { margin: 0; }
+.trade-delivery-fields p { color: #bcb8ad; font-size: .82rem; line-height: 1.45; }
+.trade-delivery-fields label { display: grid; gap: 6px; color: #e7e4da; font-size: .8rem; }
+.trade-delivery-fields input, .trade-delivery-fields select, .trade-delivery-fields textarea { width: 100%; border: 1px solid #666; padding: 10px; background: #151515; color: #f5f3eb; font: inherit; }
+.trade-delivery-fields textarea { min-height: 76px; resize: vertical; }
+.trade-dialog .payment-methods { margin: 0; }
+.trade-delivery-links { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; padding: 14px; border-bottom: 1px solid #4a4a4a; background: #1b1b1b; }
+.trade-delivery-links h3 { grid-column: 1 / -1; margin: 0; color: #f2bc35; font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; }
+.trade-delivery-links button { display: grid; gap: 3px; border: 1px solid #555; padding: 10px; background: #222; color: #f5f3eb; text-align: left; }
+.trade-delivery-links button span { color: #bcb8ad; font-size: .72rem; text-transform: capitalize; }
 .trade-dialog .conversation-workspace { margin-top: 20px; }
 .trade-status { margin-left: auto; border: 1px solid #a97f1d; padding: 5px 8px; color: #f2bc35; font: 700 .65rem/1 var(--mono, monospace); letter-spacing: .06em; text-transform: uppercase; }
 .trade-actions { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; padding: 12px; border-top: 1px solid #4a4a4a; background: #202020; }

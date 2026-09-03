@@ -244,6 +244,17 @@ app.post('/comment/:id/vote', required, (req, res) => { const comment = store.da
 const activeTradeListings = (ids, ownerId) => [...new Set(Array.isArray(ids) ? ids.filter(value => typeof value === 'string') : [])].map(listingId => store.data.listings.find(listing => listing.id === listingId && listing.ownerId === ownerId && listing.status === 'active')).filter(Boolean);
 const tradeSenderIds = trade => Array.isArray(trade.senderListingIds) ? trade.senderListingIds : [];
 const tradeReceiverIds = trade => Array.isArray(trade.receiverListingIds) ? trade.receiverListingIds : [trade.listingId].filter(Boolean);
+const tradeDeliveryPlan = input => {
+  const address = typeof input.shippingAddress === 'string' ? input.shippingAddress.trim() : '';
+  const provider = typeof input.deliveryProvider === 'string' ? input.deliveryProvider.trim() : '';
+  const paymentMethod = typeof input.paymentMethod === 'string' ? input.paymentMethod.trim() : '';
+  const deliveryMiles = Math.min(20000, Math.max(0, Number(input.deliveryMiles) || 0));
+  const packagingCost = Math.min(10000, Math.max(0, Number(input.packagingCost) || 0));
+  if (!address || address.length > 500) throw new Error('Add a delivery address under 500 characters.');
+  if (!deliveryProviders[provider]) throw new Error('Choose one of the supported delivery options.');
+  if (!paymentMethods.has(paymentMethod)) throw new Error('Choose one of the supported payment methods.');
+  return { shippingAddress: address, deliveryProvider: provider, deliveryMiles, packagingCost, courierPay: Math.max(8, deliveryMiles * 0.20) + packagingCost, paymentMethod };
+};
 app.post('/trade', required, (req, res) => {
   const { receiverId, listingId, senderListingIds, receiverListingIds, offerDetails, senderCashAmount, receiverCashAmount, cashAmount = 0, cashFrom = '' } = req.body;
   const requestedIds = [...new Set([...(Array.isArray(receiverListingIds) ? receiverListingIds : []), listingId].filter(value => typeof value === 'string'))];
@@ -256,8 +267,10 @@ app.post('/trade', required, (req, res) => {
   const senderCash = Number(senderCashAmount ?? (cashFrom === 'sender' ? legacyAmount : 0));
   const receiverCash = Number(receiverCashAmount ?? (cashFrom === 'receiver' ? legacyAmount : 0));
   if (![senderCash, receiverCash].every(amount => Number.isFinite(amount) && amount >= 0 && amount <= 1_000_000)) return res.status(400).json({ error: 'Use valid cash amounts for both sides.' });
+  let senderDelivery;
+  try { senderDelivery = tradeDeliveryPlan(req.body); } catch (error) { return res.status(400).json({ error: error.message }); }
   const note = typeof offerDetails === 'string' ? offerDetails.trim() : '';
-  const trade = { id: id(), senderId: req.user.id, receiverId, listingId: requestedIds[0], senderListingIds: offeredIds, receiverListingIds: requestedIds, senderCashAmount: senderCash, receiverCashAmount: receiverCash, offerDetails: note.slice(0, 1000), acceptances: { sender: false, receiver: false }, status: 'pending', messages: [], createdAt: now() };
+  const trade = { id: id(), senderId: req.user.id, receiverId, listingId: requestedIds[0], senderListingIds: offeredIds, receiverListingIds: requestedIds, senderCashAmount: senderCash, receiverCashAmount: receiverCash, offerDetails: note.slice(0, 1000), deliveryPlans: { sender: senderDelivery, receiver: null }, acceptances: { sender: false, receiver: false }, status: 'pending', messages: [], createdAt: now() };
   store.data.trades.unshift(trade); notify(receiverId, 'trade', `${req.user.username} proposed a ${offeredIds.length}-for-${requestedIds.length} trade`, `/trade/${trade.id}`); activity('trade', req.user.id, { listingId: requestedIds[0], tradeId: trade.id }); store.save(); res.status(201).json(trade);
 });
 function tradeView(trade, userId) {
@@ -265,7 +278,8 @@ function tradeView(trade, userId) {
   const senderListings = tradeSenderIds(trade).map(listingId => store.data.listings.find(row => row.id === listingId)).filter(Boolean);
   const receiverListings = tradeReceiverIds(trade).map(listingId => store.data.listings.find(row => row.id === listingId)).filter(Boolean);
   const otherUser = store.data.users.find(row => row.id === (trade.senderId === userId ? trade.receiverId : trade.senderId));
-  return { ...trade, listing, senderListings, receiverListings, otherUser: publicUser(otherUser) };
+  const deliveries = (trade.deliveryIds || []).map(deliveryId => store.data.deliveries.find(row => row.id === deliveryId)).filter(Boolean);
+  return { ...trade, listing, senderListings, receiverListings, deliveries, otherUser: publicUser(otherUser) };
 }
 app.get('/trades', required, (req, res) => res.json(store.data.trades.filter(t => t.senderId === req.user.id || t.receiverId === req.user.id).map(t => tradeView(t, req.user.id))));
 app.get('/trade/:id', required, (req, res) => { const trade = store.data.trades.find(t => t.id === req.params.id); if (!trade || (trade.senderId !== req.user.id && trade.receiverId !== req.user.id)) return res.status(404).json({ error: 'Trade not found' }); res.json(tradeView(trade, req.user.id)); });
@@ -285,12 +299,28 @@ app.put('/trade/:id', required, (req, res) => {
     if (!rows.length || rows.some(listing => !listing || listing.status !== 'active')) return res.status(400).json({ error: 'Every item must still be active before this trade can be accepted.' });
     if (!trade.acceptances || typeof trade.acceptances !== 'object') trade.acceptances = { sender: false, receiver: false };
     const role = trade.senderId === req.user.id ? 'sender' : 'receiver';
+    if (req.body.deliveryPlan) {
+      try { trade.deliveryPlans = trade.deliveryPlans || {}; trade.deliveryPlans[role] = tradeDeliveryPlan(req.body.deliveryPlan); } catch (error) { return res.status(400).json({ error: error.message }); }
+    }
+    if (!trade.deliveryPlans?.[role]) return res.status(400).json({ error: 'Add your delivery and payment details before locking in this trade.' });
     trade.acceptances[role] = true;
     const otherRole = role === 'sender' ? 'receiver' : 'sender';
     if (trade.acceptances.sender && trade.acceptances.receiver) {
-      trade.status = 'completed';
-      [...tradeSenderIds(trade), ...tradeReceiverIds(trade)].forEach(listingId => { const listing = store.data.listings.find(row => row.id === listingId); if (listing) listing.status = 'traded'; });
-      notify(trade.senderId === req.user.id ? trade.receiverId : trade.senderId, 'trade', `${req.user.username} locked in the trade — both collectors accepted and the trade is complete`, `/trade/${trade.id}`);
+      const createTradeDelivery = (listingId, buyerId, sellerId, plan) => {
+        const listing = store.data.listings.find(row => row.id === listingId);
+        const delivery = { id: id(), tradeId: trade.id, listingId, buyerId, sellerId, shippingAddress: plan.shippingAddress, itemPrice: Number(listing?.price) || 0, deliveryProvider: plan.deliveryProvider, deliveryMiles: plan.deliveryMiles, packagingCost: plan.packagingCost, courierPay: plan.courierPay, paymentMethod: plan.paymentMethod, status: 'awaiting_seller_dispatch', courier: '', trackingNumber: '', messages: [], history: [], createdAt: now(), updatedAt: now() };
+        recordDeliveryUpdate(delivery, buyerId, delivery.status, `Trade delivery created with ${plan.deliveryProvider} · ${plan.paymentMethod}; delivery estimate $${plan.courierPay.toFixed(2)}.`);
+        store.data.deliveries.unshift(delivery);
+        if (listing) listing.status = 'pending_delivery';
+        notify(sellerId, 'delivery', `Trade delivery is ready for “${listing?.title || 'collector item'}”`, `/delivery/${delivery.id}`);
+        return delivery.id;
+      };
+      trade.deliveryIds = [
+        ...tradeSenderIds(trade).map(listingId => createTradeDelivery(listingId, trade.receiverId, trade.senderId, trade.deliveryPlans.receiver)),
+        ...tradeReceiverIds(trade).map(listingId => createTradeDelivery(listingId, trade.senderId, trade.receiverId, trade.deliveryPlans.sender))
+      ];
+      trade.status = 'delivery_in_progress';
+      notify(trade.senderId === req.user.id ? trade.receiverId : trade.senderId, 'trade', `${req.user.username} locked in the trade — delivery threads are now open for both sides`, `/trade/${trade.id}`);
     } else {
       trade.status = `awaiting_${otherRole}`;
       notify(trade.senderId === req.user.id ? trade.receiverId : trade.senderId, 'trade', `${req.user.username} locked in the trade — your acceptance is needed`, `/trade/${trade.id}`);
@@ -341,7 +371,7 @@ app.put('/delivery/:id', required, (req, res) => {
   else return res.status(403).json({ error: 'This delivery update is not allowed.' });
   const otherUser = delivery.buyerId === req.user.id ? delivery.sellerId : delivery.buyerId; notify(otherUser, 'delivery', `${req.user.username} updated delivery status to ${delivery.status.replaceAll('_', ' ')}`, `/delivery/${delivery.id}`); store.save(); res.json(deliveryView(delivery, req.user.id));
 });
-app.post('/delivery/:id/confirm', required, (req, res) => { const delivery = store.data.deliveries.find(row => row.id === req.params.id); if (!delivery || delivery.buyerId !== req.user.id) return res.status(404).json({ error: 'Delivery not found' }); if (delivery.status !== 'in_transit') return res.status(400).json({ error: 'A package can be confirmed after it is marked in transit.' }); delivery.status = 'completed'; recordDeliveryUpdate(delivery, req.user.id, 'completed', 'Buyer confirmed delivery received'); const listing = store.data.listings.find(row => row.id === delivery.listingId); if (listing) listing.status = 'sold'; notify(delivery.sellerId, 'delivery', `${req.user.username} confirmed delivery for “${listing?.title || 'your listing'}”`, `/delivery/${delivery.id}`); store.save(); res.json(deliveryView(delivery, req.user.id)); });
+app.post('/delivery/:id/confirm', required, (req, res) => { const delivery = store.data.deliveries.find(row => row.id === req.params.id); if (!delivery || delivery.buyerId !== req.user.id) return res.status(404).json({ error: 'Delivery not found' }); if (delivery.status !== 'in_transit') return res.status(400).json({ error: 'A package can be confirmed after it is marked in transit.' }); delivery.status = 'completed'; recordDeliveryUpdate(delivery, req.user.id, 'completed', 'Buyer confirmed delivery received'); const listing = store.data.listings.find(row => row.id === delivery.listingId); if (listing) listing.status = delivery.tradeId ? 'traded' : 'sold'; if (delivery.tradeId) { const trade = store.data.trades.find(row => row.id === delivery.tradeId); const tradeDeliveries = (trade?.deliveryIds || []).map(deliveryId => store.data.deliveries.find(row => row.id === deliveryId)).filter(Boolean); if (trade && tradeDeliveries.length && tradeDeliveries.every(row => row.status === 'completed')) { trade.status = 'completed'; [...tradeSenderIds(trade), ...tradeReceiverIds(trade)].forEach(listingId => { const tradeListing = store.data.listings.find(row => row.id === listingId); if (tradeListing) tradeListing.status = 'traded'; }); notify(trade.senderId === req.user.id ? trade.receiverId : trade.senderId, 'trade', 'All trade deliveries were confirmed — the trade is complete.', `/trade/${trade.id}`); } } notify(delivery.sellerId, 'delivery', `${req.user.username} confirmed delivery for “${listing?.title || 'your listing'}”`, `/delivery/${delivery.id}`); store.save(); res.json(deliveryView(delivery, req.user.id)); });
 app.post('/delivery/:id/messages', required, (req, res) => { const delivery = store.data.deliveries.find(row => row.id === req.params.id); if (!delivery || (delivery.buyerId !== req.user.id && delivery.sellerId !== req.user.id)) return res.status(404).json({ error: 'Delivery not found' }); if (!req.body.body?.trim()) return res.status(400).json({ error: 'A message is required' }); const message = { id: id(), senderId: req.user.id, body: req.body.body.trim(), createdAt: now() }; delivery.messages.push(message); delivery.updatedAt = now(); notify(delivery.buyerId === req.user.id ? delivery.sellerId : delivery.buyerId, 'delivery_message', `${req.user.username} sent a delivery message`, `/delivery/${delivery.id}`); store.save(); res.status(201).json(message); });
 app.get('/feed/global', (req, res) => res.json(store.data.activities.slice(0, 50).map(a => ({ ...a, user: publicUser(store.data.users.find(u => u.id === a.userId)), listing: a.listingId ? store.data.listings.find(l => l.id === a.listingId) : null }))));
 app.get('/feed/user/:id', (req, res) => { const user = store.data.users.find(u => u.id === req.params.id); if (!user) return res.status(404).json({ error: 'User not found' }); const people = new Set([user.id, ...user.following]); res.json(store.data.activities.filter(a => people.has(a.userId)).slice(0, 50).map(a => ({ ...a, user: publicUser(store.data.users.find(u => u.id === a.userId)), listing: a.listingId ? store.data.listings.find(l => l.id === a.listingId) : null }))); });
