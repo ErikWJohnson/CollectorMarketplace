@@ -49,6 +49,26 @@ document.addEventListener('pointerover', event => { const tag = event.target.clo
 document.addEventListener('pointerout', event => { const tag = event.target.closest('[data-tag]'); if (tag && tag.dataset.tag.toLowerCase() === hoveredTagValue) hoveredTagValue = ''; });
 document.addEventListener('keydown', event => { if (['Control', 'Meta', 'Shift'].includes(event.key)) applyHoverTagModifier(event); });
 
+/* NumPad tag cursor: 8 ↑, 4 ←, 6 →, 2 ↓, and 5 toggles the focused tag. */
+const numpadTagDirections = { Numpad8: 'up', Numpad4: 'left', Numpad6: 'right', Numpad2: 'down' };
+const canUseNumpadTagCursor = target => !modal.open && (target === tagSearch ? !tagSearch.value : !(target instanceof Element && target.closest('input, textarea, select, [contenteditable="true"]')));
+const visibleTagButtons = () => [...tags.querySelectorAll('[data-tag]')].filter(button => button.getClientRects().length);
+const focusTagButton = button => { button?.focus({ preventScroll: true }); button?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' }); };
+const nextTagButton = (current, direction, buttons) => {
+  const currentRect = current.getBoundingClientRect(); const currentX = currentRect.left + currentRect.width / 2; const currentY = currentRect.top + currentRect.height / 2;
+  const candidates = buttons.filter(button => { if (button === current) return false; const rect = button.getBoundingClientRect(); const x = rect.left + rect.width / 2; const y = rect.top + rect.height / 2; return direction === 'up' ? y < currentY - 2 : direction === 'down' ? y > currentY + 2 : direction === 'left' ? x < currentX - 2 : x > currentX + 2; });
+  return candidates.sort((left, right) => { const leftRect = left.getBoundingClientRect(); const rightRect = right.getBoundingClientRect(); const leftX = leftRect.left + leftRect.width / 2; const leftY = leftRect.top + leftRect.height / 2; const rightX = rightRect.left + rightRect.width / 2; const rightY = rightRect.top + rightRect.height / 2; const horizontal = direction === 'left' || direction === 'right'; const leftScore = horizontal ? Math.abs(leftX - currentX) + Math.abs(leftY - currentY) * 4 : Math.abs(leftY - currentY) + Math.abs(leftX - currentX) * 4; const rightScore = horizontal ? Math.abs(rightX - currentX) + Math.abs(rightY - currentY) * 4 : Math.abs(rightY - currentY) + Math.abs(rightX - currentX) * 4; return leftScore - rightScore; })[0];
+};
+document.addEventListener('keydown', event => {
+  const direction = numpadTagDirections[event.code];
+  if ((!direction && event.code !== 'Numpad5') || event.repeat || !canUseNumpadTagCursor(event.target)) return;
+  const buttons = visibleTagButtons(); if (!buttons.length) return;
+  event.preventDefault();
+  const current = document.activeElement?.closest?.('#tags [data-tag]') || buttons[0];
+  if (event.code === 'Numpad5') { const value = current.dataset.tag.toLowerCase(); current.click(); requestAnimationFrame(() => focusTagButton(visibleTagButtons().find(button => button.dataset.tag.toLowerCase() === value))); return; }
+  focusTagButton(nextTagButton(current, direction, buttons) || current);
+});
+
 /* Hold ↑ or ↓ to move through the marketplace continuously. Form fields and
    full-screen workspaces keep their normal keyboard behavior. */
 const heldScrollKeys = new Set();
