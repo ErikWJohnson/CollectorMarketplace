@@ -20,14 +20,7 @@ const collectiveCatalog = [
   { id: 'timekeepers', name: 'Timekeepers', description: 'Watches, jewelry, and collectible craftsmanship.', tags: ['Watches', 'Fine Jewelry', 'Luxury'], members: 619 },
   { id: 'pixel-arcade', name: 'Pixel Arcade', description: 'Gaming hardware, retro games, and console collectors.', tags: ['Gaming', 'Consoles', 'Arcade Machines'], members: 932 }
 ];
-const brandCatalog = [
-  { id: 'nike', name: 'Nike', category: 'Fashion & Luxury', description: 'Sneakers, apparel, and sports collectibles.' },
-  { id: 'rolex', name: 'Rolex', category: 'Watches', description: 'Luxury watches and timekeeping collectibles.' },
-  { id: 'lego', name: 'LEGO', category: 'Toys & Games', description: 'Building sets, minifigures, and retired collections.' },
-  { id: 'nintendo', name: 'Nintendo', category: 'Gaming', description: 'Consoles, games, hardware, and collector editions.' },
-  { id: 'topps', name: 'Topps', category: 'Sports Cards', description: 'Sports cards, trading cards, and memorabilia.' },
-  { id: 'fender', name: 'Fender', category: 'Instruments', description: 'Guitars, amplifiers, and music collectibles.' }
-];
+const brandCatalog = [];
 
 class Store {
   constructor() { fs.mkdirSync(dataDir, { recursive: true }); this.data = this.load(); this.ensureData(); this.seedBrowseFeed(); this.pool = null; this.writeQueue = Promise.resolve(); }
