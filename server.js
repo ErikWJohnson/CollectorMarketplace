@@ -21,6 +21,12 @@ const collectiveCatalog = [
   { id: 'pixel-arcade', name: 'Pixel Arcade', description: 'Gaming hardware, retro games, and console collectors.', tags: ['Gaming', 'Consoles', 'Arcade Machines'], members: 932 }
 ];
 const brandCatalog = [];
+const chatRoomCatalog = [
+  { id: 'collector-lounge', name: 'Collector Lounge', description: 'A relaxed place to meet collectors and talk through today’s finds.', tags: ['Collectors', 'General', 'Community'], members: 84 },
+  { id: 'card-table', name: 'Card Table', description: 'Live conversation for sports cards, TCG, grading, and swaps.', tags: ['Sports Cards', 'Cards', 'Trading'], members: 46 },
+  { id: 'art-salon', name: 'Art Salon', description: 'Discuss art, design, antiques, and museum-worthy objects.', tags: ['Art', 'Fine Art', 'Vintage'], members: 31 },
+  { id: 'watch-club', name: 'Watch Club', description: 'A room for timepieces, jewelry, luxury, and craftsmanship.', tags: ['Watches', 'Fine Jewelry', 'Luxury'], members: 29 }
+];
 
 class Store {
   constructor() { fs.mkdirSync(dataDir, { recursive: true }); this.data = this.load(); this.ensureData(); this.seedBrowseFeed(); this.pool = null; this.writeQueue = Promise.resolve(); }
@@ -106,6 +112,7 @@ app.get('/users', (req, res) => res.json(store.data.users.map(user => ({ ...dire
 app.get('/collectives', (req, res) => res.json(collectiveCatalog.map(collective => ({ ...collective, postCount: store.data.listings.filter(listing => listing.status === 'active' && (listing.tags || []).some(tag => collective.tags.includes(tag))).length }))));
 app.get('/brands', (req, res) => res.json(brandCatalog));
 app.get('/couriers', (req, res) => res.json(Object.entries(deliveryProviders).map(([name, details]) => ({ id: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''), name, category: details.type.replaceAll('_', ' '), description: details.trackingRequired ? 'Tracking-supported delivery option for collector purchases.' : 'Local handoff delivery option for collector purchases.', tags: ['Courier', 'Delivery', details.type.replaceAll('_', ' ')] }))));
+app.get('/chatrooms', (req, res) => res.json(chatRoomCatalog));
 app.put('/user/:id', required, (req, res) => { if (req.user.id !== req.params.id) return res.status(403).json({ error: 'Not allowed' }); ['username','avatar','bio'].forEach(k => { if (req.body[k] !== undefined) req.user[k] = req.body[k]; }); activity('profile', req.user.id); store.save(); res.json(publicUser(req.user)); });
 app.post('/user/:id/follow', required, (req, res) => { if (req.user.id === req.params.id) return res.status(400).json({ error: 'You cannot follow yourself' }); if (!store.data.users.some(u => u.id === req.params.id)) return res.status(404).json({ error: 'User not found' }); const following = req.user.following; const index = following.indexOf(req.params.id); index < 0 ? following.push(req.params.id) : following.splice(index, 1); store.save(); res.json({ following: index < 0 }); });
 app.get('/user/:id/connections', required, (req, res) => { if (req.user.id !== req.params.id) return res.status(403).json({ error: 'Not allowed' }); const following = store.data.users.filter(user => req.user.following.includes(user.id)); const friends = following.filter(user => user.following.includes(req.user.id)); res.json({ following: following.map(publicUser), friends: friends.map(publicUser) }); });
@@ -117,12 +124,13 @@ app.post('/conversation/:id/messages', required, (req, res) => { const conversat
 
 function voiceRoomAllowed(roomId, userId) {
   const [kind, targetId] = String(roomId || '').split(':');
-  if (!targetId || !['conversation', 'trade', 'auction'].includes(kind)) return false;
+  if (!targetId || !['conversation', 'trade', 'auction', 'chatroom'].includes(kind)) return false;
   if (kind === 'conversation') return store.data.conversations.some(row => row.id === targetId && row.participantIds.includes(userId));
   if (kind === 'trade') return store.data.trades.some(row => row.id === targetId && (row.senderId === userId || row.receiverId === userId));
   if (kind === 'auction') {
     try { return JSON.parse(fs.readFileSync(path.join(dataDir, 'auctions.json'), 'utf8')).some(row => row.id === targetId); } catch { return false; }
   }
+  if (kind === 'chatroom') return chatRoomCatalog.some(room => room.id === targetId);
   return false;
 }
 function getVoiceRoom(roomId) {
