@@ -10,7 +10,7 @@ const priceMax = document.querySelector('#price-max');
 const sentinel = document.querySelector('#sentinel');
 const modal = document.querySelector('#modal');
 const modalContent = document.querySelector('#modal-content');
-let listings = [], auctions = [], accounts = [], collectives = [], brands = [], couriers = [], chatrooms = [], deliveries = [], uploadedListingImages = [], uploadedListingVideos = [], activeCategory = 'All', activeQuery = '', activeTags = [], searchScope = 'listings', sortMode = 'recent', page = 1, observer, searchRenderTimer, auctionClock;
+let listings = [], auctions = [], accounts = [], collectives = [], brands = [], couriers = [], chatrooms = [], deliveries = [], uploadedListingImages = [], uploadedListingVideos = [], activeCategory = 'All', activeQuery = '', activeTags = [], searchScope = 'listings', sortMode = 'popular', page = 1, observer, searchRenderTimer, auctionClock;
 const searchScopes = ['listings', 'accounts', 'collectives', 'brands', 'couriers', 'chatrooms'];
 const setSearchScope = (scope, syncRoute = true) => {
   if (!searchScopes.includes(scope)) return;
