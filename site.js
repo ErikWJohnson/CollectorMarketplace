@@ -135,10 +135,17 @@ document.addEventListener('keydown', event => {
   event.preventDefault();
   document.querySelector(target)?.click();
 });
+const openDiscoveryShortcut = mode => {
+  const target = mode === 'search' ? search : tags;
+  setDiscoveryMode(mode);
+  history.pushState({}, '', `${location.pathname}${location.search}#${mode}`);
+  target.closest('.discovery')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  setTimeout(() => (mode === 'search' ? search : tagSearch).focus({ preventScroll: true }), 180);
+};
 document.addEventListener('keydown', event => {
   if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || !canUseAutoScroll(event.target)) return;
-  if (event.key.toLowerCase() === 's') { event.preventDefault(); setDiscoveryMode('search'); search.focus(); }
-  if (event.key.toLowerCase() === 't') { event.preventDefault(); setDiscoveryMode('tags'); tagSearch.focus(); }
+  if (event.key.toLowerCase() === 's') { event.preventDefault(); openDiscoveryShortcut('search'); }
+  if (event.key.toLowerCase() === 't') { event.preventDefault(); openDiscoveryShortcut('tags'); }
 });
 document.addEventListener('wheel', stopAutoScroll, { passive: true });
 document.addEventListener('touchstart', stopAutoScroll, { passive: true });
