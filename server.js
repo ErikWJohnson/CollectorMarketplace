@@ -230,7 +230,7 @@ app.post('/trade', required, (req, res) => {
   if (payer && !['sender', 'receiver'].includes(payer)) return res.status(400).json({ error: 'Choose which collector adds the cash adjustment.' });
   if (amount && !payer) return res.status(400).json({ error: 'Choose which collector adds the cash adjustment.' });
   const note = typeof offerDetails === 'string' ? offerDetails.trim() : '';
-  const trade = { id: id(), senderId: req.user.id, receiverId, listingId: requestedIds[0], senderListingIds: offeredIds, receiverListingIds: requestedIds, cashAmount: amount, cashFrom: payer, offerDetails: note.slice(0, 1000), status: 'pending', messages: [], createdAt: now() };
+  const trade = { id: id(), senderId: req.user.id, receiverId, listingId: requestedIds[0], senderListingIds: offeredIds, receiverListingIds: requestedIds, cashAmount: amount, cashFrom: payer, offerDetails: note.slice(0, 1000), acceptances: { sender: false, receiver: false }, status: 'pending', messages: [], createdAt: now() };
   store.data.trades.unshift(trade); notify(receiverId, 'trade', `${req.user.username} proposed a ${offeredIds.length}-for-${requestedIds.length} trade`, `/trade/${trade.id}`); activity('trade', req.user.id, { listingId: requestedIds[0], tradeId: trade.id }); store.save(); res.status(201).json(trade);
 });
 function tradeView(trade, userId) {
@@ -242,7 +242,41 @@ function tradeView(trade, userId) {
 }
 app.get('/trades', required, (req, res) => res.json(store.data.trades.filter(t => t.senderId === req.user.id || t.receiverId === req.user.id).map(t => tradeView(t, req.user.id))));
 app.get('/trade/:id', required, (req, res) => { const trade = store.data.trades.find(t => t.id === req.params.id); if (!trade || (trade.senderId !== req.user.id && trade.receiverId !== req.user.id)) return res.status(404).json({ error: 'Trade not found' }); res.json(tradeView(trade, req.user.id)); });
-app.put('/trade/:id', required, (req, res) => { const trade = store.data.trades.find(t => t.id === req.params.id); if (!trade || (trade.senderId !== req.user.id && trade.receiverId !== req.user.id)) return res.status(404).json({ error: 'Trade not found' }); const { status, message } = req.body; if (status && !['accepted','declined','completed'].includes(status)) return res.status(400).json({ error: 'Invalid status' }); if (status) { if (['accepted','declined'].includes(status) && trade.receiverId !== req.user.id) return res.status(403).json({ error: 'Only the listing owner can accept or decline this trade' }); if (status === 'accepted') { const rows = [...tradeSenderIds(trade), ...tradeReceiverIds(trade)].map(listingId => store.data.listings.find(row => row.id === listingId)); if (!rows.length || rows.some(listing => !listing || listing.status !== 'active')) return res.status(400).json({ error: 'Every item must still be active before this trade can be accepted.' }); } if (status === 'completed' && trade.status !== 'accepted') return res.status(400).json({ error: 'Only accepted trades can be completed' }); trade.status = status; if (status === 'completed') { [...tradeSenderIds(trade), ...tradeReceiverIds(trade)].forEach(listingId => { const listing = store.data.listings.find(row => row.id === listingId); if (listing) listing.status = 'traded'; }); } notify(trade.senderId === req.user.id ? trade.receiverId : trade.senderId, 'trade', `${req.user.username} marked the trade ${status}`, `/trade/${trade.id}`); } if (message?.trim()) trade.messages.push({ id: id(), senderId: req.user.id, body: message.trim(), createdAt: now() }); store.save(); res.json(tradeView(trade, req.user.id)); });
+app.put('/trade/:id', required, (req, res) => {
+  const trade = store.data.trades.find(t => t.id === req.params.id);
+  if (!trade || (trade.senderId !== req.user.id && trade.receiverId !== req.user.id)) return res.status(404).json({ error: 'Trade not found' });
+  const { status, message } = req.body;
+  if (status && !['accepted', 'declined', 'completed'].includes(status)) return res.status(400).json({ error: 'Invalid status' });
+  if (status === 'declined') {
+    if (['accepted', 'completed', 'declined'].includes(trade.status)) return res.status(400).json({ error: 'This trade can no longer be declined.' });
+    trade.status = 'declined';
+    notify(trade.senderId === req.user.id ? trade.receiverId : trade.senderId, 'trade', `${req.user.username} declined this trade`, `/trade/${trade.id}`);
+  }
+  if (status === 'accepted') {
+    if (['accepted', 'completed', 'declined'].includes(trade.status)) return res.status(400).json({ error: 'This trade is no longer awaiting acceptance.' });
+    const rows = [...tradeSenderIds(trade), ...tradeReceiverIds(trade)].map(listingId => store.data.listings.find(row => row.id === listingId));
+    if (!rows.length || rows.some(listing => !listing || listing.status !== 'active')) return res.status(400).json({ error: 'Every item must still be active before this trade can be accepted.' });
+    if (!trade.acceptances || typeof trade.acceptances !== 'object') trade.acceptances = { sender: false, receiver: false };
+    const role = trade.senderId === req.user.id ? 'sender' : 'receiver';
+    trade.acceptances[role] = true;
+    const otherRole = role === 'sender' ? 'receiver' : 'sender';
+    if (trade.acceptances.sender && trade.acceptances.receiver) {
+      trade.status = 'accepted';
+      notify(trade.senderId === req.user.id ? trade.receiverId : trade.senderId, 'trade', `${req.user.username} locked in the trade — both collectors accepted`, `/trade/${trade.id}`);
+    } else {
+      trade.status = `awaiting_${otherRole}`;
+      notify(trade.senderId === req.user.id ? trade.receiverId : trade.senderId, 'trade', `${req.user.username} locked in the trade — your acceptance is needed`, `/trade/${trade.id}`);
+    }
+  }
+  if (status === 'completed') {
+    if (trade.status !== 'accepted') return res.status(400).json({ error: 'Both collectors must accept before the trade can be completed.' });
+    trade.status = 'completed';
+    [...tradeSenderIds(trade), ...tradeReceiverIds(trade)].forEach(listingId => { const listing = store.data.listings.find(row => row.id === listingId); if (listing) listing.status = 'traded'; });
+    notify(trade.senderId === req.user.id ? trade.receiverId : trade.senderId, 'trade', `${req.user.username} marked the trade completed`, `/trade/${trade.id}`);
+  }
+  if (message?.trim()) trade.messages.push({ id: id(), senderId: req.user.id, body: message.trim(), createdAt: now() });
+  store.save(); res.json(tradeView(trade, req.user.id));
+});
 
 function deliveryView(delivery, userId) { const listing = store.data.listings.find(row => row.id === delivery.listingId); const buyer = store.data.users.find(row => row.id === delivery.buyerId); const seller = store.data.users.find(row => row.id === delivery.sellerId); return { ...delivery, listing, buyer: publicUser(buyer), seller: publicUser(seller), shippingAddress: delivery.buyerId === userId || delivery.sellerId === userId ? delivery.shippingAddress : undefined }; }
 function recordDeliveryUpdate(delivery, userId, status, note = '') { if (!Array.isArray(delivery.history)) delivery.history = []; delivery.history.push({ id: id(), userId, status, note, createdAt: now() }); delivery.updatedAt = now(); }
