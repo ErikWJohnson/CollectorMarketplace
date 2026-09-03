@@ -53,25 +53,32 @@ document.addEventListener('keydown', event => { if (['Control', 'Meta', 'Shift']
    move diagonally, and 5 activates the focused control. */
 const numpadDirections = { Numpad8: [0, -1], Numpad4: [-1, 0], Numpad6: [1, 0], Numpad2: [0, 1], Numpad7: [-1, -1], Numpad9: [1, -1], Numpad1: [-1, 1], Numpad3: [1, 1] };
 let platformCursorTarget = null;
-const isCursorEditing = target => target instanceof Element && target.closest('textarea, select, [contenteditable="true"], input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"])');
-const canUseNumpadCursor = target => target === tagSearch ? !tagSearch.value : !isCursorEditing(target);
+let numpadCursorEnabled = false;
+const numpadCursor = document.createElement('div');
+numpadCursor.id = 'numpad-cursor'; numpadCursor.hidden = true; numpadCursor.setAttribute('aria-hidden', 'true'); document.body.append(numpadCursor);
 const platformCursorTargets = () => [...(modal.open ? modal : document).querySelectorAll('button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [role="button"]')].filter(element => element.getClientRects().length && !element.closest('[hidden], [aria-hidden="true"]'));
-const focusPlatformTarget = target => { platformCursorTarget = target || null; target?.focus({ preventScroll: true }); target?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' }); };
+const renderNumpadCursor = () => { if (!numpadCursorEnabled || !platformCursorTarget?.isConnected) { numpadCursor.hidden = true; return; } const rect = platformCursorTarget.getBoundingClientRect(); numpadCursor.hidden = !rect.width || !rect.height; numpadCursor.style.left = `${rect.left}px`; numpadCursor.style.top = `${rect.top}px`; numpadCursor.style.width = `${rect.width}px`; numpadCursor.style.height = `${rect.height}px`; };
+const focusPlatformTarget = target => { platformCursorTarget = target || null; target?.focus({ preventScroll: true }); target?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' }); requestAnimationFrame(renderNumpadCursor); };
+const setNumpadCursorEnabled = enabled => { numpadCursorEnabled = enabled; document.body.classList.toggle('numpad-cursor-enabled', enabled); if (!enabled) return renderNumpadCursor(); const targets = platformCursorTargets(); focusPlatformTarget(targets.includes(platformCursorTarget) ? platformCursorTarget : targets[0]); };
 const nextPlatformTarget = (current, direction, targets) => {
   const currentRect = current.getBoundingClientRect(); const currentX = currentRect.left + currentRect.width / 2; const currentY = currentRect.top + currentRect.height / 2; const [moveX, moveY] = direction;
   const candidates = targets.filter(target => { if (target === current) return false; const rect = target.getBoundingClientRect(); const x = rect.left + rect.width / 2 - currentX; const y = rect.top + rect.height / 2 - currentY; return (!moveX || x * moveX > 2) && (!moveY || y * moveY > 2); });
   return candidates.sort((left, right) => { const score = target => { const rect = target.getBoundingClientRect(); const x = rect.left + rect.width / 2 - currentX; const y = rect.top + rect.height / 2 - currentY; const forward = Math.abs(moveX ? x : y); const cross = Math.abs(moveX ? y : x); return moveX && moveY ? Math.hypot(x, y) + Math.abs(Math.abs(x) - Math.abs(y)) * .65 : forward + cross * 4; }; return score(left) - score(right); })[0];
 };
 document.addEventListener('keydown', event => {
+  if (event.code === 'NumLock' || event.key === 'NumLock') { const reportedState = event.getModifierState?.('NumLock'); setNumpadCursorEnabled(typeof reportedState === 'boolean' && reportedState !== numpadCursorEnabled ? reportedState : !numpadCursorEnabled); return; }
   const direction = numpadDirections[event.code];
-  if ((!direction && event.code !== 'Numpad5') || event.repeat || !canUseNumpadCursor(event.target)) return;
+  if (typeof event.getModifierState?.('NumLock') === 'boolean' && event.getModifierState('NumLock') !== numpadCursorEnabled) setNumpadCursorEnabled(event.getModifierState('NumLock'));
+  if ((!direction && event.code !== 'Numpad5') || event.repeat || !numpadCursorEnabled) return;
   const targets = platformCursorTargets(); if (!targets.length) return;
   event.preventDefault(); event.stopImmediatePropagation();
   const focused = document.activeElement instanceof Element ? document.activeElement : null;
   const current = targets.includes(focused) ? focused : targets.includes(platformCursorTarget) ? platformCursorTarget : targets[0];
-  if (event.code === 'Numpad5') { if (focused !== current) return focusPlatformTarget(current); current.click(); return; }
+  if (event.code === 'Numpad5') { if (focused !== current) return focusPlatformTarget(current); current.click(); requestAnimationFrame(() => focusPlatformTarget(platformCursorTarget?.isConnected ? platformCursorTarget : platformCursorTargets()[0])); return; }
   focusPlatformTarget(nextPlatformTarget(current, direction, targets) || current);
 });
+window.addEventListener('scroll', () => requestAnimationFrame(renderNumpadCursor), { passive: true });
+window.addEventListener('resize', renderNumpadCursor);
 
 /* Hold ↑ or ↓ to move through the marketplace continuously. Form fields and
    full-screen workspaces keep their normal keyboard behavior. */
