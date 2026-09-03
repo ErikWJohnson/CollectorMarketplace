@@ -391,6 +391,7 @@ tagGroups['Adult Only (18+)'].push('Smut Books');
 tagGroups['Fashion & Luxury'].push('Gymwear');
 tagGroups['Clothing Designs & Formats'] = ['Cargo', 'Cargo Pants', 'Button-Up', 'Button-Up Shirt', 'Jeans', 'Denim', 'Hoodie', 'Zip-Up Hoodie', 'Pullover Hoodie', 'Tank Top', 'T-Shirt', 'Polo Shirt', 'Dress Shirt', 'Overshirt', 'Flannel', 'Sweater', 'Cardigan', 'Turtleneck', 'Bodysuit', 'Jumpsuit', 'Romper', 'Blazer', 'Vest', 'Puffer Jacket', 'Bomber Jacket', 'Trench Coat', 'Raincoat', 'Windbreaker', 'Parka', 'Leather Jacket', 'Denim Jacket', 'Track Jacket', 'Dress', 'Maxi Dress', 'Mini Dress', 'Midi Dress', 'Skirt', 'Mini Skirt', 'Pencil Skirt', 'Shorts', 'Board Shorts', 'Leggings', 'Joggers', 'Sweatpants', 'Chinos', 'Slacks', 'Overalls', 'Coveralls', 'Socks', 'Tights', 'Underwear', 'Swimwear', 'Bikini', 'One-Piece Swimsuit', 'Sportswear', 'Uniform', 'Matching Set', 'Two-Piece Set', 'Layered', 'Oversized Fit', 'Slim Fit', 'Tailored Fit'];
 tagGroups['Food & Drink'].splice(tagGroups['Food & Drink'].indexOf('Meats'), 1, 'Frozen Meats');
+tagGroups['Food & Drink'].push('Mastic');
 tagGroups.Technology.push('RC', 'RC Cars', 'RC Boats', 'RC Aircraft');
 tagGroups['Fashion & Luxury'] = tagGroups['Fashion & Luxury'].filter(tag => tag !== 'Fur Suits');
 tagGroups['Weapons & Armor'].push('Fur Suits');
