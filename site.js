@@ -76,6 +76,46 @@ document.addEventListener('keyup', event => {
 });
 window.addEventListener('blur', () => { heldScrollKeys.clear(); });
 
+/* Space toggles a gentle hands-free feed scroll. Alt immediately returns to
+   the top; neither shortcut takes over while a collector is typing or using a
+   full-screen workspace. */
+let autoScrollActive = false;
+let autoScrollFrame = 0;
+const canUseAutoScroll = target => !modal.open && !(target instanceof Element && target.closest('input, textarea, select, [contenteditable="true"]'));
+const stopAutoScroll = () => {
+  autoScrollActive = false;
+  if (autoScrollFrame) cancelAnimationFrame(autoScrollFrame);
+  autoScrollFrame = 0;
+  document.body.classList.remove('auto-scroll-active');
+};
+const runAutoScroll = () => {
+  if (!autoScrollActive || modal.open || document.hidden) return stopAutoScroll();
+  const before = window.scrollY;
+  window.scrollBy({ top: 1.2, left: 0, behavior: 'auto' });
+  const atBottom = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
+  if (atBottom && window.scrollY === before) return stopAutoScroll();
+  autoScrollFrame = requestAnimationFrame(runAutoScroll);
+};
+const toggleAutoScroll = () => {
+  if (autoScrollActive) return stopAutoScroll();
+  autoScrollActive = true;
+  document.body.classList.add('auto-scroll-active');
+  autoScrollFrame = requestAnimationFrame(runAutoScroll);
+};
+document.addEventListener('keydown', event => {
+  if (event.key === 'Alt' && !event.ctrlKey && !event.metaKey && canUseAutoScroll(event.target)) {
+    event.preventDefault();
+    stopAutoScroll();
+    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+    return;
+  }
+  if (event.code !== 'Space' || event.repeat || !canUseAutoScroll(event.target)) return;
+  event.preventDefault();
+  toggleAutoScroll();
+});
+window.addEventListener('blur', stopAutoScroll);
+document.addEventListener('visibilitychange', () => { if (document.hidden) stopAutoScroll(); });
+
 const placeSportsAfterShoes = () => {
   const groups = [...tags.querySelectorAll('.tag-group')];
   const shoes = groups.find(group => group.querySelector('h3')?.textContent === 'Shoes & Sneakers');
