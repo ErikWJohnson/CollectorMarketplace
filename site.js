@@ -135,6 +135,11 @@ document.addEventListener('keydown', event => {
   event.preventDefault();
   document.querySelector(target)?.click();
 });
+document.addEventListener('keydown', event => {
+  if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || !canUseAutoScroll(event.target)) return;
+  if (event.key.toLowerCase() === 's') { event.preventDefault(); setDiscoveryMode('search'); search.focus(); }
+  if (event.key.toLowerCase() === 't') { event.preventDefault(); setDiscoveryMode('tags'); tagSearch.focus(); }
+});
 document.addEventListener('wheel', stopAutoScroll, { passive: true });
 document.addEventListener('touchstart', stopAutoScroll, { passive: true });
 document.addEventListener('keydown', event => { if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End'].includes(event.key)) stopAutoScroll(); });
