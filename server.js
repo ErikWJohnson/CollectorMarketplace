@@ -76,6 +76,13 @@ function currentUser(req) { const token = req.headers.authorization?.replace('Be
 function required(req, res, next) { const user = currentUser(req); if (!user) return res.status(401).json({ error: 'Sign in required' }); req.user = user; next(); }
 function activity(type, userId, extra = {}) { store.data.activities.unshift({ id: id(), type, userId, createdAt: now(), ...extra }); }
 function notify(userId, type, message, link) { store.data.notifications.unshift({ id: id(), userId, type, message, link, read: false, createdAt: now() }); }
+function usCityTownTag(location) {
+  const parts = String(location || '').split(',').map(part => part.trim()).filter(Boolean);
+  const country = parts.at(-1) || '';
+  if (!/^(?:united states(?: of america)?|u\.?s\.?a\.?)$/i.test(country) || !parts[0]) return '';
+  const place = parts.slice(0, -1).join(', ');
+  return place ? `US City/Town: ${place}` : '';
+}
 
 app.post('/signup', (req, res) => {
   const { username, email, password } = req.body;
@@ -166,16 +173,37 @@ app.post('/listing', required, (req, res) => {
     if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) return res.status(400).json({ error: 'Use valid approximate location coordinates.' });
     coordinates = { lat: Math.round(lat * 100) / 100, lng: Math.round(lng * 100) / 100 };
   }
-  const normalizedTags = [...new Set([category.trim(), ...(Array.isArray(tags) ? tags : []).map(tag => typeof tag === 'string' ? tag.trim().replace(/^#/, '') : '').filter(Boolean)])];
-  const validTags = normalizedTags.length <= 8 && normalizedTags.every(tag => tag.length <= 60);
+  const submittedTags = [...new Set([category.trim(), ...(Array.isArray(tags) ? tags : []).map(tag => typeof tag === 'string' ? tag.trim().replace(/^#/, '') : '').filter(Boolean)])];
+  const validTags = submittedTags.length <= 8 && submittedTags.every(tag => tag.length <= 60);
   if (!validTags) return res.status(400).json({ error: 'Use up to 8 tags, each 60 characters or less.' });
   if (!validImages) return res.status(400).json({ error: 'Add 1–5 valid image links or uploads.' });
   if (!validVideos) return res.status(400).json({ error: 'Add at most one valid uploaded video.' });
-  const listing = { id: id(), ownerId: req.user.id, title: title.trim(), description: description.trim(), category: category.trim(), tags: normalizedTags, location: publicLocation, locationCoordinates: coordinates, fulfillment, price: Number(price) || 0, tradeOffer: Boolean(tradeOffer), images, videos, status: 'active', likes: [], createdAt: now() };
+  const locationTag = usCityTownTag(publicLocation);
+  const listing = { id: id(), ownerId: req.user.id, title: title.trim(), description: description.trim(), category: category.trim(), tags: [...submittedTags, ...(locationTag ? [locationTag] : [])], location: publicLocation, locationCoordinates: coordinates, fulfillment, price: Number(price) || 0, tradeOffer: Boolean(tradeOffer), images, videos, status: 'active', likes: [], createdAt: now() };
   store.data.listings.unshift(listing); activity('listing', req.user.id, { listingId: listing.id }); store.save(); res.status(201).json(listing);
 });
 app.get('/listing/:id', (req, res) => { const listing = store.data.listings.find(l => l.id === req.params.id); if (!listing) return res.status(404).json({ error: 'Listing not found' }); res.json({ ...listing, owner: publicUser(store.data.users.find(u => u.id === listing.ownerId)), likeCount: listing.likes.length }); });
-app.put('/listing/:id', required, (req, res) => { const listing = store.data.listings.find(l => l.id === req.params.id); if (!listing) return res.status(404).json({ error: 'Listing not found' }); if (listing.ownerId !== req.user.id) return res.status(403).json({ error: 'Not allowed' }); if (req.body.location !== undefined) { const publicLocation = typeof req.body.location === 'string' ? req.body.location.trim() : ''; if (publicLocation.length < 2 || publicLocation.length > 120 || /^\d{1,6}\s+|\b(street|st\.?|avenue|ave\.?|road|rd\.?|boulevard|blvd\.?|drive|dr\.?|apartment|apt\.?|suite|unit|zip)\b/i.test(publicLocation)) return res.status(400).json({ error: 'Use a city, region, and country only—do not post a street address.' }); listing.location = publicLocation; } if (req.body.fulfillment !== undefined) { if (!['pickup', 'pickup_delivery'].includes(req.body.fulfillment)) return res.status(400).json({ error: 'Choose pickup or pickup and delivery for fulfillment.' }); listing.fulfillment = req.body.fulfillment; } ['title','description','category','tags','price','tradeOffer','images','status'].forEach(k => { if (req.body[k] !== undefined) listing[k] = req.body[k]; }); store.save(); res.json(listing); });
+app.put('/listing/:id', required, (req, res) => {
+  const listing = store.data.listings.find(l => l.id === req.params.id);
+  if (!listing) return res.status(404).json({ error: 'Listing not found' });
+  if (listing.ownerId !== req.user.id) return res.status(403).json({ error: 'Not allowed' });
+  if (req.body.location !== undefined) {
+    const publicLocation = typeof req.body.location === 'string' ? req.body.location.trim() : '';
+    if (publicLocation.length < 2 || publicLocation.length > 120 || /^\d{1,6}\s+|\b(street|st\.?|avenue|ave\.?|road|rd\.?|boulevard|blvd\.?|drive|dr\.?|apartment|apt\.?|suite|unit|zip)\b/i.test(publicLocation)) return res.status(400).json({ error: 'Use a city, region, and country only—do not post a street address.' });
+    listing.location = publicLocation;
+  }
+  if (req.body.fulfillment !== undefined) {
+    if (!['pickup', 'pickup_delivery'].includes(req.body.fulfillment)) return res.status(400).json({ error: 'Choose pickup or pickup and delivery for fulfillment.' });
+    listing.fulfillment = req.body.fulfillment;
+  }
+  ['title', 'description', 'category', 'tags', 'price', 'tradeOffer', 'images', 'status'].forEach(key => {
+    if (req.body[key] !== undefined) listing[key] = req.body[key];
+  });
+  const manualTags = [...new Set([listing.category, ...(Array.isArray(listing.tags) ? listing.tags : [])].map(tag => typeof tag === 'string' ? tag.trim().replace(/^#/, '') : '').filter(tag => tag && !tag.startsWith('US City/Town: ')))];
+  const locationTag = usCityTownTag(listing.location);
+  listing.tags = [...manualTags, ...(locationTag ? [locationTag] : [])];
+  store.save(); res.json(listing);
+});
 app.delete('/listing/:id', required, (req, res) => { const i = store.data.listings.findIndex(l => l.id === req.params.id && l.ownerId === req.user.id); if (i < 0) return res.status(404).json({ error: 'Listing not found' }); store.data.listings.splice(i, 1); store.save(); res.status(204).end(); });
 app.post('/listing/:id/like', required, (req, res) => { const listing = store.data.listings.find(l => l.id === req.params.id); if (!listing) return res.status(404).json({ error: 'Listing not found' }); const i = listing.likes.indexOf(req.user.id); if (i < 0) { listing.likes.push(req.user.id); if (listing.ownerId !== req.user.id) notify(listing.ownerId, 'like', `${req.user.username} liked “${listing.title}”`, `/listing/${listing.id}`); activity('like', req.user.id, { listingId: listing.id }); } else listing.likes.splice(i, 1); store.save(); res.json({ liked: i < 0, likeCount: listing.likes.length }); });
 app.post('/listing/:id/favorite', required, (req, res) => { const listing = store.data.listings.find(l => l.id === req.params.id); if (!listing) return res.status(404).json({ error: 'Listing not found' }); if (!Array.isArray(listing.favorites)) listing.favorites = []; const i = listing.favorites.indexOf(req.user.id); if (i < 0) listing.favorites.push(req.user.id); else listing.favorites.splice(i, 1); store.save(); res.json({ favorited: i < 0, favoriteCount: listing.favorites.length }); });
