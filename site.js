@@ -83,6 +83,7 @@ window.addEventListener('blur', () => { heldScrollKeys.clear(); });
    full-screen workspace. */
 let autoScrollActive = false;
 let autoScrollFrame = 0;
+let autoScrollDirection = 1;
 const canUseAutoScroll = target => !modal.open && !(target instanceof Element && target.closest('input, textarea, select, [contenteditable="true"]'));
 const stopAutoScroll = () => {
   autoScrollActive = false;
@@ -93,9 +94,9 @@ const stopAutoScroll = () => {
 const runAutoScroll = () => {
   if (!autoScrollActive || modal.open || document.hidden) return stopAutoScroll();
   const before = window.scrollY;
-  window.scrollBy({ top: 3.5, left: 0, behavior: 'auto' });
-  const atBottom = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
-  if (atBottom && window.scrollY === before) return stopAutoScroll();
+  window.scrollBy({ top: autoScrollDirection * 3.5, left: 0, behavior: 'auto' });
+  const atEdge = autoScrollDirection > 0 ? window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2 : window.scrollY <= 0;
+  if (atEdge && window.scrollY === before) return stopAutoScroll();
   autoScrollFrame = requestAnimationFrame(runAutoScroll);
 };
 const toggleAutoScroll = () => {
@@ -104,6 +105,10 @@ const toggleAutoScroll = () => {
   document.body.classList.add('auto-scroll-active');
   autoScrollFrame = requestAnimationFrame(runAutoScroll);
 };
+const reverseAutoScroll = () => {
+  autoScrollDirection *= -1;
+  if (!autoScrollActive) toggleAutoScroll();
+};
 document.addEventListener('keydown', event => {
   if (event.key === 'Alt' && !event.ctrlKey && !event.metaKey && canUseAutoScroll(event.target)) {
     event.preventDefault();
@@ -111,10 +116,20 @@ document.addEventListener('keydown', event => {
     window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
     return;
   }
+  /* Fn is not exposed by most browsers; F gives every collector a reliable
+     way to switch the active auto-scroll between forward and backward. */
+  if ((event.key === 'Fn' || event.key.toLowerCase() === 'f') && !event.repeat && canUseAutoScroll(event.target)) {
+    event.preventDefault();
+    reverseAutoScroll();
+    return;
+  }
   if (event.code !== 'Space' || event.repeat || !canUseAutoScroll(event.target)) return;
   event.preventDefault();
   toggleAutoScroll();
 });
+document.addEventListener('wheel', stopAutoScroll, { passive: true });
+document.addEventListener('touchstart', stopAutoScroll, { passive: true });
+document.addEventListener('keydown', event => { if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End'].includes(event.key)) stopAutoScroll(); });
 window.addEventListener('blur', stopAutoScroll);
 document.addEventListener('visibilitychange', () => { if (document.hidden) stopAutoScroll(); });
 
