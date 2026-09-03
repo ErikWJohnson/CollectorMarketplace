@@ -86,7 +86,16 @@ document.addEventListener('keydown', event => {
   const current = targets.includes(focused) ? focused : targets.includes(platformCursorTarget) ? platformCursorTarget : targets[0];
   if (tagState) { if (!toggleNumpadTagState(current, tagState)) return; event.preventDefault(); event.stopImmediatePropagation(); return; }
   event.preventDefault(); event.stopImmediatePropagation();
-  if (event.code === 'Numpad5') { if (focused !== current) return focusPlatformTarget(current); current.click(); requestAnimationFrame(() => focusPlatformTarget(platformCursorTarget?.isConnected ? platformCursorTarget : platformCursorTargets()[0])); return; }
+  if (event.code === 'Numpad5') {
+    if (focused !== current) return focusPlatformTarget(current);
+    const activatedTarget = current;
+    current.click();
+    requestAnimationFrame(() => {
+      const availableTargets = platformCursorTargets();
+      focusPlatformTarget(availableTargets.includes(activatedTarget) ? activatedTarget : availableTargets.includes(platformCursorTarget) ? platformCursorTarget : availableTargets[0]);
+    });
+    return;
+  }
   focusPlatformTarget(nextPlatformTarget(current, direction, targets) || current);
 });
 window.addEventListener('scroll', () => requestAnimationFrame(renderNumpadCursor), { passive: true });
