@@ -139,6 +139,22 @@ body.chat-open .app-shell { height: 100dvh; overflow: hidden !important; }
 .trade-offer-workspace .fee-calculator input { min-height: 46px; font-size: 15px; }
 .trade-offer-workspace .fee-summary { padding: 14px; font-size: 12px; }
 .trade-offer-workspace .transaction-submit { min-height: 50px; font-size: 12px; }
+.trade-builder-form { width: min(100%, 920px); margin-top: 22px; }
+.trade-builder-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.trade-builder-columns > section { min-width: 0; border: 1px solid #4a4a4a; padding: 14px; background: #202020; }
+.trade-builder-columns h3, .trade-item-summary h3 { margin: 0; color: #f2bc35; font: 800 .75rem/1 var(--mono, monospace); letter-spacing: .08em; text-transform: uppercase; }
+.trade-builder-columns p { margin: 8px 0 12px; color: #aaa69c; font-size: .78rem; line-height: 1.4; }
+.trade-item-list { display: grid; gap: 8px; max-height: 270px; overflow-y: auto; }
+.trade-item-option { display: grid; grid-template-columns: auto 44px minmax(0, 1fr); gap: 9px; align-items: center; border: 1px solid #484848; padding: 7px; background: #171717; cursor: pointer; }
+.trade-item-option:has(input:checked), .trade-item-option.is-required { border-color: #f2bc35; background: #312811; }
+.trade-item-option input { width: 16px; height: 16px; accent-color: #f2bc35; }
+.trade-item-option img { width: 44px; height: 44px; object-fit: cover; background: #101010; }
+.trade-item-option span, .trade-item-summary div { display: grid; gap: 3px; min-width: 0; }
+.trade-item-option b { overflow: hidden; color: #f5f3eb; font-size: .8rem; text-overflow: ellipsis; white-space: nowrap; }
+.trade-item-option small, .trade-item-summary span { color: #aaa69c; font-size: .72rem; }
+.trade-cash-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.trade-item-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 13px 16px; border-bottom: 1px solid #4a4a4a; background: #202020; }
+.trade-cash-adjustment { grid-column: 1 / -1; margin: 0; color: #f2bc35; font-size: .78rem; }
 
 @media (max-width: 680px) {
   .trade-dialog .conversation-workspace { margin-top: 14px; }
@@ -146,4 +162,5 @@ body.chat-open .app-shell { height: 100dvh; overflow: hidden !important; }
   .trade-actions button { flex: 1 1 150px; min-height: 42px; }
   .trade-status { order: 3; margin-left: 0; }
   .trade-offer-content { padding: 16px; }
+  .trade-builder-columns, .trade-cash-fields, .trade-item-summary { grid-template-columns: 1fr; }
 }
