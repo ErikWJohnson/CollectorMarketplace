@@ -14,7 +14,7 @@
       <label class="search"><span>⌕</span><input id="search" type="search" placeholder="Search collector finds"><button class="clear" id="clear-tags" hidden>×</button></label>
       <div class="tag-search-layout"><label class="tag-search"><span>#</span><input id="tag-search" type="search" placeholder="Search tags, then press Enter"></label><section class="audience-quick-tags" aria-label="Audience tags"><b>Audience</b><div id="audience-tags"></div></section></div>
       <div class="tag-row" id="tags" aria-label="Listing tags"></div>
-      <div class="category-row" id="categories"></div><label class="sort-listings">Sort listings<select id="listing-sort" aria-label="Sort listings"><option value="recent">Most recent</option><option value="oldest">Oldest first</option><option value="popular">Most popular</option></select></label>
+      <div class="category-row" id="categories"></div><div class="listing-filter-controls"><label class="sort-listings">Sort listings<select id="listing-sort" aria-label="Sort listings"><option value="recent">Most recent</option><option value="oldest">Oldest first</option><option value="popular">Most popular</option><option value="price-high">Price: high to low</option></select></label><label class="price-range">Price range <input id="price-min" type="number" min="0" inputmode="decimal" placeholder="MIN" aria-label="Minimum price"><span aria-hidden="true">—</span><input id="price-max" type="number" min="0" inputmode="decimal" placeholder="MAX" aria-label="Maximum price"></label></div>
     </section>
     <div class="market-head"><span>FRESH DROPS</span><span id="result-count"></span></div>
     <main class="market-stage">
