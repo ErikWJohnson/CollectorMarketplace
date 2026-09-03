@@ -136,6 +136,23 @@ body.chat-open .app-shell { height: 100dvh; overflow: hidden !important; }
 .trade-delivery-links h3 { grid-column: 1 / -1; margin: 0; color: #f2bc35; font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; }
 .trade-delivery-links button { display: grid; gap: 3px; border: 1px solid #555; padding: 10px; background: #222; color: #f5f3eb; text-align: left; }
 .trade-delivery-links button span { color: #bcb8ad; font-size: .72rem; text-transform: capitalize; }
+.community-workspace { width: min(980px, 100%); height: 100%; margin: 20px auto 0; overflow: auto; border: 1px solid #4a4a4a; background: #181818; }
+.community-workspace > header { padding: 20px; border-bottom: 1px solid #4a4a4a; background: #202020; }
+.community-workspace > header span { color: #f2bc35; font: 700 .68rem/1 var(--mono, monospace); letter-spacing: .1em; text-transform: uppercase; }
+.community-workspace > header h3 { margin: 7px 0 0; color: #f5f3eb; font-size: 1.45rem; }
+.community-post-form, .community-thread-list { margin: 0; padding: 20px; }
+.community-post-form { border-bottom: 1px solid #4a4a4a; background: #1c1c1c; }
+.community-thread { padding: 18px 0; border-bottom: 1px solid #3d3d3d; }
+.community-thread:last-child { border-bottom: 0; }
+.community-thread header { display: flex; gap: 12px; color: #f2bc35; font-size: .78rem; }
+.community-thread time { color: #999; }
+.community-thread h3 { margin: 10px 0 6px; color: #f5f3eb; }
+.community-thread > p, .community-replies p { margin: 0; color: #d1cec5; line-height: 1.55; white-space: pre-wrap; }
+.community-replies { display: grid; gap: 8px; margin-top: 12px; padding-left: 14px; border-left: 2px solid #555; }
+.community-replies p b { display: block; margin-bottom: 2px; color: #f2bc35; font-size: .76rem; }
+.community-reply-form { grid-template-columns: 1fr auto; align-items: end; margin-top: 12px; }
+.community-reply-form textarea { min-height: 44px; }
+@media (max-width: 680px) { .community-workspace { margin-top: 14px; } .community-post-form, .community-thread-list { padding: 14px; } .community-reply-form { grid-template-columns: 1fr; } }
 .trade-dialog .conversation-workspace { margin-top: 20px; }
 .trade-status { margin-left: auto; border: 1px solid #a97f1d; padding: 5px 8px; color: #f2bc35; font: 700 .65rem/1 var(--mono, monospace); letter-spacing: .06em; text-transform: uppercase; }
 .trade-actions { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; padding: 12px; border-top: 1px solid #4a4a4a; background: #202020; }
