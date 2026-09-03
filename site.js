@@ -65,15 +65,27 @@ const nextPlatformTarget = (current, direction, targets) => {
   const candidates = targets.filter(target => { if (target === current) return false; const rect = target.getBoundingClientRect(); const x = rect.left + rect.width / 2 - currentX; const y = rect.top + rect.height / 2 - currentY; return (!moveX || x * moveX > 2) && (!moveY || y * moveY > 2); });
   return candidates.sort((left, right) => { const score = target => { const rect = target.getBoundingClientRect(); const x = rect.left + rect.width / 2 - currentX; const y = rect.top + rect.height / 2 - currentY; const forward = Math.abs(moveX ? x : y); const cross = Math.abs(moveX ? y : x); return moveX && moveY ? Math.hypot(x, y) + Math.abs(Math.abs(x) - Math.abs(y)) * .65 : forward + cross * 4; }; return score(left) - score(right); })[0];
 };
+const toggleNumpadTagState = (target, state) => {
+  const tag = target?.closest?.('[data-tag]'); if (!tag) return false;
+  const value = tag.dataset.tag.toLowerCase();
+  activeTags = activeTags.filter(activeTag => activeTag !== value);
+  if (state === 'locked') { voidTags = voidTags.filter(voidTag => voidTag !== value); lockedTags = lockedTags.includes(value) ? lockedTags.filter(lockedTag => lockedTag !== value) : [...lockedTags, value]; }
+  else { lockedTags = lockedTags.filter(lockedTag => lockedTag !== value); voidTags = voidTags.includes(value) ? voidTags.filter(voidTag => voidTag !== value) : [...voidTags, value]; }
+  saveLockedTags(); reloadTagRoute();
+  requestAnimationFrame(() => focusPlatformTarget(platformCursorTargets().find(button => button.dataset?.tag?.toLowerCase() === value) || platformCursorTargets()[0]));
+  return true;
+};
 document.addEventListener('keydown', event => {
   if (event.code === 'NumLock' || event.key === 'NumLock') { const reportedState = event.getModifierState?.('NumLock'); setNumpadCursorEnabled(typeof reportedState === 'boolean' && reportedState !== numpadCursorEnabled ? reportedState : !numpadCursorEnabled); return; }
   const direction = numpadDirections[event.code];
   if (typeof event.getModifierState?.('NumLock') === 'boolean' && event.getModifierState('NumLock') !== numpadCursorEnabled) setNumpadCursorEnabled(event.getModifierState('NumLock'));
-  if ((!direction && event.code !== 'Numpad5') || event.repeat || !numpadCursorEnabled) return;
+  const tagState = event.code === 'NumpadAdd' ? 'locked' : event.code === 'NumpadSubtract' ? 'void' : '';
+  if ((!direction && event.code !== 'Numpad5' && !tagState) || event.repeat || !numpadCursorEnabled) return;
   const targets = platformCursorTargets(); if (!targets.length) return;
-  event.preventDefault(); event.stopImmediatePropagation();
   const focused = document.activeElement instanceof Element ? document.activeElement : null;
   const current = targets.includes(focused) ? focused : targets.includes(platformCursorTarget) ? platformCursorTarget : targets[0];
+  if (tagState) { if (!toggleNumpadTagState(current, tagState)) return; event.preventDefault(); event.stopImmediatePropagation(); return; }
+  event.preventDefault(); event.stopImmediatePropagation();
   if (event.code === 'Numpad5') { if (focused !== current) return focusPlatformTarget(current); current.click(); requestAnimationFrame(() => focusPlatformTarget(platformCursorTarget?.isConnected ? platformCursorTarget : platformCursorTargets()[0])); return; }
   focusPlatformTarget(nextPlatformTarget(current, direction, targets) || current);
 });
