@@ -392,7 +392,7 @@ function renderAccountButton() {
   const button = document.querySelector('.header-nav [data-account]');
   if (!button) return;
   const username = String(session?.user?.username || '').trim();
-  button.textContent = username ? '@' + username : 'Create account';
+  button.textContent = username || 'Create account';
   button.setAttribute('aria-label', username ? 'Open @' + username + '\'s account' : 'Create account');
 }
 function saveSession(nextSession) { session = nextSession; if (session) localStorage.setItem('collector-marketplace-session', JSON.stringify(session)); else localStorage.removeItem('collector-marketplace-session'); renderAccountButton(); }
