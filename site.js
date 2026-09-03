@@ -49,24 +49,28 @@ document.addEventListener('pointerover', event => { const tag = event.target.clo
 document.addEventListener('pointerout', event => { const tag = event.target.closest('[data-tag]'); if (tag && tag.dataset.tag.toLowerCase() === hoveredTagValue) hoveredTagValue = ''; });
 document.addEventListener('keydown', event => { if (['Control', 'Meta', 'Shift'].includes(event.key)) applyHoverTagModifier(event); });
 
-/* NumPad tag cursor: 8 ↑, 4 ←, 6 →, 2 ↓, and 5 toggles the focused tag. */
-const numpadTagDirections = { Numpad8: 'up', Numpad4: 'left', Numpad6: 'right', Numpad2: 'down' };
-const canUseNumpadTagCursor = target => !modal.open && (target === tagSearch ? !tagSearch.value : !(target instanceof Element && target.closest('input, textarea, select, [contenteditable="true"]')));
-const visibleTagButtons = () => [...tags.querySelectorAll('[data-tag]')].filter(button => button.getClientRects().length);
-const focusTagButton = button => { button?.focus({ preventScroll: true }); button?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' }); };
-const nextTagButton = (current, direction, buttons) => {
-  const currentRect = current.getBoundingClientRect(); const currentX = currentRect.left + currentRect.width / 2; const currentY = currentRect.top + currentRect.height / 2;
-  const candidates = buttons.filter(button => { if (button === current) return false; const rect = button.getBoundingClientRect(); const x = rect.left + rect.width / 2; const y = rect.top + rect.height / 2; return direction === 'up' ? y < currentY - 2 : direction === 'down' ? y > currentY + 2 : direction === 'left' ? x < currentX - 2 : x > currentX + 2; });
-  return candidates.sort((left, right) => { const leftRect = left.getBoundingClientRect(); const rightRect = right.getBoundingClientRect(); const leftX = leftRect.left + leftRect.width / 2; const leftY = leftRect.top + leftRect.height / 2; const rightX = rightRect.left + rightRect.width / 2; const rightY = rightRect.top + rightRect.height / 2; const horizontal = direction === 'left' || direction === 'right'; const leftScore = horizontal ? Math.abs(leftX - currentX) + Math.abs(leftY - currentY) * 4 : Math.abs(leftY - currentY) + Math.abs(leftX - currentX) * 4; const rightScore = horizontal ? Math.abs(rightX - currentX) + Math.abs(rightY - currentY) * 4 : Math.abs(rightY - currentY) + Math.abs(rightX - currentX) * 4; return leftScore - rightScore; })[0];
+/* NumPad cursor for the full platform. 8/4/6/2 move cardinally, 7/9/1/3
+   move diagonally, and 5 activates the focused control. */
+const numpadDirections = { Numpad8: [0, -1], Numpad4: [-1, 0], Numpad6: [1, 0], Numpad2: [0, 1], Numpad7: [-1, -1], Numpad9: [1, -1], Numpad1: [-1, 1], Numpad3: [1, 1] };
+let platformCursorTarget = null;
+const isCursorEditing = target => target instanceof Element && target.closest('textarea, select, [contenteditable="true"], input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"])');
+const canUseNumpadCursor = target => target === tagSearch ? !tagSearch.value : !isCursorEditing(target);
+const platformCursorTargets = () => [...(modal.open ? modal : document).querySelectorAll('button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [role="button"]')].filter(element => element.getClientRects().length && !element.closest('[hidden], [aria-hidden="true"]'));
+const focusPlatformTarget = target => { platformCursorTarget = target || null; target?.focus({ preventScroll: true }); target?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' }); };
+const nextPlatformTarget = (current, direction, targets) => {
+  const currentRect = current.getBoundingClientRect(); const currentX = currentRect.left + currentRect.width / 2; const currentY = currentRect.top + currentRect.height / 2; const [moveX, moveY] = direction;
+  const candidates = targets.filter(target => { if (target === current) return false; const rect = target.getBoundingClientRect(); const x = rect.left + rect.width / 2 - currentX; const y = rect.top + rect.height / 2 - currentY; return (!moveX || x * moveX > 2) && (!moveY || y * moveY > 2); });
+  return candidates.sort((left, right) => { const score = target => { const rect = target.getBoundingClientRect(); const x = rect.left + rect.width / 2 - currentX; const y = rect.top + rect.height / 2 - currentY; const forward = Math.abs(moveX ? x : y); const cross = Math.abs(moveX ? y : x); return moveX && moveY ? Math.hypot(x, y) + Math.abs(Math.abs(x) - Math.abs(y)) * .65 : forward + cross * 4; }; return score(left) - score(right); })[0];
 };
 document.addEventListener('keydown', event => {
-  const direction = numpadTagDirections[event.code];
-  if ((!direction && event.code !== 'Numpad5') || event.repeat || !canUseNumpadTagCursor(event.target)) return;
-  const buttons = visibleTagButtons(); if (!buttons.length) return;
-  event.preventDefault();
-  const current = document.activeElement?.closest?.('#tags [data-tag]') || buttons[0];
-  if (event.code === 'Numpad5') { const value = current.dataset.tag.toLowerCase(); current.click(); requestAnimationFrame(() => focusTagButton(visibleTagButtons().find(button => button.dataset.tag.toLowerCase() === value))); return; }
-  focusTagButton(nextTagButton(current, direction, buttons) || current);
+  const direction = numpadDirections[event.code];
+  if ((!direction && event.code !== 'Numpad5') || event.repeat || !canUseNumpadCursor(event.target)) return;
+  const targets = platformCursorTargets(); if (!targets.length) return;
+  event.preventDefault(); event.stopImmediatePropagation();
+  const focused = document.activeElement instanceof Element ? document.activeElement : null;
+  const current = targets.includes(focused) ? focused : targets.includes(platformCursorTarget) ? platformCursorTarget : targets[0];
+  if (event.code === 'Numpad5') { if (focused !== current) return focusPlatformTarget(current); current.click(); return; }
+  focusPlatformTarget(nextPlatformTarget(current, direction, targets) || current);
 });
 
 /* Hold ↑ or ↓ to move through the marketplace continuously. Form fields and
