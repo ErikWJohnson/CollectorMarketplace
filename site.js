@@ -389,11 +389,18 @@ const categoryOptions = [...Object.values(tagGroups).flat(), ...audienceTagOptio
 function enableCarrierPicker(input) { if (!document.querySelector('#delivery-carriers')) { const list = document.createElement('datalist'); list.id = 'delivery-carriers'; list.innerHTML = deliveryCarriers.map(carrier => `<option value="${safe(carrier)}">`).join(''); document.body.append(list); } input.setAttribute('list', 'delivery-carriers'); input.placeholder = 'Choose a delivery company'; }
 async function api(url, options = {}) { const response = await fetch(url, { ...options, headers: { 'Content-Type': 'application/json', ...(session?.token ? { Authorization: `Bearer ${session.token}` } : {}), ...(options.headers || {}) } }); const payload = response.status === 204 ? null : await response.json(); if (!response.ok) throw new Error(payload?.error || 'Something went wrong.'); return payload; }
 function renderAccountButton() {
-  const button = document.querySelector('.header-nav [data-account]');
-  if (!button) return;
   const username = String(session?.user?.username || '').trim();
-  button.textContent = username || 'Create account';
-  button.setAttribute('aria-label', username ? 'Open @' + username + '\'s account' : 'Create account');
+  const headerButton = document.querySelector('.header-nav [data-account]');
+  if (headerButton) {
+    headerButton.textContent = username || 'Create account';
+    headerButton.setAttribute('aria-label', username ? 'Open @' + username + '\'s account' : 'Create account');
+  }
+  const dockButton = document.querySelector('.bottom-nav [data-account]');
+  if (dockButton) {
+    [...dockButton.childNodes].filter(node => node.nodeType === Node.TEXT_NODE).forEach(node => node.remove());
+    dockButton.append(document.createTextNode(username || 'Account'));
+    dockButton.setAttribute('aria-label', username ? 'Open @' + username + '\'s account' : 'Open account');
+  }
 }
 function saveSession(nextSession) { session = nextSession; if (session) localStorage.setItem('collector-marketplace-session', JSON.stringify(session)); else localStorage.removeItem('collector-marketplace-session'); renderAccountButton(); }
 renderAccountButton();
