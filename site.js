@@ -106,12 +106,8 @@ document.addEventListener('keydown', event => {
   }
   focusPlatformTarget(nextPlatformTarget(current, direction, targets) || current);
 });
-const followNumpadCursorWhileScrolling = () => {
-  if (!numpadCursorEnabled || !autoScrollActive || modal.open) return requestAnimationFrame(renderNumpadCursor);
-  const currentRect = platformCursorTarget?.getBoundingClientRect();
-  const currentIsPersistent = platformCursorTarget?.closest('.masthead, .bottom-nav');
-  const currentVisible = currentRect && currentRect.bottom > 10 && currentRect.top < window.innerHeight - 10;
-  if (currentVisible && !currentIsPersistent) return requestAnimationFrame(renderNumpadCursor);
+const moveNumpadCursorToViewport = (edge = 'top') => {
+  if (!numpadCursorEnabled || modal.open) return requestAnimationFrame(renderNumpadCursor);
   const visible = platformCursorTargets().filter(target => {
     if (target.closest('.masthead, .bottom-nav')) return false;
     const rect = target.getBoundingClientRect();
@@ -120,9 +116,17 @@ const followNumpadCursorWhileScrolling = () => {
   if (!visible.length) return requestAnimationFrame(renderNumpadCursor);
   const next = visible.sort((left, right) => {
     const leftRect = left.getBoundingClientRect(); const rightRect = right.getBoundingClientRect();
-    return autoScrollDirection > 0 ? leftRect.top - rightRect.top : rightRect.bottom - leftRect.bottom;
+    return edge === 'top' ? leftRect.top - rightRect.top : rightRect.bottom - leftRect.bottom;
   })[0];
   trackPlatformTarget(next);
+};
+const followNumpadCursorWhileScrolling = () => {
+  if (!numpadCursorEnabled || !autoScrollActive || modal.open) return requestAnimationFrame(renderNumpadCursor);
+  const currentRect = platformCursorTarget?.getBoundingClientRect();
+  const currentIsPersistent = platformCursorTarget?.closest('.masthead, .bottom-nav');
+  const currentVisible = currentRect && currentRect.bottom > 10 && currentRect.top < window.innerHeight - 10;
+  if (currentVisible && !currentIsPersistent) return requestAnimationFrame(renderNumpadCursor);
+  moveNumpadCursorToViewport(autoScrollDirection > 0 ? 'top' : 'bottom');
 };
 window.addEventListener('scroll', followNumpadCursorWhileScrolling, { passive: true });
 window.addEventListener('resize', renderNumpadCursor);
@@ -191,7 +195,8 @@ document.addEventListener('keydown', event => {
   if (event.key === 'Alt' && !event.ctrlKey && !event.metaKey && canUseAutoScroll(event.target)) {
     event.preventDefault();
     stopAutoScroll();
-    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    moveNumpadCursorToViewport('top');
     return;
   }
   /* Fn is not exposed by most browsers; R gives every collector a reliable
