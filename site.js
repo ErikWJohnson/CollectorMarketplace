@@ -11,6 +11,14 @@ const sentinel = document.querySelector('#sentinel');
 const modal = document.querySelector('#modal');
 const modalContent = document.querySelector('#modal-content');
 let listings = [], auctions = [], accounts = [], collectives = [], brands = [], deliveries = [], uploadedListingImages = [], uploadedListingVideos = [], activeCategory = 'All', activeQuery = '', activeTags = [], searchScope = 'listings', sortMode = 'recent', page = 1, observer, searchRenderTimer, auctionClock;
+const searchScopes = ['listings', 'accounts', 'collectives', 'brands'];
+const setSearchScope = scope => {
+  if (!searchScopes.includes(scope)) return;
+  searchScope = scope;
+  document.querySelectorAll('[data-search-scope]').forEach(button => button.classList.toggle('active', button.dataset.searchScope === searchScope));
+  search.placeholder = searchScope === 'listings' ? 'Search collector finds' : searchScope === 'accounts' ? 'Search collector accounts' : searchScope === 'collectives' ? 'Search collector collectives' : 'Search collectible brands';
+  renderFeed();
+};
 let activeAuctionId = null, auctionActivity = [];
 let postState = {};
 try { postState = JSON.parse(localStorage.getItem('collector-marketplace-post-state') || '{}'); } catch { postState = {}; }
@@ -282,6 +290,13 @@ document.addEventListener('keydown', event => {
   if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || !canUseAutoScroll(event.target)) return;
   if (event.key.toLowerCase() === 's') { event.preventDefault(); openDiscoveryShortcut('search'); }
   if (event.key.toLowerCase() === 't') { event.preventDefault(); openDiscoveryShortcut('tags'); }
+});
+document.addEventListener('keydown', event => {
+  if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || !canUseAutoScroll(event.target) || ![',', '.'].includes(event.key)) return;
+  event.preventDefault();
+  const current = searchScopes.indexOf(searchScope);
+  const direction = event.key === ',' ? -1 : 1;
+  setSearchScope(searchScopes[(current + direction + searchScopes.length) % searchScopes.length]);
 });
 const applyHashLocation = () => {
   const hash = location.hash.slice(1).toLowerCase();
@@ -588,7 +603,7 @@ document.addEventListener('click', event => {
   const auctionSelect = event.target.closest('[data-auction-select]'); if (auctionSelect) { activeAuctionId = auctionSelect.dataset.auctionSelect; renderFilteredAuctionHouse(); document.querySelector('.auction-stage')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
   const bidAdd = event.target.closest('[data-bid-add]'); if (bidAdd) { const input = bidAdd.closest('form').querySelector('[name="amount"]'); input.value = Number(input.value || input.min) + Number(bidAdd.dataset.bidAdd); input.focus(); return; }
   const passwordToggle = event.target.closest('[data-password-toggle]'); if (passwordToggle) { const input = passwordToggle.closest('.password-field').querySelector('input'); const showing = input.type === 'text'; input.type = showing ? 'password' : 'text'; passwordToggle.textContent = showing ? '◉' : '◉̸'; passwordToggle.setAttribute('aria-label', showing ? 'Show password' : 'Hide password'); passwordToggle.setAttribute('aria-pressed', String(!showing)); input.focus(); return; }
-  const scopeButton = event.target.closest('[data-search-scope]'); if (scopeButton) { searchScope = scopeButton.dataset.searchScope; document.querySelectorAll('[data-search-scope]').forEach(button => button.classList.toggle('active', button === scopeButton)); search.placeholder = searchScope === 'listings' ? 'Search collector finds' : searchScope === 'accounts' ? 'Search collector accounts' : searchScope === 'collectives' ? 'Search collector collectives' : 'Search collectible brands'; renderFeed(); return; }
+  const scopeButton = event.target.closest('[data-search-scope]'); if (scopeButton) { setSearchScope(scopeButton.dataset.searchScope); return; }
   const tag = event.target.closest('[data-tag]'); const category = event.target.closest('[data-category]'); const trade = event.target.closest('[data-trade]'); const action = event.target.closest('[data-home],[data-market],[data-auction],[data-chat],[data-sell],[data-account],[data-curator],[data-policy]');
   const profile = event.target.closest('[data-profile]'); if (profile) openProfile(profile.dataset.profile).catch(showError);
   if (tag) { setDiscoveryMode('tags'); toggleTag(tag.dataset.tag, event.shiftKey ? 'add' : event.ctrlKey || event.metaKey ? 'remove' : 'toggle'); }
