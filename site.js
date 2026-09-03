@@ -17,6 +17,7 @@ try { postState = JSON.parse(localStorage.getItem('collector-marketplace-post-st
 let session = null;
 try { session = JSON.parse(localStorage.getItem('collector-marketplace-session') || 'null'); } catch { session = null; }
 let viewerLocation = null;
+if (location.pathname === '/' && !location.search && !location.hash) history.replaceState({}, '', '/#browse');
 
 const ensurePublicListingLocation = () => {
   const form = modalContent.querySelector('.listing-form');
