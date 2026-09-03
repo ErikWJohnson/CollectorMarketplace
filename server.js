@@ -13,6 +13,7 @@ const now = () => new Date().toISOString();
 const deliveryProviders = {
   USPS: { type: 'carrier', trackingRequired: true }, UPS: { type: 'carrier', trackingRequired: true }, FedEx: { type: 'carrier', trackingRequired: true }, 'DHL Express': { type: 'carrier', trackingRequired: true }, 'Amazon Logistics': { type: 'carrier', trackingRequired: true }, OnTrac: { type: 'carrier', trackingRequired: true }, LaserShip: { type: 'carrier', trackingRequired: true }, Veho: { type: 'carrier', trackingRequired: true }, Roadie: { type: 'local_courier', trackingRequired: true }, 'DoorDash Drive': { type: 'local_courier', trackingRequired: true }, 'Uber Direct': { type: 'local_courier', trackingRequired: true }, 'Instacart Local Delivery': { type: 'local_courier', trackingRequired: true }, GoShare: { type: 'local_courier', trackingRequired: true }, uShip: { type: 'freight_marketplace', trackingRequired: true }, Shippo: { type: 'shipping_platform', trackingRequired: true }, 'Pirate Ship': { type: 'shipping_platform', trackingRequired: true }, 'Canada Post': { type: 'carrier', trackingRequired: true }, Purolator: { type: 'carrier', trackingRequired: true }, 'Royal Mail': { type: 'carrier', trackingRequired: true }, Evri: { type: 'carrier', trackingRequired: true }, DPD: { type: 'carrier', trackingRequired: true }, 'Australia Post': { type: 'carrier', trackingRequired: true }, 'Local independent courier': { type: 'independent_courier', trackingRequired: false }, 'Independent owner-operator': { type: 'independent_courier', trackingRequired: false }, 'White-glove delivery': { type: 'specialty', trackingRequired: true }, 'Freight / LTL carrier': { type: 'freight', trackingRequired: true }, 'Local pickup': { type: 'pickup', trackingRequired: false }, 'Other courier': { type: 'custom', trackingRequired: true }
 };
+const paymentMethods = new Set(['Square Card', 'Apple Pay', 'Google Pay', 'Cash App Pay', 'ACH bank transfer']);
 
 class Store {
   constructor() { fs.mkdirSync(dataDir, { recursive: true }); this.data = this.load(); this.ensureData(); this.seedBrowseFeed(); this.pool = null; this.writeQueue = Promise.resolve(); }
@@ -171,7 +172,7 @@ app.put('/trade/:id', required, (req, res) => { const trade = store.data.trades.
 function deliveryView(delivery, userId) { const listing = store.data.listings.find(row => row.id === delivery.listingId); const buyer = store.data.users.find(row => row.id === delivery.buyerId); const seller = store.data.users.find(row => row.id === delivery.sellerId); return { ...delivery, listing, buyer: publicUser(buyer), seller: publicUser(seller), shippingAddress: delivery.buyerId === userId || delivery.sellerId === userId ? delivery.shippingAddress : undefined }; }
 function recordDeliveryUpdate(delivery, userId, status, note = '') { if (!Array.isArray(delivery.history)) delivery.history = []; delivery.history.push({ id: id(), userId, status, note, createdAt: now() }); delivery.updatedAt = now(); }
 app.post('/purchase', required, (req, res) => {
-  const { listingId, shippingAddress, deliveryProvider, deliveryMiles, packagingCost } = req.body;
+  const { listingId, shippingAddress, deliveryProvider, deliveryMiles, packagingCost, paymentMethod } = req.body;
   const listing = store.data.listings.find(row => row.id === listingId && row.status === 'active');
   if (!listing) return res.status(404).json({ error: 'Active listing not found' });
   if (listing.ownerId === req.user.id) return res.status(400).json({ error: 'You cannot purchase your own listing' });
@@ -182,10 +183,12 @@ app.post('/purchase', required, (req, res) => {
   if (!provider) return res.status(400).json({ error: 'Choose a delivery provider or courier option.' });
   if (provider.length > 120) return res.status(400).json({ error: 'Keep the delivery provider under 120 characters.' });
   if (!deliveryProviders[provider]) return res.status(400).json({ error: 'Choose one of the supported delivery options.' });
+  const method = typeof paymentMethod === 'string' ? paymentMethod.trim() : '';
+  if (!paymentMethods.has(method)) return res.status(400).json({ error: 'Choose one of the supported payment methods.' });
   const miles = Math.min(20000, Math.max(0, Number(deliveryMiles) || 0));
   const packing = Math.min(10000, Math.max(0, Number(packagingCost) || 0));
   const courierPay = Math.max(8, miles * 0.20) + packing;
-  const delivery = { id: id(), listingId: listing.id, buyerId: req.user.id, sellerId: listing.ownerId, shippingAddress: address, itemPrice: Number(listing.price) || 0, deliveryProvider: provider, deliveryMiles: miles, packagingCost: packing, courierPay, status: 'awaiting_seller_dispatch', courier: '', trackingNumber: '', messages: [], history: [], createdAt: now(), updatedAt: now() }; recordDeliveryUpdate(delivery, req.user.id, delivery.status, `Order placed with ${provider}; delivery estimate $${courierPay.toFixed(2)}.`);
+  const delivery = { id: id(), listingId: listing.id, buyerId: req.user.id, sellerId: listing.ownerId, shippingAddress: address, itemPrice: Number(listing.price) || 0, deliveryProvider: provider, deliveryMiles: miles, packagingCost: packing, courierPay, paymentMethod: method, status: 'awaiting_seller_dispatch', courier: '', trackingNumber: '', messages: [], history: [], createdAt: now(), updatedAt: now() }; recordDeliveryUpdate(delivery, req.user.id, delivery.status, `Order placed with ${provider} · ${method}; delivery estimate $${courierPay.toFixed(2)}.`);
   listing.status = 'pending_delivery'; store.data.deliveries.unshift(delivery); notify(listing.ownerId, 'delivery', `${req.user.username} started a purchase delivery for “${listing.title}”`, `/delivery/${delivery.id}`); activity('purchase', req.user.id, { listingId: listing.id, deliveryId: delivery.id }); store.save(); res.status(201).json(deliveryView(delivery, req.user.id));
 });
 app.get('/deliveries', required, (req, res) => res.json(store.data.deliveries.filter(row => row.buyerId === req.user.id || row.sellerId === req.user.id).map(row => deliveryView(row, req.user.id))));
