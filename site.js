@@ -535,6 +535,14 @@ priceMin.addEventListener('input', () => renderFeed());
 priceMax.addEventListener('input', () => renderFeed());
 tagSearch.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); const requested = event.target.value.match(/#?[a-z0-9-]+/gi) || []; const available = [...new Set(listings.flatMap(listingTags))]; const matches = requested.map(value => value.replace('#', '').toLowerCase()).filter(value => available.some(tag => tag.toLowerCase() === value)); const nextTags = [...new Set([...activeTags, ...matches])]; const added = nextTags.length > activeTags.length; activeTags = nextTags; if (added) { reloadTagRoute(); return; } syncTagRoute(); event.target.value = ''; renderTags(); renderFeed(); } });
 document.querySelector('#clear-tags').addEventListener('click', () => setQuery(''));
+document.querySelector('#remove-tags').addEventListener('click', () => {
+  activeTags = [];
+  lockedTags = [];
+  voidTags = [];
+  tagSearch.value = '';
+  saveLockedTags();
+  reloadTagRoute();
+});
 function setDiscoveryMode(mode) { const discovery = search.closest('.discovery'); const isSearch = mode === 'search'; discovery.classList.toggle('mode-search', isSearch); discovery.classList.toggle('mode-tags', !isSearch); document.querySelector('#search-tab').classList.toggle('is-active', isSearch); document.querySelector('#tags-tab').classList.toggle('is-active', !isSearch); document.querySelector('#search-tab').setAttribute('aria-selected', String(isSearch)); document.querySelector('#tags-tab').setAttribute('aria-selected', String(!isSearch)); }
 document.querySelector('#search-tab').addEventListener('click', () => { setDiscoveryMode('search'); search.focus(); });
 document.querySelector('#tags-tab').addEventListener('click', () => { setDiscoveryMode('tags'); tagSearch.focus(); });
