@@ -242,10 +242,12 @@ document.addEventListener('keydown', event => {
   toggleAutoScroll();
 });
 const keyboardNavigation = { l: { selector: '[data-sell]', hash: 'list-item' }, a: { selector: '[data-auction]', hash: 'auction-house' }, b: { selector: '[data-home]', hash: 'browse' }, c: { selector: '[data-chat]', hash: 'chat' }, u: { selector: '[data-account]', hash: 'account' } };
+const modalWorkspaceHashes = new Set(['list-item', 'chat', 'account', 'vip-curator', 'fees']);
+let restoringWorkspaceHistory = false;
 const setWorkspaceHash = hash => {
   const next = `#${hash}`;
   if (location.hash === next) return;
-  history.pushState({}, '', `${location.pathname}${location.search}${next}`);
+  history.pushState({ collectorWorkspaceHash: hash, returnHash: location.hash || '#browse' }, '', `${location.pathname}${location.search}${next}`);
 };
 document.addEventListener('keydown', event => {
   if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || !canUseAutoScroll(event.target)) return;
@@ -653,7 +655,16 @@ function setDiscoveryMode(mode) { const discovery = search.closest('.discovery')
 document.querySelector('#search-tab').addEventListener('click', () => { setWorkspaceHash('search'); setDiscoveryMode('search'); search.focus(); });
 document.querySelector('#tags-tab').addEventListener('click', () => { setWorkspaceHash('tags'); setDiscoveryMode('tags'); tagSearch.focus(); });
 modal.addEventListener('click', event => { if (event.target === modal) modal.close(); });
-modal.addEventListener('close', () => document.body.classList.remove('chat-open', 'account-open', 'purchase-open', 'comments-open'));
+modal.addEventListener('close', () => {
+  document.body.classList.remove('chat-open', 'account-open', 'purchase-open', 'comments-open');
+  const workspace = location.hash.slice(1).toLowerCase();
+  if (restoringWorkspaceHistory || !modalWorkspaceHashes.has(workspace)) return;
+  if (history.state?.returnHash) history.back();
+  else {
+    history.replaceState({}, '', `${location.pathname}${location.search}#browse`);
+    if (listings.length) applyHashLocation();
+  }
+});
 document.addEventListener('keydown', event => { const composer = event.target.closest('.collector-message-form textarea'); if (composer && event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); composer.form.requestSubmit(); } });
 document.addEventListener('submit', async event => { if (event.target.closest('#modal')) { event.preventDefault(); const form = event.target; const showError = error => { modalContent.insertAdjacentHTML('beforeend', `<p class="modal-copy">${safe(error.message)}</p>`); };
   try {
@@ -714,7 +725,9 @@ tagSearch.addEventListener('keydown', event => { if (event.key === 'Enter') setT
 async function loadMarket() { const listingData = await fetch('/listings').then(response => { if (!response.ok) throw new Error('Listings API unavailable'); return response.json(); }); listings = listingData.map(asFeedListing).sort((a, b) => a.id === 'mantle' ? -1 : b.id === 'mantle' ? 1 : 0); renderTags(); renderCategories(); renderFeed(); }
 Promise.all([loadMarket(), fetch('data/auctions.json').then(response => response.json())]).then(([, auctionData]) => { auctions = auctionData.map(lot => { const [hours, minutes, seconds] = lot.ends.split(':').map(Number); return { ...lot, endAt: Date.now() + ((hours * 3600 + minutes * 60 + seconds) * 1000) }; }); applyTagRoute(); applyHashLocation(); observer = new IntersectionObserver(entries => { if (entries[0].isIntersecting && page * 4 < filtered().length) { page++; renderFeed(false); } }, { rootMargin: '250px' }); observer.observe(sentinel); }).catch(() => { stream.innerHTML = '<p class="load-state">The marketplace feed could not load. Please refresh the page.</p>'; });
 window.addEventListener('popstate', () => {
+  restoringWorkspaceHistory = true;
   if (modal.open) modal.close();
+  restoringWorkspaceHistory = false;
   if (!listings.length) return;
   applyTagRoute();
   applyHashLocation();
