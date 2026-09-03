@@ -241,18 +241,23 @@ document.addEventListener('keydown', event => {
   toggleAutoScroll();
 });
 const keyboardNavigation = { l: { selector: '[data-sell]', hash: 'list-item' }, a: { selector: '[data-auction]', hash: 'auction-house' }, b: { selector: '[data-home]', hash: 'browse' }, c: { selector: '[data-chat]', hash: 'chat' }, u: { selector: '[data-account]', hash: 'account' } };
+const setWorkspaceHash = hash => {
+  const next = `#${hash}`;
+  if (location.hash === next) return;
+  history.pushState({}, '', `${location.pathname}${location.search}${next}`);
+};
 document.addEventListener('keydown', event => {
   if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || !canUseAutoScroll(event.target)) return;
   const destination = keyboardNavigation[event.key.toLowerCase()];
   if (!destination) return;
   event.preventDefault();
-  history.pushState({}, '', `${location.pathname}${location.search}#${destination.hash}`);
+  setWorkspaceHash(destination.hash);
   document.querySelector(destination.selector)?.click();
 });
 const openDiscoveryShortcut = mode => {
   const target = mode === 'search' ? search : tags;
   setDiscoveryMode(mode);
-  history.pushState({}, '', `${location.pathname}${location.search}#${mode}`);
+  setWorkspaceHash(mode);
   target.closest('.discovery')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   setTimeout(() => (mode === 'search' ? search : tagSearch).focus({ preventScroll: true }), 180);
 };
@@ -589,14 +594,14 @@ document.addEventListener('click', event => {
   const tradeStatus = event.target.closest('[data-trade-status]'); if (tradeStatus) api(`/trade/${tradeStatus.dataset.tradeId}`, { method: 'PUT', body: JSON.stringify({ status: tradeStatus.dataset.tradeStatus }) }).then(() => openTradeChat(tradeStatus.dataset.tradeId)).catch(error => openModal('Trade error', error.message));
   const confirmDelivery = event.target.closest('[data-delivery-confirm]'); if (confirmDelivery) api(`/delivery/${confirmDelivery.dataset.delivery}/confirm`, { method: 'POST', body: '{}' }).then(() => openDeliveryCenter()).catch(error => openModal('Delivery error', error.message));
   const issueDelivery = event.target.closest('[data-delivery-issue]'); if (issueDelivery) api(`/delivery/${issueDelivery.dataset.delivery}`, { method: 'PUT', body: JSON.stringify({ status: 'issue_reported' }) }).then(() => openDelivery(issueDelivery.dataset.delivery)).catch(error => openModal('Delivery error', error.message));
-  if (action?.matches('[data-sell]')) { activateNav('sell'); openListingForm(); }
-  if (action?.matches('[data-chat]')) { activateNav('chat'); openChatCenter(); }
-  if (action?.matches('[data-account]')) { activateNav('account'); openAccountPanel(); }
-  if (action?.matches('[data-curator]')) openModal('VIP Curator membership', 'VIP Curator is $150 per month. Members receive a 1% one-sided marketplace fee on their own purchase or trade side instead of the standard 4%.', '<form class="modal-form"><input required type="email" placeholder="Email address"><button>Continue to membership</button></form>');
-  if (action?.matches('[data-policy]')) openModal('Marketplace fees', 'Standard purchase fees are 4% per side. Curator members pay 1% on their own side for $150/month. Buyers pay taxes and delivery; courier pay is the greater of $8 or $0.20 per mile, plus packaging. Transaction and delivery terms are policy drafts pending legal review.');
-  if (action?.matches('[data-auction]')) { activateNav('auction'); showAuctionHouse(); }
+  if (action?.matches('[data-sell]')) { setWorkspaceHash('list-item'); activateNav('sell'); openListingForm(); }
+  if (action?.matches('[data-chat]')) { setWorkspaceHash('chat'); activateNav('chat'); openChatCenter(); }
+  if (action?.matches('[data-account]')) { setWorkspaceHash('account'); activateNav('account'); openAccountPanel(); }
+  if (action?.matches('[data-curator]')) { setWorkspaceHash('vip-curator'); openModal('VIP Curator membership', 'VIP Curator is $150 per month. Members receive a 1% one-sided marketplace fee on their own purchase or trade side instead of the standard 4%.', '<form class="modal-form"><input required type="email" placeholder="Email address"><button>Continue to membership</button></form>'); }
+  if (action?.matches('[data-policy]')) { setWorkspaceHash('fees'); openModal('Marketplace fees', 'Standard purchase fees are 4% per side. Curator members pay 1% on their own side for $150/month. Buyers pay taxes and delivery; courier pay is the greater of $8 or $0.20 per mile, plus packaging. Transaction and delivery terms are policy drafts pending legal review.'); }
+  if (action?.matches('[data-auction]')) { setWorkspaceHash('auction-house'); activateNav('auction'); showAuctionHouse(); }
   if (event.target.closest('.like')) { const like = event.target.closest('.like'); like.textContent = like.textContent === '♡' ? '♥' : '♡'; like.classList.toggle('liked'); }
-  if (action?.matches('[data-market],[data-home]')) { document.body.classList.remove('auction-mode'); clearInterval(auctionClock); activateNav(action.matches('[data-market]') ? 'market' : 'home'); sentinel.hidden = false; activeCategory = 'All'; setQuery(''); setDiscoveryMode(activeTags.length || lockedTags.length || voidTags.length ? 'tags' : 'search'); renderTags(); renderCategories(); renderFeed(); if (observer) observer.observe(sentinel); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  if (action?.matches('[data-market],[data-home]')) { setWorkspaceHash('browse'); document.body.classList.remove('auction-mode'); clearInterval(auctionClock); activateNav(action.matches('[data-market]') ? 'market' : 'home'); sentinel.hidden = false; activeCategory = 'All'; setQuery(''); setDiscoveryMode(activeTags.length || lockedTags.length || voidTags.length ? 'tags' : 'search'); renderTags(); renderCategories(); renderFeed(); if (observer) observer.observe(sentinel); window.scrollTo({ top: 0, behavior: 'smooth' }); }
   if (event.target.matches('.close')) modal.close();
 });
 search.addEventListener('input', event => { setDiscoveryMode('search'); clearTimeout(searchRenderTimer); const value = event.target.value; searchRenderTimer = setTimeout(() => setQuery(value), 140); });
@@ -644,8 +649,8 @@ document.addEventListener('click', event => {
   }, () => { capture.disabled = false; capture.textContent = 'Location permission was not granted'; }, { enableHighAccuracy: false, maximumAge: 300000, timeout: 10000 });
 });
 function setDiscoveryMode(mode) { const discovery = search.closest('.discovery'); const isSearch = mode === 'search'; discovery.classList.toggle('mode-search', isSearch); discovery.classList.toggle('mode-tags', !isSearch); document.querySelector('#search-tab').classList.toggle('is-active', isSearch); document.querySelector('#tags-tab').classList.toggle('is-active', !isSearch); document.querySelector('#search-tab').setAttribute('aria-selected', String(isSearch)); document.querySelector('#tags-tab').setAttribute('aria-selected', String(!isSearch)); }
-document.querySelector('#search-tab').addEventListener('click', () => { setDiscoveryMode('search'); search.focus(); });
-document.querySelector('#tags-tab').addEventListener('click', () => { setDiscoveryMode('tags'); tagSearch.focus(); });
+document.querySelector('#search-tab').addEventListener('click', () => { setWorkspaceHash('search'); setDiscoveryMode('search'); search.focus(); });
+document.querySelector('#tags-tab').addEventListener('click', () => { setWorkspaceHash('tags'); setDiscoveryMode('tags'); tagSearch.focus(); });
 modal.addEventListener('click', event => { if (event.target === modal) modal.close(); });
 modal.addEventListener('close', () => document.body.classList.remove('chat-open', 'account-open', 'purchase-open', 'comments-open'));
 document.addEventListener('keydown', event => { const composer = event.target.closest('.collector-message-form textarea'); if (composer && event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); composer.form.requestSubmit(); } });
