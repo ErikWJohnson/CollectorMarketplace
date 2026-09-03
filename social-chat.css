@@ -124,7 +124,12 @@ body.chat-open .app-shell { height: 100dvh; overflow: hidden !important; }
 }
 
 .trade-dialog .modal-copy { margin-bottom: 0; }
-.trade-dialog .trade-builder-form, .trade-dialog .trade-delivery-form { width: min(1120px, 100%); max-width: none; margin: 20px auto 0; padding: clamp(16px, 3vw, 30px); border: 1px solid #4a4a4a; background: #181818; overflow: auto; }
+.trade-dialog #modal-content > .modal-title, .trade-dialog #modal-content > .modal-copy { display: none; }
+.trade-dialog #modal-content { height: calc(100dvh - 36px); }
+.trade-dialog .conversation-workspace, .trade-dialog .trade-builder-form, .trade-dialog .trade-delivery-form { margin-top: 0; }
+.trade-dialog .conversation-workspace { height: 100%; }
+.trade-dialog .trade-builder-form, .trade-dialog .trade-delivery-form { min-height: 100%; }
+.trade-dialog .trade-builder-form, .trade-dialog .trade-delivery-form { width: min(1120px, 100%); max-width: none; margin: 0 auto; padding: clamp(16px, 3vw, 30px); border: 1px solid #4a4a4a; background: #181818; overflow: auto; }
 .trade-delivery-fields { display: grid; gap: 12px; padding: 16px; border: 1px solid #4a4a4a; background: #202020; }
 .trade-delivery-fields h3, .trade-delivery-fields p { margin: 0; }
 .trade-delivery-fields p { color: #bcb8ad; font-size: .82rem; line-height: 1.45; }
