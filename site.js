@@ -713,4 +713,9 @@ tagSearch.addEventListener('keydown', event => { if (event.key === 'Enter') setT
 
 async function loadMarket() { const listingData = await fetch('/listings').then(response => { if (!response.ok) throw new Error('Listings API unavailable'); return response.json(); }); listings = listingData.map(asFeedListing).sort((a, b) => a.id === 'mantle' ? -1 : b.id === 'mantle' ? 1 : 0); renderTags(); renderCategories(); renderFeed(); }
 Promise.all([loadMarket(), fetch('data/auctions.json').then(response => response.json())]).then(([, auctionData]) => { auctions = auctionData.map(lot => { const [hours, minutes, seconds] = lot.ends.split(':').map(Number); return { ...lot, endAt: Date.now() + ((hours * 3600 + minutes * 60 + seconds) * 1000) }; }); applyTagRoute(); applyHashLocation(); observer = new IntersectionObserver(entries => { if (entries[0].isIntersecting && page * 4 < filtered().length) { page++; renderFeed(false); } }, { rootMargin: '250px' }); observer.observe(sentinel); }).catch(() => { stream.innerHTML = '<p class="load-state">The marketplace feed could not load. Please refresh the page.</p>'; });
-window.addEventListener('popstate', () => { if (listings.length) applyTagRoute(); });
+window.addEventListener('popstate', () => {
+  if (modal.open) modal.close();
+  if (!listings.length) return;
+  applyTagRoute();
+  applyHashLocation();
+});
