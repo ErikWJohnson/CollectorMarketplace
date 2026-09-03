@@ -388,7 +388,15 @@ tagGroups.Colors = ['Black', 'White', 'Gray', 'Silver', 'Charcoal', 'Ivory', 'Cr
 const categoryOptions = [...Object.values(tagGroups).flat(), ...audienceTagOptions];
 function enableCarrierPicker(input) { if (!document.querySelector('#delivery-carriers')) { const list = document.createElement('datalist'); list.id = 'delivery-carriers'; list.innerHTML = deliveryCarriers.map(carrier => `<option value="${safe(carrier)}">`).join(''); document.body.append(list); } input.setAttribute('list', 'delivery-carriers'); input.placeholder = 'Choose a delivery company'; }
 async function api(url, options = {}) { const response = await fetch(url, { ...options, headers: { 'Content-Type': 'application/json', ...(session?.token ? { Authorization: `Bearer ${session.token}` } : {}), ...(options.headers || {}) } }); const payload = response.status === 204 ? null : await response.json(); if (!response.ok) throw new Error(payload?.error || 'Something went wrong.'); return payload; }
-function saveSession(nextSession) { session = nextSession; if (session) localStorage.setItem('collector-marketplace-session', JSON.stringify(session)); else localStorage.removeItem('collector-marketplace-session'); }
+function renderAccountButton() {
+  const button = document.querySelector('.header-nav [data-account]');
+  if (!button) return;
+  const username = String(session?.user?.username || '').trim();
+  button.textContent = username ? '@' + username : 'Create account';
+  button.setAttribute('aria-label', username ? 'Open @' + username + '\'s account' : 'Create account');
+}
+function saveSession(nextSession) { session = nextSession; if (session) localStorage.setItem('collector-marketplace-session', JSON.stringify(session)); else localStorage.removeItem('collector-marketplace-session'); renderAccountButton(); }
+renderAccountButton();
 const asFeedListing = listing => ({ ...listing, image: listing.images?.[0] || '', tags: listing.tags?.length ? listing.tags : [listing.category], tag: listing.tags?.[0] || listing.category, trade: listing.tradeOffer, ownerName: listing.owner?.username || 'JohnDoe' });
 const listingTags = item => Array.isArray(item.tags) ? item.tags : [item.tag].filter(Boolean);
 const searchedTagTerms = () => (tagSearch.value.match(/#?[a-z0-9-]+/gi) || []).map(value => value.replace('#', '').toLowerCase());
