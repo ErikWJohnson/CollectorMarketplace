@@ -116,9 +116,9 @@ document.addEventListener('keydown', event => {
     window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
     return;
   }
-  /* Fn is not exposed by most browsers; F gives every collector a reliable
+  /* Fn is not exposed by most browsers; R gives every collector a reliable
      way to switch the active auto-scroll between forward and backward. */
-  if ((event.key === 'Fn' || event.key.toLowerCase() === 'f') && !event.repeat && canUseAutoScroll(event.target)) {
+  if ((event.key === 'Fn' || event.key.toLowerCase() === 'r') && !event.repeat && canUseAutoScroll(event.target)) {
     event.preventDefault();
     reverseAutoScroll();
     return;
