@@ -127,6 +127,14 @@ document.addEventListener('keydown', event => {
   event.preventDefault();
   toggleAutoScroll();
 });
+const keyboardNavigation = { l: '[data-sell]', a: '[data-auction]', b: '[data-home]', c: '[data-chat]', u: '[data-account]' };
+document.addEventListener('keydown', event => {
+  if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || !canUseAutoScroll(event.target)) return;
+  const target = keyboardNavigation[event.key.toLowerCase()];
+  if (!target) return;
+  event.preventDefault();
+  document.querySelector(target)?.click();
+});
 document.addEventListener('wheel', stopAutoScroll, { passive: true });
 document.addEventListener('touchstart', stopAutoScroll, { passive: true });
 document.addEventListener('keydown', event => { if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End'].includes(event.key)) stopAutoScroll(); });
