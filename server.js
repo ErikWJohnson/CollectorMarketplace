@@ -217,20 +217,19 @@ const activeTradeListings = (ids, ownerId) => [...new Set(Array.isArray(ids) ? i
 const tradeSenderIds = trade => Array.isArray(trade.senderListingIds) ? trade.senderListingIds : [];
 const tradeReceiverIds = trade => Array.isArray(trade.receiverListingIds) ? trade.receiverListingIds : [trade.listingId].filter(Boolean);
 app.post('/trade', required, (req, res) => {
-  const { receiverId, listingId, senderListingIds, receiverListingIds, offerDetails, cashAmount = 0, cashFrom = '' } = req.body;
+  const { receiverId, listingId, senderListingIds, receiverListingIds, offerDetails, senderCashAmount, receiverCashAmount, cashAmount = 0, cashFrom = '' } = req.body;
   const requestedIds = [...new Set([...(Array.isArray(receiverListingIds) ? receiverListingIds : []), listingId].filter(value => typeof value === 'string'))];
   const offeredIds = [...new Set(Array.isArray(senderListingIds) ? senderListingIds.filter(value => typeof value === 'string') : [])];
   if (!receiverId || receiverId === req.user.id || !requestedIds.length || !offeredIds.length) return res.status(400).json({ error: 'Choose at least one item from each collector.' });
   const requestedListings = activeTradeListings(requestedIds, receiverId);
   const offeredListings = activeTradeListings(offeredIds, req.user.id);
   if (requestedListings.length !== requestedIds.length || offeredListings.length !== offeredIds.length) return res.status(400).json({ error: 'Every trade item must be an active listing owned by the correct collector.' });
-  const amount = Number(cashAmount);
-  if (!Number.isFinite(amount) || amount < 0 || amount > 1_000_000) return res.status(400).json({ error: 'Use a valid cash adjustment.' });
-  const payer = amount ? cashFrom : '';
-  if (payer && !['sender', 'receiver'].includes(payer)) return res.status(400).json({ error: 'Choose which collector adds the cash adjustment.' });
-  if (amount && !payer) return res.status(400).json({ error: 'Choose which collector adds the cash adjustment.' });
+  const legacyAmount = Number(cashAmount);
+  const senderCash = Number(senderCashAmount ?? (cashFrom === 'sender' ? legacyAmount : 0));
+  const receiverCash = Number(receiverCashAmount ?? (cashFrom === 'receiver' ? legacyAmount : 0));
+  if (![senderCash, receiverCash].every(amount => Number.isFinite(amount) && amount >= 0 && amount <= 1_000_000)) return res.status(400).json({ error: 'Use valid cash amounts for both sides.' });
   const note = typeof offerDetails === 'string' ? offerDetails.trim() : '';
-  const trade = { id: id(), senderId: req.user.id, receiverId, listingId: requestedIds[0], senderListingIds: offeredIds, receiverListingIds: requestedIds, cashAmount: amount, cashFrom: payer, offerDetails: note.slice(0, 1000), acceptances: { sender: false, receiver: false }, status: 'pending', messages: [], createdAt: now() };
+  const trade = { id: id(), senderId: req.user.id, receiverId, listingId: requestedIds[0], senderListingIds: offeredIds, receiverListingIds: requestedIds, senderCashAmount: senderCash, receiverCashAmount: receiverCash, offerDetails: note.slice(0, 1000), acceptances: { sender: false, receiver: false }, status: 'pending', messages: [], createdAt: now() };
   store.data.trades.unshift(trade); notify(receiverId, 'trade', `${req.user.username} proposed a ${offeredIds.length}-for-${requestedIds.length} trade`, `/trade/${trade.id}`); activity('trade', req.user.id, { listingId: requestedIds[0], tradeId: trade.id }); store.save(); res.status(201).json(trade);
 });
 function tradeView(trade, userId) {
@@ -261,8 +260,9 @@ app.put('/trade/:id', required, (req, res) => {
     trade.acceptances[role] = true;
     const otherRole = role === 'sender' ? 'receiver' : 'sender';
     if (trade.acceptances.sender && trade.acceptances.receiver) {
-      trade.status = 'accepted';
-      notify(trade.senderId === req.user.id ? trade.receiverId : trade.senderId, 'trade', `${req.user.username} locked in the trade — both collectors accepted`, `/trade/${trade.id}`);
+      trade.status = 'completed';
+      [...tradeSenderIds(trade), ...tradeReceiverIds(trade)].forEach(listingId => { const listing = store.data.listings.find(row => row.id === listingId); if (listing) listing.status = 'traded'; });
+      notify(trade.senderId === req.user.id ? trade.receiverId : trade.senderId, 'trade', `${req.user.username} locked in the trade — both collectors accepted and the trade is complete`, `/trade/${trade.id}`);
     } else {
       trade.status = `awaiting_${otherRole}`;
       notify(trade.senderId === req.user.id ? trade.receiverId : trade.senderId, 'trade', `${req.user.username} locked in the trade — your acceptance is needed`, `/trade/${trade.id}`);
