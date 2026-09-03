@@ -89,10 +89,12 @@ document.addEventListener('keydown', event => {
   if (event.code === 'Numpad5') {
     if (focused !== current) return focusPlatformTarget(current);
     const activatedTarget = current;
+    const activatedTag = activatedTarget.dataset?.tag?.toLowerCase() || '';
     current.click();
     requestAnimationFrame(() => {
       const availableTargets = platformCursorTargets();
-      focusPlatformTarget(availableTargets.includes(activatedTarget) ? activatedTarget : availableTargets.includes(platformCursorTarget) ? platformCursorTarget : availableTargets[0]);
+      const replacementTag = activatedTag && availableTargets.find(target => target.dataset?.tag?.toLowerCase() === activatedTag);
+      focusPlatformTarget(availableTargets.includes(activatedTarget) ? activatedTarget : (replacementTag || (availableTargets.includes(platformCursorTarget) ? platformCursorTarget : availableTargets[0])));
     });
     return;
   }
