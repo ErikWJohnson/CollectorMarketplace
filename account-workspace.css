@@ -1,8 +1,8 @@
 body.account-open { overflow: hidden; }
-dialog.account-dialog { position: fixed; inset: 0; width: 100vw !important; max-width: none !important; height: 100dvh; max-height: none !important; margin: 0; border: 0; border-radius: 0; padding: clamp(24px, 4vw, 54px); overflow: auto; background: #151515; }
+dialog.account-dialog { position: fixed; inset: 0; width: 100vw !important; max-width: none !important; height: 100dvh; max-height: none !important; margin: 0; border: 0; border-radius: 0; padding: 0; overflow: auto; background: #151515; }
 .account-dialog::backdrop { background: #151515; }
 .account-dialog .close { position: fixed; z-index: 3; top: 18px; right: clamp(18px, 4vw, 54px); }
-.account-dialog #modal-content { width: min(1280px, 100%); max-width: none; min-height: calc(100dvh - 108px); margin: 0 auto; }
+.account-dialog #modal-content { width: 100%; max-width: none; min-height: 100dvh; margin: 0; }
 .account-workspace { display: flex; min-height: min(710px, calc(100dvh - 230px)); flex-direction: column; margin-top: 22px; border: 1px solid #4a4a4a; background: #181818; }
 .account-hero { display: flex; align-items: center; gap: 18px; padding: clamp(20px, 3vw, 36px); border-bottom: 1px solid #4a4a4a; background: linear-gradient(120deg, #1c1c1c, #292620); }
 .account-avatar { display: grid; width: 40px; height: 40px; flex: 0 0 auto; place-items: center; overflow: hidden; border: 1px solid #f2bc35; border-radius: 50%; color: #f2bc35; font: 800 .8rem/1 var(--mono, monospace); }
@@ -18,7 +18,7 @@ dialog.account-dialog { position: fixed; inset: 0; width: 100vw !important; max-
 .account-columns>section:last-child { border-right: 0; }
 .account-columns h3 { margin: 0; padding: 14px; border-bottom: 1px solid #4a4a4a; color: #f5f3eb; font: 700 .72rem/1 var(--mono, monospace); letter-spacing: .08em; text-transform: uppercase; }
 .account-columns h3 small { color: #f2bc35; }
-.account-scroll { min-height: 0; flex: 1; overflow-y: auto; scrollbar-color: #797979 #202020; scrollbar-width: thin; }
+.account-scroll { min-height: 0; flex: 1; overflow: visible; }
 .connection-row { display: flex; align-items: center; gap: 9px; border-width: 0 0 1px; padding: 10px; }
 .connection-row b, .connection-row small { display: block; }
 .connection-row small, .suggested-account small { color: #aaa69c; font-size: .7rem; }
@@ -34,4 +34,4 @@ dialog.account-dialog { position: fixed; inset: 0; width: 100vw !important; max-
 .profile-upload { color: #ddd; font-size: .8rem; }
 .profile-upload input { display: block; width: 100%; margin-top: 7px; }
 @media (max-width: 850px) { .account-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); } .account-columns>section:nth-child(2) { border-right: 0; } .account-columns>section:nth-child(-n+2) { border-bottom: 1px solid #4a4a4a; } }
-@media (max-width: 560px) { dialog.account-dialog { padding: 62px 16px 22px; } .account-dialog .close { top: 14px; right: 16px; } .account-hero { align-items: flex-start; flex-wrap: wrap; } .account-hero>button { margin-left: 0; } .account-columns { grid-template-columns: 1fr; } .account-columns>section { min-height: 210px; border-right: 0; border-bottom: 1px solid #4a4a4a; } .account-actions { flex-wrap: wrap; } .account-actions button:last-child { margin-left: 0; } }
+@media (max-width: 560px) { dialog.account-dialog { padding: 0 0 env(safe-area-inset-bottom); } .account-dialog .close { top: 14px; right: 16px; } .account-hero { align-items: flex-start; flex-wrap: wrap; } .account-hero>button { margin-left: 0; } .account-columns { grid-template-columns: 1fr; } .account-columns>section { min-height: 210px; border-right: 0; border-bottom: 1px solid #4a4a4a; } .account-actions { flex-wrap: wrap; } .account-actions button:last-child { margin-left: 0; } }

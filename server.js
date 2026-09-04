@@ -249,6 +249,13 @@ app.post('/comment/:id/vote', required, (req, res) => { const comment = store.da
 const activeTradeListings = (ids, ownerId) => [...new Set(Array.isArray(ids) ? ids.filter(value => typeof value === 'string') : [])].map(listingId => store.data.listings.find(listing => listing.id === listingId && listing.ownerId === ownerId && listing.status === 'active')).filter(Boolean);
 const tradeSenderIds = trade => Array.isArray(trade.senderListingIds) ? trade.senderListingIds : [];
 const tradeReceiverIds = trade => Array.isArray(trade.receiverListingIds) ? trade.receiverListingIds : [trade.listingId].filter(Boolean);
+const tradeFeeRate = user => user?.curator === true || user?.membership === 'curator' ? 0.01 : 0.04;
+const tradeFeeSnapshot = ({ sender, receiver, senderListings, receiverListings, senderCash, receiverCash }) => {
+  const senderRate = tradeFeeRate(sender); const receiverRate = tradeFeeRate(receiver);
+  const senderValueReceived = receiverListings.reduce((total, listing) => total + Number(listing.price || 0), 0) + receiverCash;
+  const receiverValueReceived = senderListings.reduce((total, listing) => total + Number(listing.price || 0), 0) + senderCash;
+  return { sender: { rate: senderRate, value: senderValueReceived, amount: senderValueReceived * senderRate }, receiver: { rate: receiverRate, value: receiverValueReceived, amount: receiverValueReceived * receiverRate } };
+};
 const tradeDeliveryPlan = input => {
   const address = typeof input.shippingAddress === 'string' ? input.shippingAddress.trim() : '';
   const provider = typeof input.deliveryProvider === 'string' ? input.deliveryProvider.trim() : '';
@@ -272,10 +279,13 @@ app.post('/trade', required, (req, res) => {
   const senderCash = Number(senderCashAmount ?? (cashFrom === 'sender' ? legacyAmount : 0));
   const receiverCash = Number(receiverCashAmount ?? (cashFrom === 'receiver' ? legacyAmount : 0));
   if (![senderCash, receiverCash].every(amount => Number.isFinite(amount) && amount >= 0 && amount <= 1_000_000)) return res.status(400).json({ error: 'Use valid cash amounts for both sides.' });
+  if (senderCash > 0 && receiverCash > 0) return res.status(400).json({ error: 'Cash can only be added by one side of a trade.' });
   let senderDelivery;
   try { senderDelivery = tradeDeliveryPlan(req.body); } catch (error) { return res.status(400).json({ error: error.message }); }
   const note = typeof offerDetails === 'string' ? offerDetails.trim() : '';
-  const trade = { id: id(), senderId: req.user.id, receiverId, listingId: requestedIds[0], senderListingIds: offeredIds, receiverListingIds: requestedIds, senderCashAmount: senderCash, receiverCashAmount: receiverCash, offerDetails: note.slice(0, 1000), deliveryPlans: { sender: senderDelivery, receiver: null }, acceptances: { sender: false, receiver: false }, status: 'pending', messages: [], createdAt: now() };
+  const receiver = store.data.users.find(user => user.id === receiverId);
+  const fees = tradeFeeSnapshot({ sender: req.user, receiver, senderListings: offeredListings, receiverListings: requestedListings, senderCash, receiverCash });
+  const trade = { id: id(), senderId: req.user.id, receiverId, listingId: requestedIds[0], senderListingIds: offeredIds, receiverListingIds: requestedIds, senderCashAmount: senderCash, receiverCashAmount: receiverCash, fees, offerDetails: note.slice(0, 1000), deliveryPlans: { sender: senderDelivery, receiver: null }, acceptances: { sender: false, receiver: false }, status: 'pending', messages: [], createdAt: now() };
   store.data.trades.unshift(trade); notify(receiverId, 'trade', `${req.user.username} proposed a ${offeredIds.length}-for-${requestedIds.length} trade`, `/trade/${trade.id}`); activity('trade', req.user.id, { listingId: requestedIds[0], tradeId: trade.id }); store.save(); res.status(201).json(trade);
 });
 function tradeView(trade, userId) {

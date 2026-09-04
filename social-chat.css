@@ -210,6 +210,12 @@ body.chat-open .app-shell { height: 100dvh; overflow: hidden !important; }
 .trade-item-option i { display: grid; width: 20px; height: 20px; place-items: center; border: 1px solid #777; border-radius: 50%; color: #aaa69c; font-style: normal; }
 .trade-item-option:has(input:checked) i { border-color: #f2bc35; background: #f2bc35; color: #171717; }
 .trade-cash-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px; border: 1px dashed #76643c; border-radius: 11px; background: #171717; }
+.trade-cash-fields>small { grid-column:1/-1;color:#aaa69c;font-size:.7rem; }
+.trade-live-fees,.trade-fee-receipt { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;border:1px solid #5e704f;background:#5e704f; }
+.trade-live-fees header { grid-column:1/-1;display:flex;justify-content:space-between;padding:12px 14px;background:#172016;color:#f5f3eb; }.trade-live-fees header b{color:#8ee1ab;font:800 .75rem/1 var(--mono,monospace);text-transform:uppercase}.trade-live-fees header span{color:#aebba9;font-size:.68rem}
+.trade-live-fees>div,.trade-fee-receipt>div { display:grid;gap:5px;padding:14px;background:#1c211b; }.trade-live-fees strong,.trade-fee-receipt b{color:#f5f3eb;font-size:.78rem}.trade-live-fees>div>span,.trade-fee-receipt span{color:#8ee1ab;font:800 1rem/1 var(--mono,monospace)}.trade-live-fees small,.trade-fee-receipt small{color:#aebba9;font-size:.68rem}.trade-live-fees>p,.trade-fee-receipt>small{grid-column:1/-1;margin:0;padding:10px 14px;background:#141814;color:#aebba9;font-size:.7rem}
+.trade-fee-receipt { grid-column:1/-1;border-width:0 0 1px; }
+.trade-fee-agreement { display:flex!important;align-items:center;gap:9px;padding:12px;border:1px solid #806b34;background:#211b0f;color:#f0dfb5!important;font-size:.78rem!important; }.trade-fee-agreement input{width:17px;height:17px;accent-color:#f2bc35}
 .trade-item-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 13px 16px; border-bottom: 1px solid #4a4a4a; background: #202020; }
 .trade-cash-adjustment { grid-column: 1 / -1; margin: 0; color: #f2bc35; font-size: .78rem; }
 .trade-acceptance-board { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; border-bottom: 1px solid #4a4a4a; background: #4a4a4a; }
@@ -225,5 +231,6 @@ body.chat-open .app-shell { height: 100dvh; overflow: hidden !important; }
   .trade-actions button { flex: 1 1 150px; min-height: 42px; }
   .trade-status { order: 3; margin-left: 0; }
   .trade-offer-content { padding: 16px; }
-  .trade-builder-columns, .trade-cash-fields, .trade-item-summary, .trade-acceptance-board { grid-template-columns: 1fr; }
+  .trade-builder-columns, .trade-cash-fields, .trade-item-summary, .trade-acceptance-board, .trade-live-fees, .trade-fee-receipt { grid-template-columns: 1fr; }
+  .trade-live-fees>p,.trade-fee-receipt>small { grid-column:1; }
 }
