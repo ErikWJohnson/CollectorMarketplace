@@ -22,17 +22,14 @@
   .listing-actions .listing-action:hover { transform:translateY(-1px); }
 }
 
-/* Keep the feed wide without taking the listing DOM out of normal layout flow. */
+/* Keep each listing as one full-width post without taking its DOM out of normal flow. */
 @media (min-width:681px) {
   .listing { display:block; min-height:0; }
   .listing .collector-head { min-height:72px; padding:15px 22px; border-right:0; }
-  .listing-main { display:grid; grid-template-columns:minmax(0,1fr) minmax(340px,430px); min-height:clamp(540px,68vh,760px); }
-  .listing .media { grid-column:auto; grid-row:auto; min-height:0; height:100%; padding:clamp(16px,2vw,28px); }
-  .listing .listing-copy { --detail-gutter:clamp(22px,2.5vw,36px); grid-column:auto; grid-row:auto; min-height:0; padding:var(--detail-gutter); border-left:1px solid #3d3d3d; }
+  .listing-main { display:block; min-height:0; }
+  .listing .media { min-height:clamp(520px,68dvh,840px); height:clamp(520px,68dvh,840px); padding:clamp(16px,2vw,28px); }
+  .listing .listing-copy { --detail-gutter:clamp(22px,3vw,42px); display:flex; min-height:250px; padding:var(--detail-gutter); border-left:0; }
   .listing footer.listing-actions { width:100%; min-height:64px; margin:auto 0 0; padding:10px 0 0; border-top:1px solid #3f3f3f; background:transparent; }
-}
-@media (max-width:980px) and (min-width:681px) {
-  .listing-main { grid-template-columns:minmax(0,1fr) minmax(300px,360px); }
 }
 
 /* Full-page public collector profiles. */
