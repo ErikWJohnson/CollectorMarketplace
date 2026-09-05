@@ -28,7 +28,7 @@ const setSearchScope = (scope, syncRoute = true) => {
   renderFeed();
   if (syncRoute && typeof syncTagRoute === 'function') syncTagRoute();
 };
-let activeAuctionId = null, auctionActivity = [];
+let activeAuctionId = null, auctionActivity = [], auctionFeedClock, auctionFeedPausedUntil = 0;
 let postState = {};
 try { postState = JSON.parse(localStorage.getItem('collector-marketplace-post-state') || '{}'); } catch { postState = {}; }
 let session = null;
@@ -660,6 +660,16 @@ function toggleTag(tag, action = 'toggle') { const value = tag.toLowerCase(); co
 function activateNav(name) { document.querySelectorAll('.bottom-nav button').forEach(button => button.classList.toggle('active', button.matches(`[data-${name}]`))); }
 function auctionTime(lot) { const left = Math.max(0, Math.floor((lot.endAt - Date.now()) / 1000)); const hours = String(Math.floor(left / 3600)).padStart(2, '0'); const minutes = String(Math.floor(left % 3600 / 60)).padStart(2, '0'); const seconds = String(left % 60).padStart(2, '0'); return `${hours}:${minutes}:${seconds}`; }
 function updateAuctionClocks() { document.querySelectorAll('[data-auction-clock]').forEach(node => { const lot = auctions.find(row => row.id === node.dataset.auctionClock); if (lot) { node.textContent = auctionTime(lot); node.closest('.auction-countdown')?.classList.toggle('is-urgent', lot.endAt - Date.now() < 3600000); } }); }
+function pauseAuctionFeed(milliseconds = 15000) { auctionFeedPausedUntil = Math.max(auctionFeedPausedUntil, Date.now() + milliseconds); }
+function advanceAuctionFeed() {
+  if (!document.body.classList.contains('auction-mode') || Date.now() < auctionFeedPausedUntil) return;
+  const visibleLots = typeof filteredAuctions === 'function' ? filteredAuctions() : auctions;
+  if (visibleLots.length < 2) return;
+  const current = Math.max(0, visibleLots.findIndex(lot => lot.id === activeAuctionId));
+  activeAuctionId = visibleLots[(current + 1) % visibleLots.length].id;
+  if (typeof renderFilteredAuctionHouse === 'function') renderFilteredAuctionHouse(); else renderAuctionHouse();
+}
+function startAuctionFeed() { clearInterval(auctionFeedClock); auctionFeedClock = setInterval(advanceAuctionFeed, 8000); }
 function renderAuctionHouse() {
   const lot = auctions.find(row => row.id === activeAuctionId) || auctions[0]; if (!lot) return;
   activeAuctionId = lot.id; const minimum = Number(lot.currentBid) + 5;
@@ -667,7 +677,7 @@ function renderAuctionHouse() {
   stream.innerHTML = `<section class="auction-house"><header class="auction-head"><div><p><i></i> Live bidding floor</p><h1>Auction House</h1></div><div class="auction-head-meta"><strong>${auctions.length}</strong><span>Lots open now</span></div></header><div class="auction-ticker"><span>LIVE</span><div>${auctions.map(item => `<button type="button" data-auction-select="${item.id}">${safe(item.title)} <b>${money(item.currentBid)}</b></button>`).join('')}</div></div><main class="auction-stage"><section class="auction-showcase"><div class="auction-art"><img src="${safe(lot.image)}" alt="${safe(lot.title)}"><span class="auction-lot-number">LOT ${String(auctions.indexOf(lot) + 1).padStart(2, '0')}</span><div class="auction-countdown"><small>Closing in</small><strong data-auction-clock="${lot.id}">${auctionTime(lot)}</strong></div></div><div class="auction-details"><p class="auction-category">${safe(lot.category)} · Live lot</p><h2>${safe(lot.title)}</h2><p class="auction-description">A featured collector lot, presented live. Review the current bid, join the room, and place your bid before the floor closes.</p><div class="auction-price"><span>Current bid</span><strong>${money(lot.currentBid)}</strong><small>${lot.bids} bids placed</small></div><form class="auction-bid-panel" data-auction-bid-form="${lot.id}"><label>Your maximum bid<input name="amount" required type="number" inputmode="decimal" min="${minimum}" step="1" value="${minimum}" aria-label="Your maximum bid"></label><div class="auction-quick-bids"><button type="button" data-bid-add="10">+ $10</button><button type="button" data-bid-add="25">+ $25</button><button type="button" data-bid-add="50">+ $50</button></div><button class="auction-bid" type="submit">Place live bid <span>→</span></button><small>By placing a bid, you agree to the auction terms.</small></form><button type="button" class="voice-start auction-voice" data-voice-room="auction:${lot.id}" data-voice-label="Auction voice · ${safe(lot.title)}">Join the live voice room</button></div></section><aside class="auction-live-panel"><header><span><i></i> Floor activity</span><small>Updates live</small></header><div class="auction-activity" aria-live="polite">${activity.length ? activity.map(row => `<article><b>${safe(row.initials)}</b><p><strong>${safe(row.name)}</strong> placed a bid <em>${money(row.amount)}</em><small>${safe(row.time)}</small></p></article>`).join('') : `<div class="auction-awaiting"><i>◇</i><strong>The floor is open</strong><span>New bids will appear here in real time.</span></div>`}</div><div class="auction-confidence"><span>Buyer protection</span><p>Verified accounts, binding bids, and protected checkout after the auction closes.</p></div></aside></main><section class="auction-lot-rail"><header><div><p>Tonight's catalogue</p><h2>Explore live lots</h2></div><span>Choose a lot to enter its bidding floor</span></header><div class="auction-grid">${auctions.map((item, index) => `<button type="button" class="auction-card ${item.id === lot.id ? 'is-active' : ''}" data-auction-select="${item.id}"><span class="auction-card-image"><img src="${safe(item.image)}" alt=""><i>LOT ${String(index + 1).padStart(2, '0')}</i></span><span class="auction-info"><small>${safe(item.category)}</small><strong>${safe(item.title)}</strong><span><b>${money(item.currentBid)}</b><em data-auction-clock="${item.id}">${auctionTime(item)}</em></span></span></button>`).join('')}</div></section></section>`;
   updateAuctionClocks();
 }
-function showAuctionHouse() { if (observer) observer.disconnect(); clearInterval(auctionClock); sentinel.hidden = true; document.body.classList.add('auction-mode'); if (!activeAuctionId) activeAuctionId = auctions[0]?.id; renderAuctionHouse(); auctionClock = setInterval(updateAuctionClocks, 1000); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+function showAuctionHouse() { if (observer) observer.disconnect(); clearInterval(auctionClock); sentinel.hidden = true; document.body.classList.add('auction-mode'); if (!activeAuctionId) activeAuctionId = auctions[0]?.id; renderAuctionHouse(); auctionClock = setInterval(updateAuctionClocks, 1000); startAuctionFeed(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
 document.addEventListener('click', event => {
   if (event.target.closest('.delivery-update-form, .delivery-message-form, .trade-message-form')) return;
@@ -679,7 +689,7 @@ document.addEventListener('click', event => {
   if (event.target.closest('[data-voice-mute]')) { voiceChat.toggleMute(); return; }
   if (event.target.closest('[data-voice-video]')) { voiceChat.toggleVideo().catch(showError); return; }
   if (event.target.closest('[data-voice-leave]')) { voiceChat.leave(); return; }
-  const auctionSelect = event.target.closest('[data-auction-select]'); if (auctionSelect) { activeAuctionId = auctionSelect.dataset.auctionSelect; renderFilteredAuctionHouse(); document.querySelector('.auction-stage')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+  const auctionSelect = event.target.closest('[data-auction-select]'); if (auctionSelect) { pauseAuctionFeed(20000); activeAuctionId = auctionSelect.dataset.auctionSelect; renderFilteredAuctionHouse(); document.querySelector('.auction-stage')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
   const bidAdd = event.target.closest('[data-bid-add]'); if (bidAdd) { const input = bidAdd.closest('form').querySelector('[name="amount"]'); input.value = Number(input.value || input.min) + Number(bidAdd.dataset.bidAdd); input.focus(); return; }
   const passwordToggle = event.target.closest('[data-password-toggle]'); if (passwordToggle) { const input = passwordToggle.closest('.password-field').querySelector('input'); const showing = input.type === 'text'; input.type = showing ? 'password' : 'text'; passwordToggle.textContent = showing ? '◉' : '◉̸'; passwordToggle.setAttribute('aria-label', showing ? 'Show password' : 'Hide password'); passwordToggle.setAttribute('aria-pressed', String(!showing)); input.focus(); return; }
   const scopeButton = event.target.closest('[data-search-scope]'); if (scopeButton) { setSearchScope(scopeButton.dataset.searchScope); return; }
@@ -716,7 +726,7 @@ document.addEventListener('click', event => {
   if (action?.matches('[data-policy]')) { setWorkspaceHash('fees'); openModal('Marketplace fees', 'Standard purchase fees are 4% per side. Curator members pay 1% on their own side for $150/month. Buyers pay taxes and delivery; courier pay is the greater of $8 or $0.20 per mile, plus packaging. Transaction and delivery terms are policy drafts pending legal review.'); }
   if (action?.matches('[data-auction]')) { setWorkspaceHash('auction-house'); activateNav('auction'); showAuctionHouse(); }
   if (event.target.closest('.like')) { const like = event.target.closest('.like'); like.textContent = like.textContent === '♡' ? '♥' : '♡'; like.classList.toggle('liked'); }
-  if (action?.matches('[data-market],[data-home]')) { setWorkspaceHash('browse'); document.body.classList.remove('auction-mode'); clearInterval(auctionClock); activateNav(action.matches('[data-market]') ? 'market' : 'home'); sentinel.hidden = false; activeCategory = 'All'; setQuery(''); setDiscoveryMode(activeTags.length || lockedTags.length || voidTags.length ? 'tags' : 'search'); renderTags(); renderCategories(); renderFeed(); if (observer) observer.observe(sentinel); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  if (action?.matches('[data-market],[data-home]')) { setWorkspaceHash('browse'); document.body.classList.remove('auction-mode'); clearInterval(auctionClock); clearInterval(auctionFeedClock); activateNav(action.matches('[data-market]') ? 'market' : 'home'); sentinel.hidden = false; activeCategory = 'All'; setQuery(''); setDiscoveryMode(activeTags.length || lockedTags.length || voidTags.length ? 'tags' : 'search'); renderTags(); renderCategories(); renderFeed(); if (observer) observer.observe(sentinel); window.scrollTo({ top: 0, behavior: 'smooth' }); }
   if (event.target.matches('.close')) modal.close();
 });
 search.addEventListener('input', event => { setDiscoveryMode('search'); clearTimeout(searchRenderTimer); const value = event.target.value; searchRenderTimer = setTimeout(() => setQuery(value), 140); });
@@ -828,12 +838,14 @@ const renderFilteredAuctionHouse = () => {
   renderAuctionHouse();
   auctions = allLots;
 };
-showAuctionHouse = () => { auctionTagView = true; if (observer) observer.disconnect(); clearInterval(auctionClock); sentinel.hidden = true; document.body.classList.add('auction-mode'); renderFilteredAuctionHouse(); auctionClock = setInterval(updateAuctionClocks, 1000); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+showAuctionHouse = () => { auctionTagView = true; if (observer) observer.disconnect(); clearInterval(auctionClock); sentinel.hidden = true; document.body.classList.add('auction-mode'); renderFilteredAuctionHouse(); auctionClock = setInterval(updateAuctionClocks, 1000); startAuctionFeed(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 const refreshTaggedAuction = () => { if (auctionTagView) renderFilteredAuctionHouse(); };
 document.addEventListener('click', event => {
   if (event.target.closest('[data-home], [data-market]')) auctionTagView = false;
   if (event.target.closest('[data-tag], [data-category], [data-tag-match]')) queueMicrotask(refreshTaggedAuction);
 });
+document.addEventListener('pointerover', event => { if (event.target.closest('.auction-house')) pauseAuctionFeed(12000); });
+document.addEventListener('focusin', event => { if (event.target.closest('.auction-house')) pauseAuctionFeed(20000); });
 tagSearch.addEventListener('input', () => setTimeout(refreshTaggedAuction, 160));
 tagSearch.addEventListener('keydown', event => { if (event.key === 'Enter') setTimeout(refreshTaggedAuction, 0); });
 
