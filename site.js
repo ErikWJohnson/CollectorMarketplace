@@ -259,8 +259,10 @@ function stopConveyor() { if (conveyorFrame) cancelAnimationFrame(conveyorFrame)
 function runConveyor() {
   if (browseMode !== 'conveyor' || searchScope !== 'listings' || modal.open || document.hidden || document.body.classList.contains('auction-mode')) { stopConveyor(); return; }
   if (Date.now() >= conveyorPausedUntil) {
-    const limit = Math.max(0, stream.scrollWidth - stream.clientWidth);
-    if (limit > 0) stream.scrollLeft = stream.scrollLeft >= limit - 1 ? 0 : stream.scrollLeft + .65;
+    const first = stream.querySelector('.listing:not([data-conveyor-copy])'); const copy = stream.querySelector('[data-conveyor-copy]');
+    const loopWidth = first && copy ? copy.offsetLeft - first.offsetLeft : 0;
+    if (loopWidth > 0 && stream.scrollLeft >= loopWidth) stream.scrollLeft -= loopWidth;
+    stream.scrollLeft += .65;
   }
   conveyorFrame = requestAnimationFrame(runConveyor);
 }
@@ -558,8 +560,9 @@ const directoryCard = (item, type) => {
 function renderFeed(reset = true) {
   if (searchScope !== 'listings') { const rows = filteredDirectory(); const meta = socialScopeMeta[searchScope]; stream.innerHTML = rows.map(item => directoryCard(item, searchScope)).join('') || `<p class="load-state">No ${meta.noun}s match that search yet.</p>`; document.querySelector('#result-count').textContent = `${rows.length} ${meta.noun}${rows.length === 1 ? '' : 's'}`; sentinel.textContent = rows.length ? 'Community directory complete.' : 'Try another name, interest, or tag.'; syncBrowseModeUi(); return; }
   const rows = filtered(); if (reset) page = 1; const visible = browseMode === 'conveyor' ? rows : rows.slice(0, page * 4);
-  stream.innerHTML = visible.map(card).join('') || '<p class="load-state">No collector finds match that search.</p>';
-  stream.querySelectorAll('.collector-head').forEach((header, index) => { header.dataset.profile = visible[index]?.ownerId || ''; header.tabIndex = 0; header.setAttribute('role', 'button'); header.setAttribute('aria-label', `Open ${visible[index]?.owner?.username || 'collector'} profile`); });
+  const originalCards = visible.map(card).join(''); const conveyorCopies = browseMode === 'conveyor' && visible.length > 1 ? visible.map(item => card(item).replace('<article class="listing"', '<article class="listing" data-conveyor-copy="true" inert aria-hidden="true"')).join('') : '';
+  stream.innerHTML = originalCards ? originalCards + conveyorCopies : '<p class="load-state">No collector finds match that search.</p>';
+  stream.querySelectorAll('.listing:not([data-conveyor-copy]) .collector-head').forEach((header, index) => { header.dataset.profile = visible[index]?.ownerId || ''; header.tabIndex = 0; header.setAttribute('role', 'button'); header.setAttribute('aria-label', `Open ${visible[index]?.owner?.username || 'collector'} profile`); });
   document.querySelector('#result-count').textContent = `${rows.length} listed`; sentinel.textContent = browseMode === 'conveyor' ? 'Conveyor mode · click a listing to pause' : page * 4 < rows.length ? 'Scroll for more finds ↓' : 'You are all caught up.'; syncBrowseModeUi();
 }
 function openModal(title, copy, form) { modal.className = ''; document.body.classList.remove('purchase-open', 'comments-open'); modalContent.innerHTML = `<h2 class="modal-title">${title}</h2><p class="modal-copy">${copy}</p>${form || ''}`; if (!modal.open) modal.showModal(); if (form?.includes('listing-form')) { const primaryTag = modalContent.querySelector('[name="category"]'); const extraTags = modalContent.querySelector('[name="tags"]'); primaryTag?.closest('label')?.firstChild && (primaryTag.closest('label').firstChild.textContent = 'Tags · start with one primary tag'); if (primaryTag) primaryTag.placeholder = 'Add your first tag'; extraTags?.closest('label')?.firstChild && (extraTags.closest('label').firstChild.textContent = 'More tags '); const required = modalContent.querySelector('.listing-publish-bar span'); if (required) required.textContent = 'Required: title, at least one tag, condition, price, description, and at least one photo.'; } }
