@@ -11,7 +11,8 @@ const sentinel = document.querySelector('#sentinel');
 const modal = document.querySelector('#modal');
 const modalContent = document.querySelector('#modal-content');
 let listings = [], auctions = [], accounts = [], collectives = [], brands = [], couriers = [], chatrooms = [], deliveries = [], uploadedListingImages = [], uploadedListingVideos = [], activeCategory = 'All', activeQuery = '', activeTags = [], searchScope = 'listings', sortMode = 'popular', page = 1, observer, searchRenderTimer, auctionClock;
-const searchScopes = ['listings', 'accounts', 'collectives', 'brands', 'couriers', 'chatrooms'];
+// Keep comma/period keyboard navigation in the same order as the visible scope bar.
+const searchScopes = ['listings', 'accounts', 'collectives', 'brands', 'chatrooms', 'couriers'];
 const socialScopeMeta = {
   listings: { heading: 'Fresh drops', noun: 'listing' }, accounts: { heading: 'Collector network', noun: 'collector' },
   collectives: { heading: 'Collector groups', noun: 'group' }, brands: { heading: 'Brand communities', noun: 'brand' },
