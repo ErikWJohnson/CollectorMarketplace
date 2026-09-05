@@ -101,11 +101,14 @@ body.chat-open .app-shell { height: 100dvh; overflow: hidden !important; }
 .conversation-header { display: flex; align-items: center; gap: 10px; min-height: 64px; padding: 10px 14px; border-bottom: 1px solid #4a4a4a; }
 .conversation-header button { border: 0; padding: 0; background: transparent; color: #f2bc35; font: 700 .7rem/1 var(--mono, monospace); letter-spacing: .05em; text-transform: uppercase; }
 .conversation-header strong { color: #f5f3eb; }
+.conversation-header .start-chat-trade { margin-left:auto;border:1px solid #f2bc35;padding:9px 12px;background:#f2bc35;color:#171717; }
+.conversation-header .start-chat-trade+.voice-start { margin-left:0; }
 .conversation-header .chat-avatar { width: 34px; height: 34px; margin-left: auto; font-size: .8rem; }
 .collector-thread { flex: 1; min-height: 0; max-height: none; overflow-y: auto; padding: 18px; background: #181818; overscroll-behavior: contain; }
 .collector-thread .post-comment { display: grid; gap: 3px; width: fit-content; max-width: 82%; margin: 9px 0; padding: 10px 12px; border: 1px solid #4a4a4a; background: #292929; }
 .collector-thread .post-comment b { color: #f2bc35; font-size: .72rem; }
 .collector-thread .post-comment.is-own-message { margin-left: auto; border-color: #a97f1d; background: #3a2c12; }
+.chat-trade-request { display:grid;gap:7px;width:min(440px,88%);margin:12px 0;padding:15px;border:1px solid #a97f1d;background:linear-gradient(135deg,#30250f,#201d17); }.chat-trade-request.is-own-message{margin-left:auto}.chat-trade-request small{color:#f2bc35;font:800 .65rem/1 var(--mono,monospace);letter-spacing:.1em}.chat-trade-request b{color:#f5f3eb}.chat-trade-request span{color:#bbb6aa;font-size:.78rem;line-height:1.4}.chat-trade-request button{justify-self:start;border:1px solid #f2bc35;padding:8px 10px;background:#f2bc35;color:#171717;font:800 .68rem/1 var(--mono,monospace);text-transform:uppercase}
 .collector-message-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; margin: 0; padding: 12px; border-top: 1px solid #4a4a4a; background: #202020; }
 .collector-message-form textarea { min-height: 44px; max-height: 130px; resize: vertical; padding: 12px; border: 1px solid #656565; background: #111; color: #f5f3eb; outline: 0; }
 .collector-message-form textarea:focus { border-color: #f2bc35; }
@@ -119,17 +122,31 @@ body.chat-open .app-shell { height: 100dvh; overflow: hidden !important; }
   .chat-sidebar { min-height: 520px; }
   .chat-secondary { padding: 14px; }
   .conversation-workspace { margin-top: 14px; }
+  .conversation-header { flex-wrap:wrap;height:auto;padding-top:50px; }
+  .conversation-header strong { flex:1; }
+  .conversation-header .start-chat-trade { order:3;flex:1;margin-left:0; }
+  .conversation-header .voice-start { order:4;flex:1; }
   .collector-message-form { grid-template-columns: 1fr; }
   .collector-message-form button { width: 100%; }
 }
 
 .trade-dialog .modal-copy { margin-bottom: 0; }
 .trade-dialog #modal-content > .modal-title, .trade-dialog #modal-content > .modal-copy { display: none; }
-.trade-dialog #modal-content { height: calc(100dvh - 36px); }
+.trade-dialog { inset:0;width:100vw!important;max-width:none!important;height:100dvh!important;max-height:none!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;overflow-x:hidden;overflow-y:auto; }
+.trade-dialog .close { top:16px;right:18px; }
+.trade-dialog #modal-content { width:100%;height:auto;min-height:100dvh;margin:0;overflow:visible; }
 .trade-dialog .conversation-workspace, .trade-dialog .trade-builder-form, .trade-dialog .trade-delivery-form { margin-top: 0; }
-.trade-dialog .conversation-workspace { height: 100%; }
+.trade-dialog .conversation-workspace { width:100%;height:100dvh;margin:0;border:0; }
 .trade-dialog .trade-builder-form, .trade-dialog .trade-delivery-form { min-height: 100%; }
-.trade-dialog .trade-builder-form, .trade-dialog .trade-delivery-form { width: min(1120px, 100%); max-width: none; margin: 0 auto; padding: clamp(16px, 3vw, 30px); border: 1px solid #4a4a4a; background: #181818; overflow: auto; }
+.trade-dialog .trade-builder-form, .trade-dialog .trade-delivery-form { width:100%!important;max-width:none!important;margin:0!important;padding:clamp(60px,5vw,76px) clamp(18px,3vw,48px) clamp(28px,4vw,52px);border:0!important;border-radius:0!important;background:#181818;box-shadow:none!important;overflow:visible; }
+.trade-dialog .trade-builder-form { display:grid;grid-template-columns:minmax(0,1.15fr) minmax(340px,.85fr);gap:18px;align-content:start;min-height:100dvh; }
+.trade-dialog .trade-builder-form>.trade-builder-columns { grid-column:1/-1; }
+.trade-dialog .trade-builder-form>.trade-cash-fields { grid-column:1; }
+.trade-dialog .trade-builder-form>.trade-live-fees { grid-column:2;grid-row:2; }
+.trade-dialog .trade-builder-form>.trade-delivery-fields { grid-column:1;grid-row:3/7; }
+.trade-dialog .trade-builder-form>label:not(.trade-fee-agreement) { grid-column:2;grid-row:3;align-self:start; }
+.trade-dialog .trade-builder-form>.trade-fee-agreement { grid-column:2;grid-row:4;align-self:start; }
+.trade-dialog .trade-builder-form>.transaction-submit { grid-column:2;grid-row:5;min-height:54px;align-self:start; }
 .trade-delivery-fields { display: grid; gap: 12px; padding: 16px; border: 1px solid #4a4a4a; background: #202020; }
 .trade-delivery-fields h3, .trade-delivery-fields p { margin: 0; }
 .trade-delivery-fields p { color: #bcb8ad; font-size: .82rem; line-height: 1.45; }
@@ -175,7 +192,7 @@ body.chat-open .app-shell { height: 100dvh; overflow: hidden !important; }
 .entity-workspace footer { display: flex; flex-wrap: wrap; gap: 10px; margin-top: auto; padding: 18px 22px; border-top: 1px solid #4a4a4a; }
 .entity-primary { border: 1px solid #f2bc35; padding: 11px 14px; background: #f2bc35; color: #171717; font: 800 .72rem/1 var(--mono, monospace); letter-spacing: .05em; text-transform: uppercase; }
 @media (max-width: 680px) { .entity-workspace { min-height: calc(100dvh - 98px); margin-top: 14px; } .entity-workspace > header { padding: 24px 18px; } .entity-tags, .entity-post-list { padding: 18px; } }
-.trade-dialog .conversation-workspace { margin-top: 20px; }
+.trade-dialog .conversation-workspace { margin-top:0; }
 .trade-status { margin-left: auto; border: 1px solid #a97f1d; padding: 5px 8px; color: #f2bc35; font: 700 .65rem/1 var(--mono, monospace); letter-spacing: .06em; text-transform: uppercase; }
 .trade-actions { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; padding: 12px; border-top: 1px solid #4a4a4a; background: #202020; }
 .trade-actions button { border: 1px solid #f2bc35; padding: 9px 12px; background: #f2bc35; color: #171717; font: 800 .7rem/1 var(--mono, monospace); letter-spacing: .04em; text-transform: uppercase; cursor: pointer; }
@@ -198,7 +215,7 @@ body.chat-open .app-shell { height: 100dvh; overflow: hidden !important; }
 .trade-builder-columns output { border: 1px solid #6b592d; padding: 4px 6px; color: #f2bc35; font: 700 .65rem/1 var(--mono, monospace); }
 .trade-builder-columns h3, .trade-item-summary h3 { margin: 0; color: #f2bc35; font: 800 .75rem/1 var(--mono, monospace); letter-spacing: .08em; text-transform: uppercase; }
 .trade-builder-columns p { margin: 8px 0 12px; color: #aaa69c; font-size: .78rem; line-height: 1.4; }
-.trade-item-list { display: grid; gap: 8px; max-height: 270px; overflow-y: auto; }
+.trade-item-list { display:grid;gap:8px;max-height:clamp(270px,38dvh,460px);overflow-y:auto;scrollbar-gutter:stable; }
 .trade-item-option { display: grid; grid-template-columns: auto 44px minmax(0, 1fr) auto; gap: 9px; align-items: center; border: 1px solid #484848; border-radius: 9px; padding: 7px; background: #171717; cursor: pointer; transition: transform .15s ease,border-color .15s ease,background .15s ease; }
 .trade-item-option:hover { border-color: #9a8145; transform: translateY(-1px); }
 .trade-item-option:has(input:checked), .trade-item-option.is-required { border-color: #f2bc35; background: linear-gradient(135deg,#403315,#2a2415); box-shadow: 0 0 0 1px #f2bc3533; }
@@ -226,11 +243,16 @@ body.chat-open .app-shell { height: 100dvh; overflow: hidden !important; }
 .trade-acceptance-board .is-locked span { color: #f2bc35; }
 
 @media (max-width: 680px) {
-  .trade-dialog .conversation-workspace { margin-top: 14px; }
+  .trade-dialog { padding:0 0 env(safe-area-inset-bottom); }
+  .trade-dialog .conversation-workspace { height:100dvh;margin-top:0; }
+  .trade-dialog .trade-builder-form,.trade-dialog .trade-delivery-form { padding:62px 14px 28px; }
+  .trade-dialog .trade-builder-form { grid-template-columns:1fr;gap:14px; }
+  .trade-dialog .trade-builder-form>.trade-builder-columns,.trade-dialog .trade-builder-form>.trade-cash-fields,.trade-dialog .trade-builder-form>.trade-live-fees,.trade-dialog .trade-builder-form>.trade-delivery-fields,.trade-dialog .trade-builder-form>label:not(.trade-fee-agreement),.trade-dialog .trade-builder-form>.trade-fee-agreement,.trade-dialog .trade-builder-form>.transaction-submit { grid-column:1;grid-row:auto; }
   .trade-actions { padding: 10px; }
   .trade-actions button { flex: 1 1 150px; min-height: 42px; }
   .trade-status { order: 3; margin-left: 0; }
   .trade-offer-content { padding: 16px; }
   .trade-builder-columns, .trade-cash-fields, .trade-item-summary, .trade-acceptance-board, .trade-live-fees, .trade-fee-receipt { grid-template-columns: 1fr; }
   .trade-live-fees>p,.trade-fee-receipt>small { grid-column:1; }
+  .trade-item-list { max-height:320px; }
 }
