@@ -307,6 +307,17 @@ document.addEventListener('keydown', event => {
   const direction = event.key === ',' ? -1 : 1;
   setSearchScope(searchScopes[(current + direction + searchScopes.length) % searchScopes.length]);
 });
+const bottomNavigation = ['home', 'auction', 'chat', 'sell', 'account'];
+document.addEventListener('keydown', event => {
+  const key = event.key.toLowerCase();
+  if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || !canUseAutoScroll(event.target) || !['z', 'x'].includes(key)) return;
+  event.preventDefault();
+  const activeButton = document.querySelector('.bottom-nav button.active');
+  const current = Math.max(0, bottomNavigation.findIndex(name => activeButton?.hasAttribute(`data-${name}`)));
+  const direction = key === 'z' ? -1 : 1;
+  const destination = bottomNavigation[(current + direction + bottomNavigation.length) % bottomNavigation.length];
+  document.querySelector(`.bottom-nav [data-${destination}]`)?.click();
+});
 const applyHashLocation = () => {
   const hash = location.hash.slice(1).toLowerCase();
   if (hash === 'search' || hash === 'tags') { openDiscoveryShortcut(hash); return; }
