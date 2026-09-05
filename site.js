@@ -11,6 +11,7 @@ const sentinel = document.querySelector('#sentinel');
 const modal = document.querySelector('#modal');
 const modalContent = document.querySelector('#modal-content');
 let listings = [], auctions = [], accounts = [], collectives = [], brands = [], couriers = [], chatrooms = [], deliveries = [], uploadedListingImages = [], uploadedListingVideos = [], activeCategory = 'All', activeQuery = '', activeTags = [], searchScope = 'listings', sortMode = 'popular', page = 1, observer, searchRenderTimer, auctionClock;
+let browseMode = localStorage.getItem('collector-marketplace-browse-mode') === 'conveyor' ? 'conveyor' : 'doomscroll', conveyorFrame = 0, conveyorPausedUntil = 0;
 // Keep comma/period keyboard navigation in the same order as the visible scope bar.
 const searchScopes = ['listings', 'accounts', 'collectives', 'brands', 'chatrooms', 'couriers'];
 const socialScopeMeta = {
@@ -25,6 +26,7 @@ const setSearchScope = (scope, syncRoute = true) => {
   search.placeholder = searchScope === 'listings' ? 'Search collector finds' : searchScope === 'accounts' ? 'Find collectors by name or interest' : searchScope === 'collectives' ? 'Find collector groups and interests' : searchScope === 'brands' ? 'Find brands and their communities' : searchScope === 'couriers' ? 'Find collector-friendly delivery services' : 'Find live collector rooms';
   const marketHeading = document.querySelector('.market-head span');
   if (marketHeading) marketHeading.textContent = socialScopeMeta[searchScope].heading;
+  syncBrowseModeUi();
   renderFeed();
   if (syncRoute && typeof syncTagRoute === 'function') syncTagRoute();
 };
@@ -253,6 +255,29 @@ const reverseAutoScroll = () => {
   autoScrollDirection *= -1;
   if (!autoScrollActive) toggleAutoScroll();
 };
+function stopConveyor() { if (conveyorFrame) cancelAnimationFrame(conveyorFrame); conveyorFrame = 0; }
+function runConveyor() {
+  if (browseMode !== 'conveyor' || searchScope !== 'listings' || modal.open || document.hidden || document.body.classList.contains('auction-mode')) { stopConveyor(); return; }
+  if (Date.now() >= conveyorPausedUntil) {
+    const limit = Math.max(0, stream.scrollWidth - stream.clientWidth);
+    if (limit > 0) stream.scrollLeft = stream.scrollLeft >= limit - 1 ? 0 : stream.scrollLeft + .65;
+  }
+  conveyorFrame = requestAnimationFrame(runConveyor);
+}
+function startConveyor() { stopConveyor(); if (browseMode === 'conveyor' && searchScope === 'listings') conveyorFrame = requestAnimationFrame(runConveyor); }
+function syncBrowseModeUi() {
+  const conveyor = browseMode === 'conveyor' && searchScope === 'listings';
+  document.body.classList.toggle('browse-conveyor', conveyor);
+  const button = document.querySelector('[data-browse-mode]');
+  if (button) { button.disabled = searchScope !== 'listings'; button.firstChild.textContent = browseMode === 'conveyor' ? 'Conveyor ' : 'Doomscroll '; button.setAttribute('aria-label', `Browsing mode: ${browseMode}. Press Q to switch.`); button.setAttribute('aria-pressed', String(browseMode === 'conveyor')); }
+  if (conveyor) startConveyor(); else stopConveyor();
+}
+function toggleBrowseMode() {
+  browseMode = browseMode === 'doomscroll' ? 'conveyor' : 'doomscroll';
+  localStorage.setItem('collector-marketplace-browse-mode', browseMode);
+  stopAutoScroll(); stream.scrollLeft = 0; syncBrowseModeUi(); renderFeed();
+}
+document.addEventListener('keydown', event => { if (event.key.toLowerCase() === 'q' && searchScope === 'listings' && !event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey && canUseAutoScroll(event.target)) { event.preventDefault(); toggleBrowseMode(); } });
 document.addEventListener('keydown', event => {
   if (event.key === 'Alt' && !event.ctrlKey && !event.metaKey && canUseAutoScroll(event.target)) {
     event.preventDefault();
@@ -530,7 +555,13 @@ const directoryCard = (item, type) => {
   const itemTags = type === 'accounts' ? item.profileTags || [] : item.tags || [];
   return `<article class="search-directory-card social-directory-card"><header><span>${label}</span><b>${title}</b></header><p>${description}</p><small>${stats}</small>${itemTags.length ? `<div class="directory-tags">${itemTags.slice(0, 4).map(tag => `<button type="button" data-tag="${safe(tag)}">#${safe(tag)}</button>`).join('')}</div>` : ''}${socialActions(item, type)}</article>`;
 };
-function renderFeed(reset = true) { if (searchScope !== 'listings') { const rows = filteredDirectory(); const meta = socialScopeMeta[searchScope]; stream.innerHTML = rows.map(item => directoryCard(item, searchScope)).join('') || `<p class="load-state">No ${meta.noun}s match that search yet.</p>`; document.querySelector('#result-count').textContent = `${rows.length} ${meta.noun}${rows.length === 1 ? '' : 's'}`; sentinel.textContent = rows.length ? 'Community directory complete.' : 'Try another name, interest, or tag.'; return; } const rows = filtered(); if (reset) page = 1; const visible = rows.slice(0, page * 4); stream.innerHTML = visible.map(card).join('') || '<p class="load-state">No collector finds match that search.</p>'; stream.querySelectorAll('.collector-head').forEach((header, index) => { header.dataset.profile = visible[index]?.ownerId || ''; header.tabIndex = 0; header.setAttribute('role', 'button'); header.setAttribute('aria-label', `Open ${visible[index]?.owner?.username || 'collector'} profile`); }); document.querySelector('#result-count').textContent = `${rows.length} listed`; sentinel.textContent = page * 4 < rows.length ? 'Scroll for more finds ↓' : 'You are all caught up.'; }
+function renderFeed(reset = true) {
+  if (searchScope !== 'listings') { const rows = filteredDirectory(); const meta = socialScopeMeta[searchScope]; stream.innerHTML = rows.map(item => directoryCard(item, searchScope)).join('') || `<p class="load-state">No ${meta.noun}s match that search yet.</p>`; document.querySelector('#result-count').textContent = `${rows.length} ${meta.noun}${rows.length === 1 ? '' : 's'}`; sentinel.textContent = rows.length ? 'Community directory complete.' : 'Try another name, interest, or tag.'; syncBrowseModeUi(); return; }
+  const rows = filtered(); if (reset) page = 1; const visible = browseMode === 'conveyor' ? rows : rows.slice(0, page * 4);
+  stream.innerHTML = visible.map(card).join('') || '<p class="load-state">No collector finds match that search.</p>';
+  stream.querySelectorAll('.collector-head').forEach((header, index) => { header.dataset.profile = visible[index]?.ownerId || ''; header.tabIndex = 0; header.setAttribute('role', 'button'); header.setAttribute('aria-label', `Open ${visible[index]?.owner?.username || 'collector'} profile`); });
+  document.querySelector('#result-count').textContent = `${rows.length} listed`; sentinel.textContent = browseMode === 'conveyor' ? 'Conveyor mode · hover or scroll to pause' : page * 4 < rows.length ? 'Scroll for more finds ↓' : 'You are all caught up.'; syncBrowseModeUi();
+}
 function openModal(title, copy, form) { modal.className = ''; document.body.classList.remove('purchase-open', 'comments-open'); modalContent.innerHTML = `<h2 class="modal-title">${title}</h2><p class="modal-copy">${copy}</p>${form || ''}`; if (!modal.open) modal.showModal(); if (form?.includes('listing-form')) { const primaryTag = modalContent.querySelector('[name="category"]'); const extraTags = modalContent.querySelector('[name="tags"]'); primaryTag?.closest('label')?.firstChild && (primaryTag.closest('label').firstChild.textContent = 'Tags · start with one primary tag'); if (primaryTag) primaryTag.placeholder = 'Add your first tag'; extraTags?.closest('label')?.firstChild && (extraTags.closest('label').firstChild.textContent = 'More tags '); const required = modalContent.querySelector('.listing-publish-bar span'); if (required) required.textContent = 'Required: title, at least one tag, condition, price, description, and at least one photo.'; } }
 function openAuthPanel(mode = 'signup') { const login = mode === 'login'; openModal(login ? 'Sign in' : 'Create your account', login ? 'Sign in to list items, comment, and manage trades.' : 'Create your collector profile to list items, comment, and trade.', `<form class="modal-form auth-form" data-mode="${mode}">${login ? '' : '<input required name="username" placeholder="Collector username">'}<input required name="email" type="email" placeholder="Email address"><label class="password-field"><input required name="password" type="password" minlength="8" placeholder="Password (8+ characters)" autocomplete="${login ? 'current-password' : 'new-password'}"><button type="button" data-password-toggle aria-label="Show password" aria-pressed="false">◉</button></label><button>${login ? 'Sign in' : 'Create account'}</button></form><button type="button" class="auth-switch" data-auth-switch="${login ? 'signup' : 'login'}">${login ? 'Need an account? Create one' : 'Already a member? Sign in'}</button>`); }
 function profileWorkspace(profile, { own = false, following = false, connections = null, suggestions = [] } = {}) { const activeListings = profile.activeListings || []; const profileTags = profile.profileTags || []; const listingsMarkup = activeListings.length ? activeListings.map(item => `<button type="button" class="profile-listing-card" data-detail="${safe(item.id)}"><img src="${safe(item.image || item.images?.[0] || '')}" alt="${safe(item.title)}"><b>${safe(item.title)}</b><span>${money(item.price)}</span><small>${safe(formatListingDate(item.createdAt))}</small></button>`).join('') : '<p class="profile-empty">This collector has no active listings right now.</p>'; const people = rows => rows?.length ? rows.map(person => `<button type="button" class="connection-row" data-profile="${person.id}">${accountAvatar(person, 'connection-avatar')}<span><b>@${safe(person.username)}</b><small>${Number(person.reputation || 0)} reputation</small></span></button>`).join('') : '<p class="profile-empty">No collectors here yet.</p>'; const suggested = suggestions.length ? suggestions.map(person => `<article class="suggested-account">${accountAvatar(person, 'connection-avatar')}<div><strong>@${safe(person.username)}</strong><small>${Number(person.activeListingCount || 0)} active posts · ${Number(person.reputation || 0)} reputation</small></div><button type="button" data-account-follow="${person.id}">Follow</button></article>`).join('') : '<p class="profile-empty">No new collectors to suggest right now.</p>'; const accountTools = own ? `<section class="profile-account-tools"><section><h4>Following <small>${connections.following.length}</small></h4>${people(connections.following)}</section><section><h4>Friends <small>${connections.friends.length}</small></h4>${people(connections.friends)}</section><section><h4>Discover collectors</h4>${suggested}</section></section>` : ''; return `<section class="profile-workspace"><header class="profile-hero">${accountAvatar(profile, 'account-avatar')}<div><p class="profile-kicker">COLLECTOR PROFILE</p><h3>@${safe(profile.username)}</h3><span>${safe(profile.bio || 'A collector building their marketplace presence.')}</span></div>${own ? '<button type="button" data-account-edit>Edit profile</button>' : session ? `<button type="button" data-follow="${profile.id}">${following ? 'Following' : 'Follow'}</button>` : ''}</header><aside class="profile-summary"><h4>Collector overview</h4><div class="profile-metrics"><span><b>${activeListings.length}</b>Active posts</span><span><b>${profile.tradeHistory?.length || 0}</b>Completed trades</span><span><b>${Number(profile.reputation || 0)}</b>Reputation</span><span><b>${own ? 'You' : following ? '✓' : '—'}</b>Connection</span></div><h4>Discovery tags</h4><div class="profile-tag-list">${profileTags.length ? profileTags.map(tag => `<button type="button" data-tag="${safe(tag)}">#${safe(tag)}</button>`).join('') : '<span class="profile-empty">No profile tags yet.</span>'}</div></aside><section class="profile-listings"><h4>Active listings <small>${activeListings.length}</small></h4><div class="profile-listing-grid">${listingsMarkup}</div></section>${accountTools}<footer class="profile-footer">${own ? '<button type="button" class="entity-primary" data-delivery-center>Delivery center</button><button type="button" class="entity-primary" data-chat>Open messages</button><button type="button" class="entity-primary" data-signout>Sign out</button>' : `<button type="button" class="entity-primary" data-community="accounts" data-community-id="${profile.id}" data-community-label="@${safe(profile.username)}">Open discussion</button>${session ? `<button type="button" class="entity-primary" data-collector-chat="${profile.id}">Message collector</button>` : ''}`}</footer></section>`; }
@@ -692,6 +723,7 @@ document.addEventListener('click', event => {
   const auctionSelect = event.target.closest('[data-auction-select]'); if (auctionSelect) { pauseAuctionFeed(20000); activeAuctionId = auctionSelect.dataset.auctionSelect; renderFilteredAuctionHouse(); document.querySelector('.auction-stage')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
   const bidAdd = event.target.closest('[data-bid-add]'); if (bidAdd) { const input = bidAdd.closest('form').querySelector('[name="amount"]'); input.value = Number(input.value || input.min) + Number(bidAdd.dataset.bidAdd); input.focus(); return; }
   const passwordToggle = event.target.closest('[data-password-toggle]'); if (passwordToggle) { const input = passwordToggle.closest('.password-field').querySelector('input'); const showing = input.type === 'text'; input.type = showing ? 'password' : 'text'; passwordToggle.textContent = showing ? '◉' : '◉̸'; passwordToggle.setAttribute('aria-label', showing ? 'Show password' : 'Hide password'); passwordToggle.setAttribute('aria-pressed', String(!showing)); input.focus(); return; }
+  if (event.target.closest('[data-browse-mode]')) { toggleBrowseMode(); return; }
   const scopeButton = event.target.closest('[data-search-scope]'); if (scopeButton) { setSearchScope(scopeButton.dataset.searchScope); return; }
   const tag = event.target.closest('[data-tag]'); const category = event.target.closest('[data-category]'); const trade = event.target.closest('[data-trade]'); const action = event.target.closest('[data-home],[data-market],[data-auction],[data-chat],[data-sell],[data-account],[data-curator],[data-policy]');
   const profile = event.target.closest('[data-profile]'); if (profile) openProfile(profile.dataset.profile).catch(showError);
@@ -779,6 +811,7 @@ document.querySelector('#tags-tab').addEventListener('click', () => { setWorkspa
 modal.addEventListener('click', event => { if (event.target === modal) modal.close(); });
 modal.addEventListener('close', () => {
   document.body.classList.remove('chat-open', 'account-open', 'purchase-open', 'comments-open');
+  if (browseMode === 'conveyor' && searchScope === 'listings') startConveyor();
   const workspace = location.hash.slice(1).toLowerCase();
   if (restoringWorkspaceHistory || !modalWorkspaceHashes.has(workspace)) return;
   if (history.state?.returnHash) history.back();
@@ -846,6 +879,8 @@ document.addEventListener('click', event => {
 });
 document.addEventListener('pointerover', event => { if (event.target.closest('.auction-house')) pauseAuctionFeed(12000); });
 document.addEventListener('focusin', event => { if (event.target.closest('.auction-house')) pauseAuctionFeed(20000); });
+stream.addEventListener('pointerover', () => { if (browseMode === 'conveyor') conveyorPausedUntil = Date.now() + 4000; });
+stream.addEventListener('wheel', event => { if (browseMode !== 'conveyor') return; event.preventDefault(); conveyorPausedUntil = Date.now() + 7000; stream.scrollLeft += event.deltaY || event.deltaX; }, { passive: false });
 tagSearch.addEventListener('input', () => setTimeout(refreshTaggedAuction, 160));
 tagSearch.addEventListener('keydown', event => { if (event.key === 'Enter') setTimeout(refreshTaggedAuction, 0); });
 
