@@ -242,6 +242,10 @@ body.chat-open .app-shell { height: 100dvh; overflow: hidden !important; }
 .trade-acceptance-board .is-locked { background: #2e2917; }
 .trade-acceptance-board .is-locked span { color: #f2bc35; }
 
+/* One predictable full-page scroll surface for the trade builder. */
+dialog.trade-dialog:not([open]){display:none!important}
+dialog.trade-dialog{display:block!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain;scrollbar-gutter:stable;scroll-padding-bottom:110px;-webkit-overflow-scrolling:touch}.trade-dialog[open]{display:block!important}.trade-dialog #modal-content{display:block!important;height:auto!important;min-height:100%;overflow:visible!important}.trade-dialog .trade-builder-form{height:auto!important;min-height:100dvh!important;padding-bottom:max(130px,calc(90px + env(safe-area-inset-bottom)))!important}.trade-dialog .trade-item-list{max-height:none;overflow:visible;scrollbar-gutter:auto}.trade-dialog .close{position:fixed!important;z-index:20;border:1px solid #777;border-radius:50%;background:#171717;color:#f5f3eb;box-shadow:0 8px 24px #0009}.trade-dialog .transaction-submit{position:sticky;z-index:12;bottom:max(18px,env(safe-area-inset-bottom));width:100%;min-height:58px;border:1px solid #f2bc35;background:#f2bc35;color:#171717;box-shadow:0 12px 30px #000c;font-size:.78rem;cursor:pointer}.trade-dialog .transaction-submit:hover,.trade-dialog .transaction-submit:focus-visible{background:#ffe081;outline:2px solid #f2bc3544;outline-offset:2px}.trade-dialog .transaction-submit:disabled{cursor:wait;opacity:.65}.trade-dialog .trade-builder-columns output{white-space:nowrap}.trade-dialog .trade-cash-fields input:focus,.trade-dialog .trade-delivery-fields input:focus,.trade-dialog .trade-delivery-fields select:focus,.trade-dialog .trade-delivery-fields textarea:focus,.trade-dialog .trade-builder-form>label textarea:focus{border-color:#f2bc35;outline:2px solid #f2bc3522}
+
 @media (max-width: 680px) {
   .trade-dialog { padding:0 0 env(safe-area-inset-bottom); }
   .trade-dialog .conversation-workspace { height:100dvh;margin-top:0; }
