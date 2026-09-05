@@ -275,7 +275,7 @@ function syncBrowseModeUi() {
 function toggleBrowseMode() {
   browseMode = browseMode === 'doomscroll' ? 'conveyor' : 'doomscroll';
   localStorage.setItem('collector-marketplace-browse-mode', browseMode);
-  stopAutoScroll(); stream.scrollLeft = 0; syncBrowseModeUi(); renderFeed();
+  stopAutoScroll(); conveyorPausedUntil = 0; stream.scrollLeft = 0; syncBrowseModeUi(); renderFeed();
 }
 document.addEventListener('keydown', event => { if (event.key.toLowerCase() === 'q' && searchScope === 'listings' && !event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey && canUseAutoScroll(event.target)) { event.preventDefault(); toggleBrowseMode(); } });
 document.addEventListener('keydown', event => {
@@ -560,7 +560,7 @@ function renderFeed(reset = true) {
   const rows = filtered(); if (reset) page = 1; const visible = browseMode === 'conveyor' ? rows : rows.slice(0, page * 4);
   stream.innerHTML = visible.map(card).join('') || '<p class="load-state">No collector finds match that search.</p>';
   stream.querySelectorAll('.collector-head').forEach((header, index) => { header.dataset.profile = visible[index]?.ownerId || ''; header.tabIndex = 0; header.setAttribute('role', 'button'); header.setAttribute('aria-label', `Open ${visible[index]?.owner?.username || 'collector'} profile`); });
-  document.querySelector('#result-count').textContent = `${rows.length} listed`; sentinel.textContent = browseMode === 'conveyor' ? 'Conveyor mode · hover or scroll to pause' : page * 4 < rows.length ? 'Scroll for more finds ↓' : 'You are all caught up.'; syncBrowseModeUi();
+  document.querySelector('#result-count').textContent = `${rows.length} listed`; sentinel.textContent = browseMode === 'conveyor' ? 'Conveyor mode · click a listing to pause' : page * 4 < rows.length ? 'Scroll for more finds ↓' : 'You are all caught up.'; syncBrowseModeUi();
 }
 function openModal(title, copy, form) { modal.className = ''; document.body.classList.remove('purchase-open', 'comments-open'); modalContent.innerHTML = `<h2 class="modal-title">${title}</h2><p class="modal-copy">${copy}</p>${form || ''}`; if (!modal.open) modal.showModal(); if (form?.includes('listing-form')) { const primaryTag = modalContent.querySelector('[name="category"]'); const extraTags = modalContent.querySelector('[name="tags"]'); primaryTag?.closest('label')?.firstChild && (primaryTag.closest('label').firstChild.textContent = 'Tags · start with one primary tag'); if (primaryTag) primaryTag.placeholder = 'Add your first tag'; extraTags?.closest('label')?.firstChild && (extraTags.closest('label').firstChild.textContent = 'More tags '); const required = modalContent.querySelector('.listing-publish-bar span'); if (required) required.textContent = 'Required: title, at least one tag, condition, price, description, and at least one photo.'; } }
 function openAuthPanel(mode = 'signup') { const login = mode === 'login'; openModal(login ? 'Sign in' : 'Create your account', login ? 'Sign in to list items, comment, and manage trades.' : 'Create your collector profile to list items, comment, and trade.', `<form class="modal-form auth-form" data-mode="${mode}">${login ? '' : '<input required name="username" placeholder="Collector username">'}<input required name="email" type="email" placeholder="Email address"><label class="password-field"><input required name="password" type="password" minlength="8" placeholder="Password (8+ characters)" autocomplete="${login ? 'current-password' : 'new-password'}"><button type="button" data-password-toggle aria-label="Show password" aria-pressed="false">◉</button></label><button>${login ? 'Sign in' : 'Create account'}</button></form><button type="button" class="auth-switch" data-auth-switch="${login ? 'signup' : 'login'}">${login ? 'Need an account? Create one' : 'Already a member? Sign in'}</button>`); }
@@ -712,6 +712,7 @@ function showAuctionHouse() { if (observer) observer.disconnect(); clearInterval
 
 document.addEventListener('click', event => {
   if (event.target.closest('.delivery-update-form, .delivery-message-form, .trade-message-form')) return;
+  if (browseMode === 'conveyor' && event.target.closest('.listing')) conveyorPausedUntil = Date.now() + 15000;
   const tagMatch = event.target.closest('[data-tag-match]'); if (tagMatch) { tagMatchMode = tagMatch.dataset.tagMatch; reloadTagRoute(); return; }
   const community = event.target.closest('[data-community]'); if (community) { openCommunity(community.dataset.community, community.dataset.communityId, community.dataset.communityLabel).catch(showError); return; }
   const chatroom = event.target.closest('[data-chatroom]'); if (chatroom) { voiceChat.join(`chatroom:${chatroom.dataset.chatroom}`, chatroom.dataset.chatroomLabel || 'Collector chatroom').catch(showError); return; }
@@ -811,7 +812,7 @@ document.querySelector('#tags-tab').addEventListener('click', () => { setWorkspa
 modal.addEventListener('click', event => { if (event.target === modal) modal.close(); });
 modal.addEventListener('close', () => {
   document.body.classList.remove('chat-open', 'account-open', 'purchase-open', 'comments-open');
-  if (browseMode === 'conveyor' && searchScope === 'listings') startConveyor();
+  if (browseMode === 'conveyor' && searchScope === 'listings') { conveyorPausedUntil = 0; startConveyor(); }
   const workspace = location.hash.slice(1).toLowerCase();
   if (restoringWorkspaceHistory || !modalWorkspaceHashes.has(workspace)) return;
   if (history.state?.returnHash) history.back();
@@ -879,8 +880,7 @@ document.addEventListener('click', event => {
 });
 document.addEventListener('pointerover', event => { if (event.target.closest('.auction-house')) pauseAuctionFeed(12000); });
 document.addEventListener('focusin', event => { if (event.target.closest('.auction-house')) pauseAuctionFeed(20000); });
-stream.addEventListener('pointerover', () => { if (browseMode === 'conveyor') conveyorPausedUntil = Date.now() + 4000; });
-stream.addEventListener('wheel', event => { if (browseMode !== 'conveyor') return; event.preventDefault(); conveyorPausedUntil = Date.now() + 7000; stream.scrollLeft += event.deltaY || event.deltaX; }, { passive: false });
+stream.addEventListener('wheel', event => { if (browseMode !== 'conveyor') return; event.preventDefault(); stream.scrollLeft += event.deltaY || event.deltaX; }, { passive: false });
 tagSearch.addEventListener('input', () => setTimeout(refreshTaggedAuction, 160));
 tagSearch.addEventListener('keydown', event => { if (event.key === 'Enter') setTimeout(refreshTaggedAuction, 0); });
 
