@@ -268,10 +268,11 @@ function runConveyor() {
 }
 function startConveyor() { stopConveyor(); if (browseMode === 'conveyor' && searchScope === 'listings') conveyorFrame = requestAnimationFrame(runConveyor); }
 function syncBrowseModeUi() {
-  const conveyor = browseMode === 'conveyor' && searchScope === 'listings';
+  const auctionActive = document.body.classList.contains('auction-mode');
+  const conveyor = browseMode === 'conveyor' && searchScope === 'listings' && !auctionActive;
   document.body.classList.toggle('browse-conveyor', conveyor);
   const button = document.querySelector('[data-browse-mode]');
-  if (button) { button.disabled = searchScope !== 'listings'; button.firstChild.textContent = browseMode === 'conveyor' ? 'Conveyor ' : 'Doomscroll '; button.setAttribute('aria-label', `Browsing mode: ${browseMode}. Press Q to switch.`); button.setAttribute('aria-pressed', String(browseMode === 'conveyor')); }
+  if (button) { button.disabled = searchScope !== 'listings' || auctionActive; button.firstChild.textContent = browseMode === 'conveyor' ? 'Conveyor ' : 'Doomscroll '; button.setAttribute('aria-label', `Browsing mode: ${browseMode}. Press Q to switch.`); button.setAttribute('aria-pressed', String(browseMode === 'conveyor')); }
   if (conveyor) startConveyor(); else stopConveyor();
 }
 function toggleBrowseMode() {
@@ -279,7 +280,7 @@ function toggleBrowseMode() {
   localStorage.setItem('collector-marketplace-browse-mode', browseMode);
   stopAutoScroll(); conveyorPausedUntil = 0; stream.scrollLeft = 0; syncBrowseModeUi(); renderFeed();
 }
-document.addEventListener('keydown', event => { if (event.key.toLowerCase() === 'q' && searchScope === 'listings' && !event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey && canUseAutoScroll(event.target)) { event.preventDefault(); toggleBrowseMode(); } });
+document.addEventListener('keydown', event => { if (event.key.toLowerCase() === 'q' && searchScope === 'listings' && !document.body.classList.contains('auction-mode') && !event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey && canUseAutoScroll(event.target)) { event.preventDefault(); toggleBrowseMode(); } });
 document.addEventListener('keydown', event => {
   if (event.key === 'Alt' && !event.ctrlKey && !event.metaKey && canUseAutoScroll(event.target)) {
     event.preventDefault();
@@ -711,7 +712,7 @@ function renderAuctionHouse() {
   stream.innerHTML = `<section class="auction-house"><header class="auction-head"><div><p><i></i> Live bidding floor</p><h1>Auction House</h1></div><div class="auction-head-meta"><strong>${auctions.length}</strong><span>Lots open now</span></div></header><div class="auction-ticker"><span>LIVE</span><div>${auctions.map(item => `<button type="button" data-auction-select="${item.id}">${safe(item.title)} <b>${money(item.currentBid)}</b></button>`).join('')}</div></div><main class="auction-stage"><section class="auction-showcase"><div class="auction-art"><img src="${safe(lot.image)}" alt="${safe(lot.title)}"><span class="auction-lot-number">LOT ${String(auctions.indexOf(lot) + 1).padStart(2, '0')}</span><div class="auction-countdown"><small>Closing in</small><strong data-auction-clock="${lot.id}">${auctionTime(lot)}</strong></div></div><div class="auction-details"><p class="auction-category">${safe(lot.category)} · Live lot</p><h2>${safe(lot.title)}</h2><p class="auction-description">A featured collector lot, presented live. Review the current bid, join the room, and place your bid before the floor closes.</p><div class="auction-price"><span>Current bid</span><strong>${money(lot.currentBid)}</strong><small>${lot.bids} bids placed</small></div><form class="auction-bid-panel" data-auction-bid-form="${lot.id}"><label>Your maximum bid<input name="amount" required type="number" inputmode="decimal" min="${minimum}" step="1" value="${minimum}" aria-label="Your maximum bid"></label><div class="auction-quick-bids"><button type="button" data-bid-add="10">+ $10</button><button type="button" data-bid-add="25">+ $25</button><button type="button" data-bid-add="50">+ $50</button></div><button class="auction-bid" type="submit">Place live bid <span>→</span></button><small>By placing a bid, you agree to the auction terms.</small></form><button type="button" class="voice-start auction-voice" data-voice-room="auction:${lot.id}" data-voice-label="Auction voice · ${safe(lot.title)}">Join the live voice room</button></div></section><aside class="auction-live-panel"><header><span><i></i> Floor activity</span><small>Updates live</small></header><div class="auction-activity" aria-live="polite">${activity.length ? activity.map(row => `<article><b>${safe(row.initials)}</b><p><strong>${safe(row.name)}</strong> placed a bid <em>${money(row.amount)}</em><small>${safe(row.time)}</small></p></article>`).join('') : `<div class="auction-awaiting"><i>◇</i><strong>The floor is open</strong><span>New bids will appear here in real time.</span></div>`}</div><div class="auction-confidence"><span>Buyer protection</span><p>Verified accounts, binding bids, and protected checkout after the auction closes.</p></div></aside></main><section class="auction-lot-rail"><header><div><p>Tonight's catalogue</p><h2>Explore live lots</h2></div><span>Choose a lot to enter its bidding floor</span></header><div class="auction-grid">${auctions.map((item, index) => `<button type="button" class="auction-card ${item.id === lot.id ? 'is-active' : ''}" data-auction-select="${item.id}"><span class="auction-card-image"><img src="${safe(item.image)}" alt=""><i>LOT ${String(index + 1).padStart(2, '0')}</i></span><span class="auction-info"><small>${safe(item.category)}</small><strong>${safe(item.title)}</strong><span><b>${money(item.currentBid)}</b><em data-auction-clock="${item.id}">${auctionTime(item)}</em></span></span></button>`).join('')}</div></section></section>`;
   updateAuctionClocks();
 }
-function showAuctionHouse() { if (observer) observer.disconnect(); clearInterval(auctionClock); sentinel.hidden = true; document.body.classList.add('auction-mode'); if (!activeAuctionId) activeAuctionId = auctions[0]?.id; renderAuctionHouse(); auctionClock = setInterval(updateAuctionClocks, 1000); startAuctionFeed(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+function showAuctionHouse() { if (observer) observer.disconnect(); clearInterval(auctionClock); sentinel.hidden = true; document.body.classList.add('auction-mode'); syncBrowseModeUi(); if (!activeAuctionId) activeAuctionId = auctions[0]?.id; renderAuctionHouse(); auctionClock = setInterval(updateAuctionClocks, 1000); startAuctionFeed(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
 document.addEventListener('click', event => {
   if (event.target.closest('.delivery-update-form, .delivery-message-form, .trade-message-form')) return;
@@ -875,7 +876,7 @@ const renderFilteredAuctionHouse = () => {
   renderAuctionHouse();
   auctions = allLots;
 };
-showAuctionHouse = () => { auctionTagView = true; if (observer) observer.disconnect(); clearInterval(auctionClock); sentinel.hidden = true; document.body.classList.add('auction-mode'); renderFilteredAuctionHouse(); auctionClock = setInterval(updateAuctionClocks, 1000); startAuctionFeed(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+showAuctionHouse = () => { auctionTagView = true; if (observer) observer.disconnect(); clearInterval(auctionClock); sentinel.hidden = true; document.body.classList.add('auction-mode'); syncBrowseModeUi(); renderFilteredAuctionHouse(); auctionClock = setInterval(updateAuctionClocks, 1000); startAuctionFeed(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 const refreshTaggedAuction = () => { if (auctionTagView) renderFilteredAuctionHouse(); };
 document.addEventListener('click', event => {
   if (event.target.closest('[data-home], [data-market]')) auctionTagView = false;
