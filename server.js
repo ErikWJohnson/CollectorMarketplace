@@ -14,6 +14,8 @@ const deliveryProviders = {
   USPS: { type: 'carrier', trackingRequired: true }, UPS: { type: 'carrier', trackingRequired: true }, FedEx: { type: 'carrier', trackingRequired: true }, 'DHL Express': { type: 'carrier', trackingRequired: true }, 'Amazon Logistics': { type: 'carrier', trackingRequired: true }, OnTrac: { type: 'carrier', trackingRequired: true }, LaserShip: { type: 'carrier', trackingRequired: true }, Veho: { type: 'carrier', trackingRequired: true }, Roadie: { type: 'local_courier', trackingRequired: true }, 'DoorDash Drive': { type: 'local_courier', trackingRequired: true }, 'Uber Direct': { type: 'local_courier', trackingRequired: true }, 'Instacart Local Delivery': { type: 'local_courier', trackingRequired: true }, GoShare: { type: 'local_courier', trackingRequired: true }, uShip: { type: 'freight_marketplace', trackingRequired: true }, Shippo: { type: 'shipping_platform', trackingRequired: true }, 'Pirate Ship': { type: 'shipping_platform', trackingRequired: true }, 'Canada Post': { type: 'carrier', trackingRequired: true }, Purolator: { type: 'carrier', trackingRequired: true }, 'Royal Mail': { type: 'carrier', trackingRequired: true }, Evri: { type: 'carrier', trackingRequired: true }, DPD: { type: 'carrier', trackingRequired: true }, 'Australia Post': { type: 'carrier', trackingRequired: true }, 'Local independent courier': { type: 'independent_courier', trackingRequired: false }, 'Independent owner-operator': { type: 'independent_courier', trackingRequired: false }, 'White-glove delivery': { type: 'specialty', trackingRequired: true }, 'Freight / LTL carrier': { type: 'freight', trackingRequired: true }, 'Local pickup': { type: 'pickup', trackingRequired: false }, 'Other courier': { type: 'custom', trackingRequired: true }
 };
 const paymentMethods = new Set(['Card', 'Apple Pay', 'Google Pay', 'Cash App Pay', 'Venmo', 'PayPal', 'ACH bank transfer']);
+const developerPassUsername = 'collectormarketplace';
+const hasDeveloperPass = user => user?.developerPass === true;
 const collectiveCatalog = [
   { id: 'card-vault', name: 'Card Vault', description: 'Sports cards, TCG, and grading talk for serious collectors.', tags: ['Sports Cards', 'Cards', 'Autographs'], members: 1284 },
   { id: 'modern-relics', name: 'Modern Relics', description: 'Design, art, books, and objects with a lasting story.', tags: ['Art', 'Books', 'Vintage'], members: 846 },
@@ -30,7 +32,7 @@ const chatRoomCatalog = [
 
 class Store {
   constructor() { fs.mkdirSync(dataDir, { recursive: true }); this.data = this.load(); this.ensureData(); this.removeDemoContent(); this.pool = null; this.writeQueue = Promise.resolve(); }
-  ensureData() { ['users', 'listings', 'comments', 'trades', 'notifications', 'activities', 'deliveries', 'conversations', 'communityPosts'].forEach(key => { if (!Array.isArray(this.data[key])) this.data[key] = []; }); this.data.users.forEach(user => { if (!Array.isArray(user.profileTags)) user.profileTags = []; }); }
+  ensureData() { ['users', 'listings', 'comments', 'trades', 'notifications', 'activities', 'deliveries', 'conversations', 'communityPosts'].forEach(key => { if (!Array.isArray(this.data[key])) this.data[key] = []; }); this.data.users.forEach(user => { if (!Array.isArray(user.profileTags)) user.profileTags = []; if (String(user.username || '').trim().toLowerCase() === developerPassUsername) user.developerPass = true; }); }
   load() {
     if (fs.existsSync(dataFile)) {
       try { return JSON.parse(fs.readFileSync(dataFile, 'utf8')); } catch { console.warn('Ignoring unreadable local marketplace data.'); }
@@ -92,7 +94,7 @@ app.post('/signup', (req, res) => {
   const { username, email, password } = req.body;
   if (!username || !email || !password) return res.status(400).json({ error: 'username, email, and password are required' });
   if (store.data.users.some(u => u.email === email || u.username === username)) return res.status(409).json({ error: 'Email or username already in use' });
-  const user = { id: id(), username, email, password, avatar: username.slice(0, 2).toUpperCase(), bio: '', reputation: 0, following: [], createdAt: now() };
+  const user = { id: id(), username, email, password, avatar: username.slice(0, 2).toUpperCase(), bio: '', reputation: 0, following: [], developerPass: username.trim().toLowerCase() === developerPassUsername, createdAt: now() };
   store.data.users.push(user); store.save(); res.status(201).json({ token: user.id, user: publicUser(user) });
 });
 app.post('/login', (req, res) => { const user = store.data.users.find(u => u.email === req.body.email && u.password === req.body.password); if (!user) return res.status(401).json({ error: 'Invalid email or password' }); res.json({ token: user.id, user: publicUser(user) }); });
@@ -246,7 +248,7 @@ app.post('/comment/:id/vote', required, (req, res) => { const comment = store.da
 const activeTradeListings = (ids, ownerId) => [...new Set(Array.isArray(ids) ? ids.filter(value => typeof value === 'string') : [])].map(listingId => store.data.listings.find(listing => listing.id === listingId && listing.ownerId === ownerId && listing.status === 'active')).filter(Boolean);
 const tradeSenderIds = trade => Array.isArray(trade.senderListingIds) ? trade.senderListingIds : [];
 const tradeReceiverIds = trade => Array.isArray(trade.receiverListingIds) ? trade.receiverListingIds : [trade.listingId].filter(Boolean);
-const tradeFeeRate = user => user?.curator === true || user?.membership === 'curator' ? 0.01 : 0.04;
+const tradeFeeRate = user => hasDeveloperPass(user) ? 0 : user?.curator === true || user?.membership === 'curator' ? 0.01 : 0.04;
 const tradeFeeSnapshot = ({ sender, receiver, senderListings, receiverListings, senderCash, receiverCash }) => {
   const senderRate = tradeFeeRate(sender); const receiverRate = tradeFeeRate(receiver);
   const senderValueReceived = receiverListings.reduce((total, listing) => total + Number(listing.price || 0), 0) + receiverCash;
