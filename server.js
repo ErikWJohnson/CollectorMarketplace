@@ -29,32 +29,22 @@ const chatRoomCatalog = [
 ];
 
 class Store {
-  constructor() { fs.mkdirSync(dataDir, { recursive: true }); this.data = this.load(); this.ensureData(); this.seedBrowseFeed(); this.pool = null; this.writeQueue = Promise.resolve(); }
+  constructor() { fs.mkdirSync(dataDir, { recursive: true }); this.data = this.load(); this.ensureData(); this.removeDemoContent(); this.pool = null; this.writeQueue = Promise.resolve(); }
   ensureData() { ['users', 'listings', 'comments', 'trades', 'notifications', 'activities', 'deliveries', 'conversations', 'communityPosts'].forEach(key => { if (!Array.isArray(this.data[key])) this.data[key] = []; }); this.data.users.forEach(user => { if (!Array.isArray(user.profileTags)) user.profileTags = []; }); }
   load() {
     if (fs.existsSync(dataFile)) {
       try { return JSON.parse(fs.readFileSync(dataFile, 'utf8')); } catch { console.warn('Ignoring unreadable local marketplace data.'); }
     }
-    const demo = { id: id(), username: 'alexcollects', email: 'alex@collector.local', password: 'password123', avatar: 'AC', bio: 'Vintage paper, space-age objects, and things with a story.', reputation: 98, following: [], createdAt: now() };
-    const listings = [
-      { id: id(), ownerId: demo.id, title: '1976 NASA Viking Mission Patch', description: 'Original woven patch, excellent condition. A beautiful piece of space history.', category: 'Memorabilia', price: 85, tradeOffer: true, images: ['https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&w=1000&q=80'], status: 'active', likes: [], createdAt: now() },
-      { id: id(), ownerId: demo.id, title: 'First Edition Design Annual', description: 'A sharp, colorful book from a beloved era of graphic design.', category: 'Books', price: 45, tradeOffer: false, images: ['https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&w=1000&q=80'], status: 'active', likes: [], createdAt: now() }
-    ];
-    return { users: [demo], listings, comments: [], trades: [], deliveries: [], notifications: [], activities: listings.map(l => ({ id: id(), type: 'listing', userId: demo.id, listingId: l.id, createdAt: l.createdAt })) };
+    return { users: [], listings: [], comments: [], trades: [], deliveries: [], notifications: [], activities: [] };
   }
-  seedBrowseFeed() {
-    if (this.data.listings.length >= 6) return;
-    const owner = this.data.users[0];
-    const additions = [
-      ['1964 Topps Mickey Mantle', 'Clean color, strong corners, and a true centerpiece for a vintage baseball collection.', 'Cards', 900, true, 'https://images.unsplash.com/photo-1627856013091-fed6e4e30025?auto=format&fit=crop&w=1000&q=80'],
-      ['Sealed 1996 Comic Collector Set', 'Factory sealed set with original display wrap. Stored flat and away from sunlight.', 'Comics', 120, true, 'https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?auto=format&fit=crop&w=1000&q=80'],
-      ['Polaroid SX-70 Land Camera', 'Classic folding instant camera with a handsome patina. Includes original strap.', 'Vintage', 175, false, 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=1000&q=80'],
-      ['Japanese Woodblock Print', 'A framed late-century print with rich ink detail and a wonderfully calm palette.', 'Art', 240, true, 'https://images.unsplash.com/photo-1577083552431-6e5fd01aa342?auto=format&fit=crop&w=1000&q=80']
-    ];
-    additions.forEach(([title, description, category, price, tradeOffer, image]) => {
-      const listing = { id: id(), ownerId: owner.id, title, description, category, price, tradeOffer, images: [image], status: 'active', likes: [], createdAt: now() };
-      this.data.listings.push(listing); this.data.activities.unshift({ id: id(), type: 'listing', userId: owner.id, listingId: listing.id, createdAt: listing.createdAt });
-    });
+  removeDemoContent() {
+    const demoIds = new Set(this.data.listings.filter(listing => listing.title === 'Database smoke-test listing' || (listing.ownerId && this.data.users.some(user => user.id === listing.ownerId && user.email === 'alex@collector.local'))).map(listing => listing.id));
+    if (!demoIds.size) return false;
+    this.data.listings = this.data.listings.filter(listing => !demoIds.has(listing.id));
+    this.data.comments = this.data.comments.filter(comment => !demoIds.has(comment.listingId));
+    this.data.activities = this.data.activities.filter(activity => !demoIds.has(activity.listingId));
+    this.data.users = this.data.users.filter(user => user.email !== 'alex@collector.local');
+    return true;
   }
   async initialize() {
     if (!process.env.DATABASE_URL) {
@@ -67,7 +57,7 @@ class Store {
     const result = await this.pool.query('SELECT data FROM marketplace_state WHERE id = $1', ['primary']);
     if (result.rows[0]?.data) this.data = result.rows[0].data;
     this.ensureData();
-    this.seedBrowseFeed();
+    this.removeDemoContent();
     await this.save();
     console.log('Connected to collector-db.');
   }
