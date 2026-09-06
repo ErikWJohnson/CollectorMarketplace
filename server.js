@@ -189,15 +189,18 @@ app.get('/auctions', (req, res) => {
 });
 const listingConditions = new Set(['New', 'New with Tags', 'Sealed', 'Like New', 'Mint', 'Near Mint', 'Excellent', 'Very Good', 'Good', 'Fair', 'Poor', 'For Parts or Repair', 'Graded', 'Ungraded', 'Authenticated', 'Restored']);
 app.post('/listing', required, (req, res) => {
-  const { title, description, category, condition, tags = [], price, tradeOffer, images = [], videos = [], location, locationCoordinates, fulfillment, listingMode = 'marketplace', auctionStartPrice, auctionDurationHours } = req.body;
+  const { title, description, category, condition, tags = [], price, tradeOffer, images = [], videos = [], sellerCity, sellerZip, locationCoordinates, pickupRadiusMiles, fulfillment, listingMode = 'marketplace', auctionStartPrice, auctionDurationHours } = req.body;
   const validImages = Array.isArray(images) && images.length > 0 && images.length <= 5 && images.every(image => typeof image === 'string' && image.length <= 2_000_000 && (/^https?:\/\//i.test(image) || /^data:image\/(jpeg|png|webp);base64,/i.test(image)));
   const validVideos = Array.isArray(videos) && videos.length <= 1 && videos.every(video => typeof video === 'string' && video.length <= 6_000_000 && /^data:video\/(mp4|webm|quicktime);base64,/i.test(video));
   if (!title?.trim() || !description?.trim() || !category?.trim()) return res.status(400).json({ error: 'title, description, and category are required' });
   const itemCondition = typeof condition === 'string' ? condition.trim() : '';
   if (!listingConditions.has(itemCondition)) return res.status(400).json({ error: 'Choose a valid item condition.' });
-  const publicLocation = typeof location === 'string' ? location.trim() : '';
-  if (publicLocation.length < 2 || publicLocation.length > 120) return res.status(400).json({ error: 'Add a public city/region location (2–120 characters).' });
-  if (/^\d{1,6}\s+|\b(street|st\.?|avenue|ave\.?|road|rd\.?|boulevard|blvd\.?|drive|dr\.?|apartment|apt\.?|suite|unit|zip)\b/i.test(publicLocation)) return res.status(400).json({ error: 'Use a city, region, and country only—do not post a street address.' });
+  const publicCity = typeof sellerCity === 'string' ? sellerCity.trim() : '';
+  const publicZip = typeof sellerZip === 'string' ? sellerZip.trim() : '';
+  if (publicCity.length < 2 || publicCity.length > 80 || /^\d{1,6}\s+|\b(street|st\.?|avenue|ave\.?|road|rd\.?|boulevard|blvd\.?|drive|dr\.?|apartment|apt\.?|suite|unit)\b/i.test(publicCity)) return res.status(400).json({ error: 'Add a city and state/region only—do not post a street address.' });
+  if (!/^\d{5}(?:-\d{4})?$/.test(publicZip)) return res.status(400).json({ error: 'Add a valid 5-digit US ZIP code.' });
+  const pickupRadius = Number(pickupRadiusMiles);
+  if (!Number.isFinite(pickupRadius) || pickupRadius < 0 || pickupRadius > 500) return res.status(400).json({ error: 'Pickup radius must be between 0 and 500 miles.' });
   if (!['pickup', 'pickup_delivery'].includes(fulfillment)) return res.status(400).json({ error: 'Choose pickup or pickup and delivery for fulfillment.' });
   if (!['marketplace', 'auction_only', 'marketplace_auction'].includes(listingMode)) return res.status(400).json({ error: 'Choose where this listing should appear.' });
   const auctionHours = Math.min(720, Math.max(1, Number(auctionDurationHours) || 72));
@@ -209,13 +212,15 @@ app.post('/listing', required, (req, res) => {
     if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) return res.status(400).json({ error: 'Use valid approximate location coordinates.' });
     coordinates = { lat: Math.round(lat * 100) / 100, lng: Math.round(lng * 100) / 100 };
   }
+  if (!coordinates) return res.status(400).json({ error: 'Approximate seller coordinates are required for distance, ETA, and pickup eligibility.' });
   const submittedTags = [...new Set([category.trim(), itemCondition, ...(Array.isArray(tags) ? tags : []).map(tag => typeof tag === 'string' ? tag.trim().replace(/^#/, '') : '').filter(Boolean)])];
   const validTags = submittedTags.length <= 8 && submittedTags.every(tag => tag.length <= 60);
   if (!validTags) return res.status(400).json({ error: 'Use up to 8 tags, each 60 characters or less.' });
   if (!validImages) return res.status(400).json({ error: 'Add 1–5 valid image links or uploads.' });
   if (!validVideos) return res.status(400).json({ error: 'Add at most one valid uploaded video.' });
-  const locationTag = usCityTownTag(publicLocation);
-  const listing = { id: id(), ownerId: req.user.id, title: title.trim(), description: description.trim(), category: category.trim(), condition: itemCondition, tags: [...submittedTags, ...(locationTag ? [locationTag] : [])], location: publicLocation, locationCoordinates: coordinates, fulfillment, listingMode, auctionStartPrice: listingMode === 'marketplace' ? null : startingBid, auctionEndAt: listingMode === 'marketplace' ? null : new Date(Date.now() + auctionHours * 3600000).toISOString(), auctionBids: 0, price: Number(price) || 0, tradeOffer: Boolean(tradeOffer), images, videos, status: 'active', likes: [], createdAt: now() };
+  const publicLocation = `${publicCity} ${publicZip}`;
+  const locationTag = `US City/Town: ${publicCity}`;
+  const listing = { id: id(), ownerId: req.user.id, title: title.trim(), description: description.trim(), category: category.trim(), condition: itemCondition, tags: [...submittedTags, locationTag], location: publicLocation, sellerCity: publicCity, sellerZip: publicZip, locationCoordinates: coordinates, pickupRadiusMiles: pickupRadius, fulfillment, listingMode, auctionStartPrice: listingMode === 'marketplace' ? null : startingBid, auctionEndAt: listingMode === 'marketplace' ? null : new Date(Date.now() + auctionHours * 3600000).toISOString(), auctionBids: 0, price: Number(price) || 0, tradeOffer: Boolean(tradeOffer), images, videos, status: 'active', likes: [], createdAt: now() };
   store.data.listings.unshift(listing); activity('listing', req.user.id, { listingId: listing.id }); store.save(); res.status(201).json(listing);
 });
 app.get('/listing/:id', (req, res) => { const listing = store.data.listings.find(l => l.id === req.params.id); if (!listing) return res.status(404).json({ error: 'Listing not found' }); res.json({ ...listing, owner: publicUser(store.data.users.find(u => u.id === listing.ownerId)), likeCount: listing.likes.length }); });
