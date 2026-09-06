@@ -40,12 +40,19 @@ class Store {
     return { users: [], listings: [], comments: [], trades: [], deliveries: [], notifications: [], activities: [] };
   }
   removeDemoContent() {
-    const demoIds = new Set(this.data.listings.filter(listing => listing.title === 'Database smoke-test listing' || (listing.ownerId && this.data.users.some(user => user.id === listing.ownerId && user.email === 'alex@collector.local'))).map(listing => listing.id));
-    if (!demoIds.size) return false;
+    const isDemoUser = user => user.email === 'alex@collector.local' || user.email === 'test715a7345@example.com';
+    const demoUserIds = new Set(this.data.users.filter(isDemoUser).map(user => user.id));
+    const demoIds = new Set(this.data.listings.filter(listing => listing.title === 'Database smoke-test listing' || demoUserIds.has(listing.ownerId)).map(listing => listing.id));
+    if (!demoIds.size && !demoUserIds.size) return false;
     this.data.listings = this.data.listings.filter(listing => !demoIds.has(listing.id));
     this.data.comments = this.data.comments.filter(comment => !demoIds.has(comment.listingId));
-    this.data.activities = this.data.activities.filter(activity => !demoIds.has(activity.listingId));
-    this.data.users = this.data.users.filter(user => user.email !== 'alex@collector.local');
+    this.data.activities = this.data.activities.filter(activity => !demoIds.has(activity.listingId) && !demoUserIds.has(activity.userId));
+    this.data.trades = this.data.trades.filter(trade => !demoUserIds.has(trade.senderId) && !demoUserIds.has(trade.receiverId));
+    this.data.deliveries = this.data.deliveries.filter(delivery => !demoUserIds.has(delivery.buyerId) && !demoUserIds.has(delivery.sellerId));
+    this.data.conversations = this.data.conversations.filter(conversation => !(conversation.participantIds || []).some(userId => demoUserIds.has(userId)));
+    this.data.notifications = this.data.notifications.filter(notification => !demoUserIds.has(notification.userId));
+    this.data.communityPosts = this.data.communityPosts.filter(post => !demoUserIds.has(post.authorId));
+    this.data.users = this.data.users.filter(user => !demoUserIds.has(user.id));
     return true;
   }
   async initialize() {
