@@ -212,7 +212,6 @@ app.post('/listing', required, (req, res) => {
     if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) return res.status(400).json({ error: 'Use valid approximate location coordinates.' });
     coordinates = { lat: Math.round(lat * 100) / 100, lng: Math.round(lng * 100) / 100 };
   }
-  if (!coordinates) return res.status(400).json({ error: 'Approximate seller coordinates are required for distance, ETA, and pickup eligibility.' });
   const submittedTags = [...new Set([category.trim(), itemCondition, ...(Array.isArray(tags) ? tags : []).map(tag => typeof tag === 'string' ? tag.trim().replace(/^#/, '') : '').filter(Boolean)])];
   const validTags = submittedTags.length <= 8 && submittedTags.every(tag => tag.length <= 60);
   if (!validTags) return res.status(400).json({ error: 'Use up to 8 tags, each 60 characters or less.' });
