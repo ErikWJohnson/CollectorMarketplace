@@ -48,7 +48,7 @@
 @media(max-width:680px){.browse-conveyor .listing .media{height:clamp(250px,calc(100dvh - 455px),410px)!important;min-height:250px!important}.browse-conveyor .listing-copy>p:not(.listing-location){max-height:60px}.browse-conveyor .listing footer.listing-actions{min-height:58px}}
 
 /* Conveyor cards use one fixed frame, so mixed media and descriptions never change the belt rhythm. */
-.browse-conveyor .listing-stream{align-items:stretch!important;padding-right:16px!important;padding-left:16px!important;scroll-snap-type:x mandatory;scroll-padding-inline:16px;scroll-behavior:auto}
+.browse-conveyor .listing-stream{align-items:stretch!important;padding-right:16px!important;padding-left:16px!important;scroll-behavior:auto}
 .browse-conveyor .listing{display:flex;flex-direction:column;align-self:stretch;flex:0 0 calc(100vw - 32px);width:calc(100vw - 32px)!important;height:700px;min-height:700px!important;max-height:700px;overflow:hidden;content-visibility:visible;contain-intrinsic-size:auto;border-color:#303235!important;border-radius:0;background:#0b0c0d;box-shadow:none;scroll-snap-align:start;scroll-snap-stop:always}
 .browse-conveyor .listing-main{display:flex;min-height:0;flex:1 1 auto;flex-direction:column;overflow:hidden}
 .browse-conveyor .listing .media{position:relative;display:grid;width:100%;height:390px!important;aspect-ratio:auto;min-height:0;flex:0 0 auto;place-items:center;align-self:center;padding:0;overflow:hidden;background:#050607;border-bottom:1px solid #303235}
