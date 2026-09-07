@@ -192,6 +192,7 @@ app.post('/listing', required, (req, res) => {
   const validImages = Array.isArray(images) && images.length > 0 && images.length <= 5 && images.every(image => typeof image === 'string' && image.length <= 2_000_000 && (/^https?:\/\//i.test(image) || /^data:image\/(jpeg|png|webp);base64,/i.test(image)));
   const validVideos = Array.isArray(videos) && videos.length <= 1 && videos.every(video => typeof video === 'string' && video.length <= 6_000_000 && /^data:video\/(mp4|webm|quicktime);base64,/i.test(video));
   if (!title?.trim() || !description?.trim() || !category?.trim()) return res.status(400).json({ error: 'title, description, and category are required' });
+  if (description.trim().length > 400) return res.status(400).json({ error: 'Keep the listing description to 400 characters so it fits the marketplace card.' });
   const itemCondition = typeof condition === 'string' ? condition.trim() : '';
   if (!listingConditions.has(itemCondition)) return res.status(400).json({ error: 'Choose a valid item condition.' });
   const publicCity = typeof sellerCity === 'string' ? sellerCity.trim() : '';
