@@ -106,6 +106,7 @@ app.post('/signup', (req, res) => {
 });
 app.post('/login', (req, res) => { const user = store.data.users.find(u => u.email === req.body.email && u.password === req.body.password); if (!user) return res.status(401).json({ error: 'Invalid email or password' }); res.json({ token: user.id, user: publicUser(user) }); });
 app.get('/user/:id', (req, res) => { const user = store.data.users.find(u => u.id === req.params.id); if (!user) return res.status(404).json({ error: 'User not found' }); const listings = store.data.listings.filter(l => l.ownerId === user.id); const history = store.data.trades.filter(t => (t.senderId === user.id || t.receiverId === user.id) && t.status === 'completed'); res.json({ ...publicUser(user), activeListings: listings.filter(l => l.status === 'active'), tradeHistory: history }); });
+app.get('/user/:id/listings', required, (req, res) => { if (req.user.id !== req.params.id) return res.status(403).json({ error: 'Not allowed' }); const rows = store.data.listings.filter(listing => listing.ownerId === req.user.id).map(listing => ({ ...listing, owner: publicUser(req.user), likeCount: Array.isArray(listing.likes) ? listing.likes.length : 0, commentCount: store.data.comments.filter(comment => comment.listingId === listing.id).length })); res.json(rows); });
 app.get('/users/suggestions', required, (req, res) => { const excluded = new Set([req.user.id, ...req.user.following]); const users = store.data.users.filter(user => !excluded.has(user.id)).sort((a, b) => (b.reputation || 0) - (a.reputation || 0) || a.username.localeCompare(b.username)).slice(0, 8).map(user => ({ ...publicUser(user), activeListingCount: store.data.listings.filter(listing => listing.ownerId === user.id && listing.status === 'active').length })); res.json(users); });
 app.get('/users', (req, res) => res.json(store.data.users.map(user => ({ ...directoryUser(user), activeListingCount: store.data.listings.filter(listing => listing.ownerId === user.id && listing.status === 'active').length, followingCount: Array.isArray(user.following) ? user.following.length : 0 }))));
 app.get('/collectives', (req, res) => res.json(collectiveCatalog.map(collective => ({ ...collective, postCount: store.data.listings.filter(listing => listing.status === 'active' && (listing.tags || []).some(tag => collective.tags.includes(tag))).length }))));
@@ -235,7 +236,9 @@ app.put('/listing/:id', required, (req, res) => {
     if (!['pickup', 'pickup_delivery'].includes(req.body.fulfillment)) return res.status(400).json({ error: 'Choose pickup or pickup and delivery for fulfillment.' });
     listing.fulfillment = req.body.fulfillment;
   }
-  ['title', 'description', 'category', 'tags', 'price', 'tradeOffer', 'images', 'status'].forEach(key => {
+  if (req.body.status !== undefined && !['active', 'archived'].includes(req.body.status)) return res.status(400).json({ error: 'Listings can only be set to active or archived here.' });
+  if (req.body.condition !== undefined && !listingConditions.has(String(req.body.condition))) return res.status(400).json({ error: 'Choose a valid item condition.' });
+  ['title', 'description', 'category', 'condition', 'tags', 'price', 'tradeOffer', 'images', 'videos', 'status'].forEach(key => {
     if (req.body[key] !== undefined) listing[key] = req.body[key];
   });
   const manualTags = [...new Set([listing.category, ...(Array.isArray(listing.tags) ? listing.tags : [])].map(tag => typeof tag === 'string' ? tag.trim().replace(/^#/, '') : '').filter(tag => tag && !tag.startsWith('US City/Town: ')))];
