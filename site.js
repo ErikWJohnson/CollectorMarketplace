@@ -11,7 +11,7 @@ const sentinel = document.querySelector('#sentinel');
 const modal = document.querySelector('#modal');
 const modalContent = document.querySelector('#modal-content');
 let listings = [], auctions = [], accounts = [], collectives = [], brands = [], couriers = [], chatrooms = [], deliveries = [], uploadedListingImages = [], uploadedListingVideos = [], activeCategory = 'All', activeQuery = '', activeTags = [], searchScope = 'listings', sortMode = 'popular', page = 1, observer, searchRenderTimer, auctionClock;
-let browseMode = localStorage.getItem('collector-marketplace-browse-mode') === 'doomscroll' ? 'doomscroll' : 'conveyor', conveyorFrame = 0, conveyorPausedUntil = 0;
+let browseMode = localStorage.getItem('collector-marketplace-browse-mode') === 'doomscroll' ? 'doomscroll' : 'conveyor', conveyorFrame = 0, conveyorPausedUntil = 0, conveyorNextAdvance = 0;
 // Keep comma/period keyboard navigation in the same order as the visible scope bar.
 const searchScopes = ['listings', 'accounts', 'collectives', 'brands', 'chatrooms', 'couriers'];
 const socialScopeMeta = {
@@ -256,12 +256,26 @@ const reverseAutoScroll = () => {
   autoScrollDirection *= -1;
   if (!autoScrollActive) toggleAutoScroll();
 };
-function stopConveyor() { if (conveyorFrame) cancelAnimationFrame(conveyorFrame); conveyorFrame = 0; }
-function runConveyor() { stopConveyor(); }
+function stopConveyor() { if (conveyorFrame) cancelAnimationFrame(conveyorFrame); conveyorFrame = 0; conveyorNextAdvance = 0; }
+function runConveyor(now) {
+  if (browseMode !== 'conveyor' || searchScope !== 'listings' || modal.open || document.hidden || document.body.classList.contains('auction-mode')) { stopConveyor(); return; }
+  if (!conveyorNextAdvance) conveyorNextAdvance = now + 6500;
+  if (now >= conveyorNextAdvance && Date.now() >= conveyorPausedUntil) {
+    const cards = [...stream.querySelectorAll('.listing:not([data-conveyor-copy])')];
+    if (cards.length > 1) {
+      const current = cards.reduce((best, card, index) => Math.abs(card.offsetLeft - stream.scrollLeft - 16) < Math.abs(cards[best].offsetLeft - stream.scrollLeft - 16) ? index : best, 0);
+      const next = cards[(current + 1) % cards.length];
+      stream.scrollTo({ left: Math.max(0, next.offsetLeft - 16), behavior: 'auto' });
+    }
+    conveyorNextAdvance = now + 6500;
+  }
+  conveyorFrame = requestAnimationFrame(runConveyor);
+}
 function startConveyor() {
   stopConveyor();
   if (browseMode === 'conveyor' && searchScope === 'listings') {
     stream.scrollTo({ left: 0, behavior: 'auto' });
+    conveyorFrame = requestAnimationFrame(runConveyor);
   }
 }
 function syncBrowseModeUi() {
@@ -931,7 +945,7 @@ document.addEventListener('click', event => {
 });
 document.addEventListener('pointerover', event => { if (event.target.closest('.auction-house')) pauseAuctionFeed(12000); });
 document.addEventListener('focusin', event => { if (event.target.closest('.auction-house')) pauseAuctionFeed(20000); });
-stream.addEventListener('wheel', event => { if (browseMode !== 'conveyor') return; event.preventDefault(); stream.scrollLeft += event.deltaY || event.deltaX; }, { passive: false });
+stream.addEventListener('wheel', event => { if (browseMode !== 'conveyor') return; event.preventDefault(); conveyorPausedUntil = Date.now() + 12000; stream.scrollLeft += event.deltaY || event.deltaX; }, { passive: false });
 tagSearch.addEventListener('input', () => setTimeout(refreshTaggedAuction, 160));
 tagSearch.addEventListener('keydown', event => { if (event.key === 'Enter') setTimeout(refreshTaggedAuction, 0); });
 
