@@ -263,8 +263,7 @@ function runConveyor() {
     const first = stream.querySelector('.listing:not([data-conveyor-copy])');
     const copy = stream.querySelector('[data-conveyor-copy]');
     const loopWidth = first && copy ? copy.offsetLeft - first.offsetLeft : 0;
-    if (loopWidth > 0 && stream.scrollLeft >= loopWidth) stream.scrollLeft -= loopWidth;
-    stream.scrollLeft += 1.5;
+    if (loopWidth > 0) stream.scrollLeft = (stream.scrollLeft + 1.5) % loopWidth;
   }
   conveyorFrame = requestAnimationFrame(runConveyor);
 }
