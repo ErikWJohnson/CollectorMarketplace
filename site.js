@@ -263,9 +263,14 @@ function runConveyor() {
     const first = stream.querySelector('.listing:not([data-conveyor-copy])');
     const copy = stream.querySelector('[data-conveyor-copy]');
     const loopWidth = first && copy ? copy.offsetLeft - first.offsetLeft : 0;
-    const next = stream.scrollLeft + 1.5;
-    if (loopWidth > 0) stream.scrollLeft = next >= loopWidth ? next - loopWidth : next;
-    else {
+    if (loopWidth > 0) {
+      const laneStart = loopWidth;
+      const laneEnd = loopWidth * 2;
+      const lanePosition = stream.scrollLeft < laneStart || stream.scrollLeft >= laneEnd ? laneStart + (stream.scrollLeft % loopWidth) : stream.scrollLeft;
+      const next = lanePosition + 1.5;
+      stream.scrollLeft = next >= laneEnd ? next - loopWidth : next;
+    } else {
+      const next = stream.scrollLeft + 1.5;
       const scrollLimit = Math.max(0, stream.scrollWidth - stream.clientWidth);
       if (scrollLimit > 0) stream.scrollLeft = next >= scrollLimit ? 0 : next;
     }
@@ -275,7 +280,9 @@ function runConveyor() {
 function startConveyor() {
   stopConveyor();
   if (browseMode === 'conveyor' && searchScope === 'listings') {
-    stream.scrollTo({ left: 0, behavior: 'auto' });
+    const first = stream.querySelector('.listing:not([data-conveyor-copy])');
+    const copy = stream.querySelector('[data-conveyor-copy]');
+    stream.scrollTo({ left: first && copy ? copy.offsetLeft - first.offsetLeft : 0, behavior: 'auto' });
     conveyorFrame = requestAnimationFrame(runConveyor);
   }
 }
@@ -591,7 +598,7 @@ const directoryCard = (item, type) => {
 function renderFeed(reset = true) {
   if (searchScope !== 'listings') { const rows = filteredDirectory(); const meta = socialScopeMeta[searchScope]; stream.innerHTML = rows.map(item => directoryCard(item, searchScope)).join('') || `<p class="load-state">No ${meta.noun}s match that search yet.</p>`; document.querySelector('#result-count').textContent = `${rows.length} ${meta.noun}${rows.length === 1 ? '' : 's'}`; sentinel.textContent = rows.length ? 'Community directory complete.' : 'Try another name, interest, or tag.'; syncBrowseModeUi(); return; }
   const rows = filtered(); if (reset) page = 1; const visible = browseMode === 'conveyor' ? rows : rows.slice(0, page * 4);
-  const originalCards = visible.map(card).join(''); const conveyorCopies = browseMode === 'conveyor' && visible.length > 1 ? visible.map(item => card(item).replace('<article class="listing"', '<article class="listing" data-conveyor-copy="true" inert aria-hidden="true"')).join('') : '';
+  const originalCards = visible.map(card).join(''); const conveyorCopies = browseMode === 'conveyor' && visible.length > 1 ? Array.from({ length: 2 }, () => visible.map(item => card(item).replace('<article class="listing"', '<article class="listing" data-conveyor-copy="true" inert aria-hidden="true"')).join('')).join('') : '';
   stream.innerHTML = originalCards ? originalCards + conveyorCopies : '<p class="load-state">No collector finds match that search.</p>';
   stream.querySelectorAll('.listing:not([data-conveyor-copy]) .collector-head').forEach((header, index) => { header.dataset.profile = visible[index]?.ownerId || ''; header.tabIndex = 0; header.setAttribute('role', 'button'); header.setAttribute('aria-label', `Open ${visible[index]?.owner?.username || 'collector'} profile`); });
   document.querySelector('#result-count').textContent = `${rows.length} listed`; sentinel.textContent = browseMode === 'conveyor' ? 'Conveyor mode · click a listing to pause' : page * 4 < rows.length ? 'Scroll for more finds ↓' : 'You are all caught up.'; syncBrowseModeUi();
