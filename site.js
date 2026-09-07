@@ -257,17 +257,13 @@ const reverseAutoScroll = () => {
   if (!autoScrollActive) toggleAutoScroll();
 };
 function stopConveyor() { if (conveyorFrame) cancelAnimationFrame(conveyorFrame); conveyorFrame = 0; }
-function runConveyor() {
-  if (browseMode !== 'conveyor' || searchScope !== 'listings' || modal.open || document.hidden || document.body.classList.contains('auction-mode')) { stopConveyor(); return; }
-  if (Date.now() >= conveyorPausedUntil) {
-    const first = stream.querySelector('.listing:not([data-conveyor-copy])'); const copy = stream.querySelector('[data-conveyor-copy]');
-    const loopWidth = first && copy ? copy.offsetLeft - first.offsetLeft : 0;
-    if (loopWidth > 0 && stream.scrollLeft >= loopWidth) stream.scrollLeft -= loopWidth;
-    stream.scrollLeft += .65;
+function runConveyor() { stopConveyor(); }
+function startConveyor() {
+  stopConveyor();
+  if (browseMode === 'conveyor' && searchScope === 'listings') {
+    stream.scrollTo({ left: 0, behavior: 'auto' });
   }
-  conveyorFrame = requestAnimationFrame(runConveyor);
 }
-function startConveyor() { stopConveyor(); if (browseMode === 'conveyor' && searchScope === 'listings') conveyorFrame = requestAnimationFrame(runConveyor); }
 function syncBrowseModeUi() {
   const auctionActive = document.body.classList.contains('auction-mode');
   const conveyor = browseMode === 'conveyor' && searchScope === 'listings' && !auctionActive;
