@@ -286,6 +286,9 @@ function startConveyor() {
     conveyorFrame = requestAnimationFrame(runConveyor);
   }
 }
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && browseMode === 'conveyor' && searchScope === 'listings' && !modal.open && !document.body.classList.contains('auction-mode')) startConveyor();
+});
 function syncBrowseModeUi() {
   const auctionActive = document.body.classList.contains('auction-mode');
   const conveyor = browseMode === 'conveyor' && searchScope === 'listings' && !auctionActive;
