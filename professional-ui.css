@@ -49,7 +49,7 @@
 
 /* Conveyor cards use one fixed frame, so mixed media and descriptions never change the belt rhythm. */
 .browse-conveyor .listing-stream{align-items:stretch!important}
-.browse-conveyor .listing{display:flex;flex-direction:column;align-self:flex-start;flex:0 0 min(820px,82vw);width:min(820px,82vw)!important;height:auto;min-height:0!important;max-height:none;overflow:visible;content-visibility:visible;contain-intrinsic-size:auto}
+.browse-conveyor .listing{display:flex;flex-direction:column;align-self:stretch;flex:0 0 min(820px,82vw);width:min(820px,82vw)!important;height:auto;min-height:0!important;max-height:none;overflow:visible;content-visibility:visible;contain-intrinsic-size:auto}
 .browse-conveyor .listing-main{display:grid;grid-template-rows:auto auto;flex:0 0 auto;min-height:0;overflow:visible}
 .browse-conveyor .listing .media{display:grid;place-items:center;width:100%;height:auto!important;min-height:0!important;overflow:visible;background:#090a0b}
 .browse-conveyor .listing .media img{display:block;width:auto!important;height:auto!important;max-width:100%;max-height:none;object-fit:contain!important}
