@@ -263,7 +263,12 @@ function runConveyor() {
     const first = stream.querySelector('.listing:not([data-conveyor-copy])');
     const copy = stream.querySelector('[data-conveyor-copy]');
     const loopWidth = first && copy ? copy.offsetLeft - first.offsetLeft : 0;
-    if (loopWidth > 0) stream.scrollLeft = (stream.scrollLeft + 1.5) % loopWidth;
+    const scrollLimit = Math.max(0, stream.scrollWidth - stream.clientWidth);
+    const wrapAt = loopWidth || scrollLimit;
+    if (wrapAt > 0) {
+      const next = stream.scrollLeft + 1.5;
+      stream.scrollLeft = next >= wrapAt || next >= scrollLimit ? 0 : next;
+    }
   }
   conveyorFrame = requestAnimationFrame(runConveyor);
 }
