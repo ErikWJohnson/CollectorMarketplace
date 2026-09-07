@@ -11,7 +11,7 @@ const sentinel = document.querySelector('#sentinel');
 const modal = document.querySelector('#modal');
 const modalContent = document.querySelector('#modal-content');
 let listings = [], auctions = [], accounts = [], collectives = [], brands = [], couriers = [], chatrooms = [], deliveries = [], uploadedListingImages = [], uploadedListingVideos = [], activeCategory = 'All', activeQuery = '', activeTags = [], searchScope = 'listings', sortMode = 'popular', page = 1, observer, searchRenderTimer, auctionClock;
-let browseMode = localStorage.getItem('collector-marketplace-browse-mode') === 'doomscroll' ? 'doomscroll' : 'conveyor', conveyorFrame = 0, conveyorPausedUntil = 0;
+let browseMode = localStorage.getItem('collector-marketplace-browse-mode') === 'doomscroll' ? 'doomscroll' : 'conveyor', conveyorFrame = 0, conveyorTimer = 0, conveyorPausedUntil = 0;
 // Keep comma/period keyboard navigation in the same order as the visible scope bar.
 const searchScopes = ['listings', 'accounts', 'collectives', 'brands', 'chatrooms', 'couriers'];
 const socialScopeMeta = {
@@ -256,9 +256,9 @@ const reverseAutoScroll = () => {
   autoScrollDirection *= -1;
   if (!autoScrollActive) toggleAutoScroll();
 };
-function stopConveyor() { if (conveyorFrame) cancelAnimationFrame(conveyorFrame); conveyorFrame = 0; }
+function stopConveyor() { if (conveyorFrame) cancelAnimationFrame(conveyorFrame); if (conveyorTimer) clearInterval(conveyorTimer); conveyorFrame = 0; conveyorTimer = 0; }
 function runConveyor() {
-  if (browseMode !== 'conveyor' || searchScope !== 'listings' || modal.open || document.hidden || document.body.classList.contains('auction-mode')) { stopConveyor(); return; }
+  if (browseMode !== 'conveyor' || searchScope !== 'listings' || modal.open || document.body.classList.contains('auction-mode')) { stopConveyor(); return; }
   if (Date.now() >= conveyorPausedUntil) {
     const first = stream.querySelector('.listing:not([data-conveyor-copy])');
     const copy = stream.querySelector('[data-conveyor-copy]');
@@ -275,7 +275,6 @@ function runConveyor() {
       if (scrollLimit > 0) stream.scrollLeft = next >= scrollLimit ? 0 : next;
     }
   }
-  conveyorFrame = requestAnimationFrame(runConveyor);
 }
 function startConveyor() {
   stopConveyor();
@@ -283,7 +282,7 @@ function startConveyor() {
     const first = stream.querySelector('.listing:not([data-conveyor-copy])');
     const copy = stream.querySelector('[data-conveyor-copy]');
     stream.scrollTo({ left: first && copy ? copy.offsetLeft - first.offsetLeft : 0, behavior: 'auto' });
-    conveyorFrame = requestAnimationFrame(runConveyor);
+    conveyorTimer = setInterval(runConveyor, 16);
   }
 }
 document.addEventListener('visibilitychange', () => {
