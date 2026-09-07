@@ -263,11 +263,11 @@ function runConveyor() {
     const first = stream.querySelector('.listing:not([data-conveyor-copy])');
     const copy = stream.querySelector('[data-conveyor-copy]');
     const loopWidth = first && copy ? copy.offsetLeft - first.offsetLeft : 0;
-    const scrollLimit = Math.max(0, stream.scrollWidth - stream.clientWidth);
-    const wrapAt = loopWidth || scrollLimit;
-    if (wrapAt > 0) {
-      const next = stream.scrollLeft + 1.5;
-      stream.scrollLeft = next >= wrapAt || next >= scrollLimit ? 0 : next;
+    const next = stream.scrollLeft + 1.5;
+    if (loopWidth > 0) stream.scrollLeft = next >= loopWidth ? next - loopWidth : next;
+    else {
+      const scrollLimit = Math.max(0, stream.scrollWidth - stream.clientWidth);
+      if (scrollLimit > 0) stream.scrollLeft = next >= scrollLimit ? 0 : next;
     }
   }
   conveyorFrame = requestAnimationFrame(runConveyor);
