@@ -11,7 +11,7 @@ const sentinel = document.querySelector('#sentinel');
 const modal = document.querySelector('#modal');
 const modalContent = document.querySelector('#modal-content');
 let listings = [], auctions = [], accounts = [], collectives = [], brands = [], couriers = [], chatrooms = [], deliveries = [], uploadedListingImages = [], uploadedListingVideos = [], activeCategory = 'All', activeQuery = '', activeTags = [], searchScope = 'listings', sortMode = 'popular', page = 1, observer, searchRenderTimer, auctionClock;
-let browseMode = localStorage.getItem('collector-marketplace-browse-mode') === 'doomscroll' ? 'doomscroll' : 'conveyor', conveyorFrame = 0, conveyorTimer = 0, conveyorPausedUntil = 0;
+let browseMode = localStorage.getItem('collector-marketplace-browse-mode') === 'doomscroll' ? 'doomscroll' : 'conveyor', conveyorFrame = 0, conveyorTimer = 0;
 // Keep comma/period keyboard navigation in the same order as the visible scope bar.
 const searchScopes = ['listings', 'accounts', 'collectives', 'brands', 'chatrooms', 'couriers'];
 const socialScopeMeta = {
@@ -259,21 +259,19 @@ const reverseAutoScroll = () => {
 function stopConveyor() { if (conveyorFrame) cancelAnimationFrame(conveyorFrame); if (conveyorTimer) clearInterval(conveyorTimer); conveyorFrame = 0; conveyorTimer = 0; }
 function runConveyor() {
   if (browseMode !== 'conveyor' || searchScope !== 'listings' || modal.open || document.body.classList.contains('auction-mode')) { stopConveyor(); return; }
-  if (Date.now() >= conveyorPausedUntil) {
-    const first = stream.querySelector('.listing:not([data-conveyor-copy])');
-    const copy = stream.querySelector('[data-conveyor-copy]');
-    const loopWidth = first && copy ? copy.offsetLeft - first.offsetLeft : 0;
-    if (loopWidth > 0) {
-      const laneStart = loopWidth;
-      const laneEnd = loopWidth * 2;
-      const lanePosition = stream.scrollLeft < laneStart || stream.scrollLeft >= laneEnd ? laneStart + (stream.scrollLeft % loopWidth) : stream.scrollLeft;
-      const next = lanePosition + 1.5;
-      stream.scrollLeft = next >= laneEnd ? next - loopWidth : next;
-    } else {
-      const next = stream.scrollLeft + 1.5;
-      const scrollLimit = Math.max(0, stream.scrollWidth - stream.clientWidth);
-      if (scrollLimit > 0) stream.scrollLeft = next >= scrollLimit ? 0 : next;
-    }
+  const first = stream.querySelector('.listing:not([data-conveyor-copy])');
+  const copy = stream.querySelector('[data-conveyor-copy]');
+  const loopWidth = first && copy ? copy.offsetLeft - first.offsetLeft : 0;
+  if (loopWidth > 0) {
+    const laneStart = loopWidth;
+    const laneEnd = loopWidth * 2;
+    const lanePosition = stream.scrollLeft < laneStart || stream.scrollLeft >= laneEnd ? laneStart + (stream.scrollLeft % loopWidth) : stream.scrollLeft;
+    const next = lanePosition + 1.5;
+    stream.scrollLeft = next >= laneEnd ? next - loopWidth : next;
+  } else {
+    const next = stream.scrollLeft + 1.5;
+    const scrollLimit = Math.max(0, stream.scrollWidth - stream.clientWidth);
+    if (scrollLimit > 0) stream.scrollLeft = next >= scrollLimit ? 0 : next;
   }
 }
 function startConveyor() {
@@ -299,7 +297,7 @@ function syncBrowseModeUi() {
 function toggleBrowseMode() {
   browseMode = browseMode === 'doomscroll' ? 'conveyor' : 'doomscroll';
   localStorage.setItem('collector-marketplace-browse-mode', browseMode);
-  stopAutoScroll(); conveyorPausedUntil = 0; stream.scrollLeft = 0; syncBrowseModeUi(); renderFeed();
+  stopAutoScroll(); stream.scrollLeft = 0; syncBrowseModeUi(); renderFeed();
 }
 document.addEventListener('keydown', event => { if (event.key.toLowerCase() === 'q' && searchScope === 'listings' && !document.body.classList.contains('auction-mode') && !event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey && canUseAutoScroll(event.target)) { event.preventDefault(); toggleBrowseMode(); } });
 document.addEventListener('keydown', event => {
@@ -603,7 +601,7 @@ function renderFeed(reset = true) {
   const originalCards = visible.map(card).join(''); const conveyorCopies = browseMode === 'conveyor' && visible.length ? Array.from({ length: 2 }, () => visible.map(item => card(item).replace('<article class="listing"', '<article class="listing" data-conveyor-copy="true" inert aria-hidden="true"')).join('')).join('') : '';
   stream.innerHTML = originalCards ? originalCards + conveyorCopies : '<p class="load-state">No collector finds match that search.</p>';
   stream.querySelectorAll('.listing:not([data-conveyor-copy]) .collector-head').forEach((header, index) => { header.dataset.profile = visible[index]?.ownerId || ''; header.tabIndex = 0; header.setAttribute('role', 'button'); header.setAttribute('aria-label', `Open ${visible[index]?.owner?.username || 'collector'} profile`); });
-  document.querySelector('#result-count').textContent = `${rows.length} listed`; sentinel.textContent = browseMode === 'conveyor' ? 'Conveyor mode · click a listing to pause' : page * 4 < rows.length ? 'Scroll for more finds ↓' : 'You are all caught up.'; syncBrowseModeUi();
+  document.querySelector('#result-count').textContent = `${rows.length} listed`; sentinel.textContent = browseMode === 'conveyor' ? 'Conveyor mode · looping continuously' : page * 4 < rows.length ? 'Scroll for more finds ↓' : 'You are all caught up.'; syncBrowseModeUi();
 }
 function openAppSection(kind, title, copy, content = '') {
   if (modal.open) modal.close(); stopAutoScroll(); stopConveyor(); clearInterval(auctionClock); clearInterval(auctionFeedClock);
@@ -780,7 +778,6 @@ function showAuctionHouse() { if (observer) observer.disconnect(); clearInterval
 
 document.addEventListener('click', event => {
   if (event.target.closest('.delivery-update-form, .delivery-message-form, .trade-message-form')) return;
-  if (browseMode === 'conveyor' && event.target.closest('.listing')) conveyorPausedUntil = Date.now() + 15000;
   const tagMatch = event.target.closest('[data-tag-match]'); if (tagMatch) { tagMatchMode = tagMatch.dataset.tagMatch; reloadTagRoute(); return; }
   const community = event.target.closest('[data-community]'); if (community) { openCommunity(community.dataset.community, community.dataset.communityId, community.dataset.communityLabel).catch(showError); return; }
   const chatroom = event.target.closest('[data-chatroom]'); if (chatroom) { voiceChat.join(`chatroom:${chatroom.dataset.chatroom}`, chatroom.dataset.chatroomLabel || 'Collector chatroom').catch(showError); return; }
@@ -887,7 +884,7 @@ modal.addEventListener('click', event => { if (event.target === modal && !modal.
 modal.addEventListener('cancel', event => { if (modal.classList.contains('listing-dialog')) event.preventDefault(); });
 modal.addEventListener('close', () => {
   document.body.classList.remove('chat-open', 'account-open', 'purchase-open', 'comments-open');
-  if (browseMode === 'conveyor' && searchScope === 'listings') { conveyorPausedUntil = 0; startConveyor(); }
+  if (browseMode === 'conveyor' && searchScope === 'listings') startConveyor();
   const workspace = location.hash.slice(1).toLowerCase();
   if (restoringWorkspaceHistory || !modalWorkspaceHashes.has(workspace)) return;
   if (history.state?.returnHash) history.back();
