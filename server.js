@@ -15,6 +15,7 @@ const paymentMethods = new Set(['PayPal']);
 const paypalProcessingRate = 0.0349;
 const paypalProcessingFixed = 0.49;
 const paypalProcessingFee = amount => Math.round((Math.max(0, Number(amount) || 0) * paypalProcessingRate + paypalProcessingFixed) * 100) / 100;
+const calculatedDeliveryFee = (miles, packaging) => Math.round((Math.max(8, Math.max(0, Number(miles) || 0) * 0.20) + Math.max(0, Number(packaging) || 0)) * 100) / 100;
 const developerPassUsername = 'collectormarketplace';
 const hasDeveloperPass = user => user?.developerPass === true;
 const collectiveCatalog = [
@@ -279,7 +280,7 @@ const tradeDeliveryPlan = input => {
   if (!address || address.length > 500) throw new Error('Add a delivery address under 500 characters.');
   if (!deliveryProviders[provider]) throw new Error('Choose one of the supported delivery options.');
   if (!paymentMethods.has(paymentMethod)) throw new Error('Choose one of the supported payment methods.');
-  return { shippingAddress: address, deliveryProvider: provider, deliveryMiles, packagingCost, courierPay: Math.max(8, deliveryMiles * 0.20) + packagingCost, paymentMethod };
+  return { shippingAddress: address, deliveryProvider: provider, deliveryMiles, packagingCost, courierPay: calculatedDeliveryFee(deliveryMiles, packagingCost), paymentMethod };
 };
 app.post('/trade', required, (req, res) => {
   const { receiverId, conversationId, listingId, senderListingIds, receiverListingIds, offerDetails, senderCashAmount, receiverCashAmount, cashAmount = 0, cashFrom = '' } = req.body;
@@ -391,13 +392,13 @@ app.post('/purchase', required, (req, res) => {
   if (!paymentMethods.has(method)) return res.status(400).json({ error: 'Choose one of the supported payment methods.' });
   const miles = Math.min(20000, Math.max(0, Number(deliveryMiles) || 0));
   const packing = Math.min(10000, Math.max(0, Number(packagingCost) || 0));
-  const courierPay = Math.max(8, miles * 0.20) + packing;
+  const courierPay = calculatedDeliveryFee(miles, packing);
   const itemPrice = Number(listing.price) || 0; const seller = store.data.users.find(user => user.id === listing.ownerId);
   const fees = { buyer: { rate: tradeFeeRate(req.user), amount: itemPrice * tradeFeeRate(req.user) }, seller: { rate: tradeFeeRate(seller), amount: itemPrice * tradeFeeRate(seller) } };
   const buyerSubtotal = itemPrice + fees.buyer.amount + courierPay;
   const minimumBuyerFee = itemPrice < 10 ? 10 : 0;
   const paypalFee = paypalProcessingFee(buyerSubtotal + minimumBuyerFee);
-  const delivery = { id: id(), listingId: listing.id, buyerId: req.user.id, sellerId: listing.ownerId, shippingAddress: address, itemPrice, fees, deliveryProvider: provider, deliveryMiles: miles, packagingCost: packing, courierPay, paymentMethod: method, paypalFee, buyerSubtotal, minimumBuyerFee, status: 'awaiting_seller_dispatch', courier: '', trackingNumber: '', messages: [], history: [], createdAt: now(), updatedAt: now() }; recordDeliveryUpdate(delivery, req.user.id, delivery.status, `Order placed with ${provider} · ${method};${minimumBuyerFee ? ` minimum buyer fee $${minimumBuyerFee.toFixed(2)};` : ''} PayPal processing fee $${paypalFee.toFixed(2)}.`);
+  const delivery = { id: id(), listingId: listing.id, buyerId: req.user.id, sellerId: listing.ownerId, shippingAddress: address, itemPrice, fees, deliveryProvider: provider, deliveryMiles: miles, packagingCost: packing, courierPay, deliveryFee: courierPay, paymentMethod: method, paypalFee, buyerSubtotal, minimumBuyerFee, status: 'awaiting_seller_dispatch', courier: '', trackingNumber: '', messages: [], history: [], createdAt: now(), updatedAt: now() }; recordDeliveryUpdate(delivery, req.user.id, delivery.status, `Order placed with ${provider} · ${method}; calculated delivery fee $${courierPay.toFixed(2)}.${minimumBuyerFee ? ` Minimum buyer fee $${minimumBuyerFee.toFixed(2)};` : ''} PayPal processing fee $${paypalFee.toFixed(2)}.`);
   listing.status = 'pending_delivery'; store.data.deliveries.unshift(delivery); notify(listing.ownerId, 'delivery', `${req.user.username} started a purchase delivery for “${listing.title}”`, `/delivery/${delivery.id}`); activity('purchase', req.user.id, { listingId: listing.id, deliveryId: delivery.id }); store.save(); res.status(201).json(deliveryView(delivery, req.user.id));
 });
 app.get('/deliveries', required, (req, res) => res.json(store.data.deliveries.filter(row => row.buyerId === req.user.id || row.sellerId === req.user.id).map(row => deliveryView(row, req.user.id))));
