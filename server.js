@@ -195,7 +195,7 @@ app.get('/auctions', (req, res) => {
 });
 const listingConditions = new Set(['New', 'New with Tags', 'Sealed', 'Like New', 'Mint', 'Near Mint', 'Excellent', 'Very Good', 'Good', 'Fair', 'Poor', 'For Parts or Repair', 'Graded', 'Ungraded', 'Authenticated', 'Restored']);
 app.post('/listing', required, (req, res) => {
-  const { title, description, category, condition, tags = [], price, tradeOffer, images = [], videos = [], sellerCity, sellerZip, locationCoordinates, pickupRadiusMiles, fulfillment, listingMode = 'marketplace', auctionStartPrice, auctionDurationHours } = req.body;
+  const { title, description, category, condition, tags = [], price, tradeOffer, images = [], videos = [], sellerCity, sellerZip, locationCoordinates, pickupRadiusMiles, fulfillment, shippingPackagingCost, listingMode = 'marketplace', auctionStartPrice, auctionDurationHours } = req.body;
   const validImages = Array.isArray(images) && images.length > 0 && images.length <= 5 && images.every(image => typeof image === 'string' && image.length <= 2_000_000 && (/^https?:\/\//i.test(image) || /^data:image\/(jpeg|png|webp);base64,/i.test(image)));
   const validVideos = Array.isArray(videos) && videos.length <= 1 && videos.every(video => typeof video === 'string' && video.length <= 6_000_000 && /^data:video\/(mp4|webm|quicktime);base64,/i.test(video));
   if (!title?.trim() || !description?.trim() || !category?.trim()) return res.status(400).json({ error: 'title, description, and category are required' });
@@ -207,6 +207,8 @@ app.post('/listing', required, (req, res) => {
   if (!/^\d{5}(?:-\d{4})?$/.test(publicZip)) return res.status(400).json({ error: 'Add a valid 5-digit US ZIP code.' });
   const pickupRadius = Number(pickupRadiusMiles);
   if (!Number.isFinite(pickupRadius) || pickupRadius < 0 || pickupRadius > 500) return res.status(400).json({ error: 'Pickup radius must be between 0 and 500 miles.' });
+  const upsPackagingCost = Math.round(Math.max(0, Number(shippingPackagingCost) || 0) * 100) / 100;
+  if (upsPackagingCost > 1000) return res.status(400).json({ error: 'UPS packaging cost must be $1,000 or less.' });
   if (!['pickup', 'pickup_delivery'].includes(fulfillment)) return res.status(400).json({ error: 'Choose pickup or pickup and delivery for fulfillment.' });
   if (!['marketplace', 'auction_only', 'marketplace_auction'].includes(listingMode)) return res.status(400).json({ error: 'Choose where this listing should appear.' });
   const auctionHours = Math.min(720, Math.max(1, Number(auctionDurationHours) || 72));
@@ -225,7 +227,7 @@ app.post('/listing', required, (req, res) => {
   if (!validVideos) return res.status(400).json({ error: 'Add at most one valid uploaded video.' });
   const publicLocation = `${publicCity} ${publicZip}`;
   const locationTag = `US City/Town: ${publicCity}`;
-  const listing = { id: id(), ownerId: req.user.id, title: title.trim(), description: description.trim(), category: category.trim(), condition: itemCondition, tags: [...submittedTags, locationTag], location: publicLocation, sellerCity: publicCity, sellerZip: publicZip, locationCoordinates: coordinates, pickupRadiusMiles: pickupRadius, fulfillment, listingMode, auctionStartPrice: listingMode === 'marketplace' ? null : startingBid, auctionEndAt: listingMode === 'marketplace' ? null : new Date(Date.now() + auctionHours * 3600000).toISOString(), auctionBids: 0, price: Number(price) || 0, tradeOffer: Boolean(tradeOffer), images, videos, status: 'active', likes: [], createdAt: now() };
+  const listing = { id: id(), ownerId: req.user.id, title: title.trim(), description: description.trim(), category: category.trim(), condition: itemCondition, tags: [...submittedTags, locationTag], location: publicLocation, sellerCity: publicCity, sellerZip: publicZip, locationCoordinates: coordinates, pickupRadiusMiles: pickupRadius, fulfillment, upsPackagingCost, listingMode, auctionStartPrice: listingMode === 'marketplace' ? null : startingBid, auctionEndAt: listingMode === 'marketplace' ? null : new Date(Date.now() + auctionHours * 3600000).toISOString(), auctionBids: 0, price: Number(price) || 0, tradeOffer: Boolean(tradeOffer), images, videos, status: 'active', likes: [], createdAt: now() };
   store.data.listings.unshift(listing); activity('listing', req.user.id, { listingId: listing.id }); store.save(); res.status(201).json(listing);
 });
 app.get('/listing/:id', (req, res) => { const listing = store.data.listings.find(l => l.id === req.params.id); if (!listing) return res.status(404).json({ error: 'Listing not found' }); res.json({ ...listing, owner: publicUser(store.data.users.find(u => u.id === listing.ownerId)), likeCount: listing.likes.length }); });
@@ -242,6 +244,7 @@ app.put('/listing/:id', required, (req, res) => {
     if (!['pickup', 'pickup_delivery'].includes(req.body.fulfillment)) return res.status(400).json({ error: 'Choose pickup or pickup and delivery for fulfillment.' });
     listing.fulfillment = req.body.fulfillment;
   }
+  if (req.body.upsPackagingCost !== undefined) { const packaging = Math.round(Math.max(0, Number(req.body.upsPackagingCost) || 0) * 100) / 100; if (packaging > 1000) return res.status(400).json({ error: 'UPS packaging cost must be $1,000 or less.' }); listing.upsPackagingCost = packaging; }
   if (req.body.status !== undefined && !['active', 'archived'].includes(req.body.status)) return res.status(400).json({ error: 'Listings can only be set to active or archived here.' });
   if (req.body.condition !== undefined && !listingConditions.has(String(req.body.condition))) return res.status(400).json({ error: 'Choose a valid item condition.' });
   ['title', 'description', 'category', 'condition', 'tags', 'price', 'tradeOffer', 'images', 'videos', 'status'].forEach(key => {
@@ -391,7 +394,7 @@ app.post('/purchase', required, (req, res) => {
   const method = typeof paymentMethod === 'string' ? paymentMethod.trim() : '';
   if (!paymentMethods.has(method)) return res.status(400).json({ error: 'Choose one of the supported payment methods.' });
   const miles = Math.min(20000, Math.max(0, Number(deliveryMiles) || 0));
-  const packing = Math.min(10000, Math.max(0, Number(packagingCost) || 0));
+  const packing = Math.min(1000, Math.max(0, Number(listing.upsPackagingCost) || 0));
   const courierPay = calculatedDeliveryFee(miles, packing);
   const itemPrice = Number(listing.price) || 0; const seller = store.data.users.find(user => user.id === listing.ownerId);
   const fees = { buyer: { rate: tradeFeeRate(req.user), amount: itemPrice * tradeFeeRate(req.user) }, seller: { rate: tradeFeeRate(seller), amount: itemPrice * tradeFeeRate(seller) } };
