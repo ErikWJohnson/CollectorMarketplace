@@ -12,6 +12,8 @@ const id = () => crypto.randomUUID();
 const now = () => new Date().toISOString();
 const deliveryProviders = { 'UPS Priority': { type: 'carrier', trackingRequired: true } };
 const paymentMethods = new Set(['PayPal']);
+const paypalTransactionRate = user => hasDeveloperPass(user) ? 0 : user?.curator === true || user?.membership === 'curator' ? 0.04 : 0.07;
+const paypalProcessingFee = (user, amount) => Math.round((Math.max(0, Number(amount) || 0) * paypalTransactionRate(user)) * 100) / 100;
 const developerPassUsername = 'collectormarketplace';
 const hasDeveloperPass = user => user?.developerPass === true;
 const collectiveCatalog = [
@@ -292,7 +294,8 @@ app.post('/trade', required, (req, res) => {
   const note = typeof offerDetails === 'string' ? offerDetails.trim() : '';
   const receiver = store.data.users.find(user => user.id === receiverId);
   const fees = tradeFeeSnapshot({ sender: req.user, receiver, senderListings: offeredListings, receiverListings: requestedListings, senderCash, receiverCash });
-  const trade = { id: id(), senderId: req.user.id, receiverId, listingId: requestedIds[0], senderListingIds: offeredIds, receiverListingIds: requestedIds, senderCashAmount: senderCash, receiverCashAmount: receiverCash, fees, offerDetails: note.slice(0, 1000), deliveryPlans: { sender: senderDelivery, receiver: null }, acceptances: { sender: false, receiver: false }, status: 'pending', messages: [], createdAt: now() };
+  const paymentFees = { sender: senderCash > 0 ? paypalProcessingFee(req.user, senderCash) : 0, receiver: receiverCash > 0 ? paypalProcessingFee(receiver, receiverCash) : 0 };
+  const trade = { id: id(), senderId: req.user.id, receiverId, listingId: requestedIds[0], senderListingIds: offeredIds, receiverListingIds: requestedIds, senderCashAmount: senderCash, receiverCashAmount: receiverCash, fees, paymentFees, offerDetails: note.slice(0, 1000), deliveryPlans: { sender: senderDelivery, receiver: null }, acceptances: { sender: false, receiver: false }, status: 'pending', messages: [], createdAt: now() };
   if (conversationId) {
     const conversation = store.data.conversations.find(row => row.id === conversationId && row.participantIds.length === 2 && row.participantIds.includes(req.user.id) && row.participantIds.includes(receiverId));
     if (!conversation) return res.status(400).json({ error: 'This trade request is not connected to a valid conversation.' });
@@ -386,7 +389,9 @@ app.post('/purchase', required, (req, res) => {
   const courierPay = Math.max(8, miles * 0.20) + packing;
   const itemPrice = Number(listing.price) || 0; const seller = store.data.users.find(user => user.id === listing.ownerId);
   const fees = { buyer: { rate: tradeFeeRate(req.user), amount: itemPrice * tradeFeeRate(req.user) }, seller: { rate: tradeFeeRate(seller), amount: itemPrice * tradeFeeRate(seller) } };
-  const delivery = { id: id(), listingId: listing.id, buyerId: req.user.id, sellerId: listing.ownerId, shippingAddress: address, itemPrice, fees, deliveryProvider: provider, deliveryMiles: miles, packagingCost: packing, courierPay, paymentMethod: method, status: 'awaiting_seller_dispatch', courier: '', trackingNumber: '', messages: [], history: [], createdAt: now(), updatedAt: now() }; recordDeliveryUpdate(delivery, req.user.id, delivery.status, `Order placed with ${provider} · ${method}; delivery estimate $${courierPay.toFixed(2)}.`);
+  const buyerSubtotal = itemPrice + fees.buyer.amount + courierPay;
+  const paypalFee = paypalProcessingFee(req.user, buyerSubtotal);
+  const delivery = { id: id(), listingId: listing.id, buyerId: req.user.id, sellerId: listing.ownerId, shippingAddress: address, itemPrice, fees, deliveryProvider: provider, deliveryMiles: miles, packagingCost: packing, courierPay, paymentMethod: method, paypalFee, buyerSubtotal, status: 'awaiting_seller_dispatch', courier: '', trackingNumber: '', messages: [], history: [], createdAt: now(), updatedAt: now() }; recordDeliveryUpdate(delivery, req.user.id, delivery.status, `Order placed with ${provider} · ${method}; PayPal processing fee $${paypalFee.toFixed(2)}.`);
   listing.status = 'pending_delivery'; store.data.deliveries.unshift(delivery); notify(listing.ownerId, 'delivery', `${req.user.username} started a purchase delivery for “${listing.title}”`, `/delivery/${delivery.id}`); activity('purchase', req.user.id, { listingId: listing.id, deliveryId: delivery.id }); store.save(); res.status(201).json(deliveryView(delivery, req.user.id));
 });
 app.get('/deliveries', required, (req, res) => res.json(store.data.deliveries.filter(row => row.buyerId === req.user.id || row.sellerId === req.user.id).map(row => deliveryView(row, req.user.id))));
