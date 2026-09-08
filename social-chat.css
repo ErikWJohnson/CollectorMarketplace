@@ -71,6 +71,7 @@
 }
 
 .chat-conversation-row:hover, .suggestion-card:hover { background: #292929; }
+.suggestion-actions{display:flex;gap:6px}.suggestion-actions button{border:1px solid #666;padding:7px 8px;background:#202020;color:#f5f3eb;font:700 .62rem/1 var(--mono,monospace);text-transform:uppercase;cursor:pointer}.suggestion-actions button:first-child{border-color:#f2bc35;background:#f2bc35;color:#171717}.suggestion-actions button:hover{filter:brightness(1.15)}
 .chat-conversation-row strong, .suggestion-card strong { display: block; font-size: .9rem; }
 .chat-conversation-row small, .suggestion-card small { display: block; overflow: hidden; color: #aaa69c; font-size: .76rem; text-overflow: ellipsis; white-space: nowrap; }
 .chat-conversation-row i, .suggestion-card i { color: #f2bc35; font: 700 .65rem/1 var(--mono, monospace); font-style: normal; letter-spacing: .04em; text-transform: uppercase; }
