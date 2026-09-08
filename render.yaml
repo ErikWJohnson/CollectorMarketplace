@@ -10,3 +10,5 @@ services:
         fromDatabase:
           name: collector-db
           property: connectionString
+      - key: SHIPPO_API_KEY
+        sync: false
