@@ -1,4 +1,4 @@
-body.account-open { overflow: hidden; }
+body.account-open { overflow-y: auto; }
 dialog.account-dialog { position: fixed; inset: 0; width: 100vw !important; max-width: none !important; height: 100dvh; max-height: none !important; margin: 0; border: 0; border-radius: 0; padding: 0; overflow: auto; background: #151515; }
 .account-dialog::backdrop { background: #151515; }
 .account-dialog .close { position: fixed; z-index: 3; top: 18px; right: clamp(18px, 4vw, 54px); }

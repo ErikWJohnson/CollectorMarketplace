@@ -92,9 +92,9 @@
 .suggestion-list { border-bottom: 1px solid #383838; }
 .conversation-list::-webkit-scrollbar, .suggestion-list::-webkit-scrollbar, .chat-secondary::-webkit-scrollbar { width: 8px; }
 .conversation-list::-webkit-scrollbar-thumb, .suggestion-list::-webkit-scrollbar-thumb, .chat-secondary::-webkit-scrollbar-thumb { background: #797979; border: 2px solid #202020; }
-.chat-open { overflow: hidden; }
-html:has(body.chat-open), body.chat-open { overflow: hidden !important; overscroll-behavior: none; }
-body.chat-open .app-shell { height: 100dvh; overflow: hidden !important; }
+.chat-open { overflow-y: auto; }
+html:has(body.chat-open), body.chat-open { overflow-y: auto !important; overscroll-behavior: auto; }
+body.chat-open .app-shell { height: auto; min-height: 100dvh; overflow: visible !important; }
 .chat-resource-section + .chat-resource-section { margin-top: 20px; }
 .chat-resource-section h4 { margin-bottom: 9px; color: #f2bc35; font-size: .76rem; letter-spacing: .1em; text-transform: uppercase; }
 .chat-dialog .delivery-row { margin-bottom: 8px; }
