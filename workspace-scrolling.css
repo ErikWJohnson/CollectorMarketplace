@@ -1,0 +1,49 @@
+/* Full-page workspaces share the document scroll area. This prevents Account,
+   Sell, and the Chat inbox from clipping content behind a fixed-height shell. */
+html:has(body.app-section-mode),
+body.app-section-mode {
+  height: auto !important;
+  min-height: 100dvh;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior-y: auto;
+}
+
+body.app-section-mode .app-shell,
+body.app-section-mode .market-stage,
+body.app-section-mode .listing-stream,
+body.app-section-mode .app-section-page,
+body.app-section-mode .app-section-content {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+body.app-section-mode .listing-stream {
+  padding-bottom: calc(112px + env(safe-area-inset-bottom)) !important;
+}
+
+/* The Chat inbox expands with its conversations and suggestions; an open
+   conversation still keeps its dedicated message-thread scrollbar. */
+.app-section-chat .social-chat {
+  height: auto !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+}
+
+.app-section-chat .chat-sidebar {
+  grid-template-rows: auto auto auto auto;
+  overflow: visible !important;
+}
+
+.app-section-chat .conversation-list,
+.app-section-chat .suggestion-list,
+.app-section-chat .chat-secondary {
+  overflow: visible !important;
+}
+
+@media (max-width: 680px) {
+  body.app-section-mode .listing-stream {
+    padding-bottom: calc(104px + env(safe-area-inset-bottom)) !important;
+  }
+}
