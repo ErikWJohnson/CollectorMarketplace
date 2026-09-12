@@ -1,0 +1,79 @@
+/* One predictable vertical scroll path across the marketplace. */
+html,
+body {
+  min-height: 100%;
+  overflow-x: clip;
+  overflow-y: auto;
+  scroll-padding-bottom: calc(104px + env(safe-area-inset-bottom));
+}
+
+.app-shell,
+.market-stage,
+.listing-stream {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* Every full-screen panel is allowed to scroll instead of clipping at its
+   inner content wrapper. Trade and direct-message threads preserve their
+   dedicated conversation scroll areas. */
+dialog[open] {
+  overscroll-behavior-y: auto;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
+
+dialog.chat-dialog:not(.trade-dialog),
+dialog.account-dialog,
+dialog.listing-dialog,
+dialog.purchase-dialog,
+dialog.comment-dialog {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+dialog.chat-dialog:not(.trade-dialog) #modal-content,
+dialog.account-dialog #modal-content,
+dialog.listing-dialog #modal-content,
+dialog.purchase-dialog #modal-content,
+dialog.comment-dialog #modal-content {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+  padding-bottom: calc(120px + env(safe-area-inset-bottom));
+}
+
+dialog.chat-dialog:not(.trade-dialog) .social-chat,
+dialog.chat-dialog:not(.trade-dialog) .community-workspace,
+dialog.chat-dialog:not(.trade-dialog) .entity-workspace {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* The persistent navigation never conceals the end of a page. */
+#sentinel,
+.app-section-page,
+.listing-form,
+.profile-workspace,
+.auction-house {
+  scroll-margin-bottom: calc(104px + env(safe-area-inset-bottom));
+}
+
+@media (max-width: 680px) {
+  html,
+  body {
+    scroll-padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+
+  dialog.chat-dialog:not(.trade-dialog) #modal-content,
+  dialog.account-dialog #modal-content,
+  dialog.listing-dialog #modal-content,
+  dialog.purchase-dialog #modal-content,
+  dialog.comment-dialog #modal-content {
+    padding-bottom: calc(104px + env(safe-area-inset-bottom));
+  }
+}
