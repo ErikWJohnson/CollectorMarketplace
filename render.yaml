@@ -12,3 +12,9 @@ services:
           property: connectionString
       - key: SHIPPO_API_KEY
         sync: false
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_SECRET
+        sync: false
+      - key: PUBLIC_BASE_URL
+        value: https://collectormarketplace.net

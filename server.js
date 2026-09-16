@@ -5,6 +5,9 @@ const path = require('path');
 const { Pool } = require('pg');
 
 const app = express();
+// Render terminates TLS before requests reach this server. Trust that proxy so
+// PayPal return URLs keep the public HTTPS scheme.
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 const dataDir = path.join(__dirname, 'data');
 const dataFile = path.join(dataDir, 'store.json');
@@ -93,6 +96,30 @@ function activity(type, userId, extra = {}) { store.data.activities.unshift({ id
 function notify(userId, type, message, link) { store.data.notifications.unshift({ id: id(), userId, type, message, link, read: false, createdAt: now() }); }
 const shippoReady = () => Boolean(process.env.SHIPPO_API_KEY);
 async function shippoRequest(pathname, body) { if (!shippoReady()) throw new Error('Shipping labels are not configured yet. Add SHIPPO_API_KEY in Render.'); const response = await fetch(`https://api.goshippo.com${pathname}`, { method: 'POST', headers: { Authorization: `ShippoToken ${process.env.SHIPPO_API_KEY}`, 'Content-Type': 'application/json', 'SHIPPO-API-VERSION': '2018-02-08' }, body: JSON.stringify(body) }); const payload = await response.json().catch(() => ({})); if (!response.ok) throw new Error(payload.detail || payload.messages?.[0]?.text || 'Shippo could not complete that request.'); return payload; }
+const paypalReady = () => Boolean(process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_SECRET);
+const paypalBaseUrl = 'https://api-m.sandbox.paypal.com';
+async function paypalAccessToken() {
+  if (!paypalReady()) throw new Error('PayPal Sandbox is not configured. Add PAYPAL_CLIENT_ID and PAYPAL_SECRET in Render.');
+  const credentials = Buffer.from(`${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_SECRET}`).toString('base64');
+  const response = await fetch(`${paypalBaseUrl}/v1/oauth2/token`, { method: 'POST', headers: { Authorization: `Basic ${credentials}`, 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'grant_type=client_credentials' });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload.access_token) throw new Error(payload.error_description || 'PayPal Sandbox could not authorize this checkout.');
+  return payload.access_token;
+}
+async function paypalRequest(method, pathname, body, requestId) {
+  const token = await paypalAccessToken();
+  const response = await fetch(`${paypalBaseUrl}${pathname}`, { method, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Prefer: 'return=representation', ...(requestId ? { 'PayPal-Request-Id': requestId } : {}) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.message || payload.details?.[0]?.description || 'PayPal Sandbox could not complete this checkout.');
+  return payload;
+}
+function publicOrigin(req) {
+  const configured = String(process.env.PUBLIC_BASE_URL || '').trim().replace(/\/$/, '');
+  if (configured) return configured;
+  const host = String(req.get('host') || '');
+  if (!/^[a-z0-9.-]+(?::\d+)?$/i.test(host)) throw new Error('Could not determine the public checkout URL.');
+  return `${req.protocol}://${host}`;
+}
 function shippoAddress(input, label) { const value = input && typeof input === 'object' ? input : {}; const required = ['name', 'street1', 'city', 'state', 'zip']; if (required.some(key => !String(value[key] || '').trim())) throw new Error(`Add a complete ${label} address.`); return { name: String(value.name).trim(), street1: String(value.street1).trim(), street2: String(value.street2 || '').trim(), city: String(value.city).trim(), state: String(value.state).trim(), zip: String(value.zip).trim(), country: String(value.country || 'US').trim().toUpperCase() }; }
 function shippoParcel(input) { const value = input && typeof input === 'object' ? input : {}; const keys = ['length', 'width', 'height', 'weight']; if (keys.some(key => !(Number(value[key]) > 0))) throw new Error('Add positive package dimensions and weight.'); return { length: Number(value.length), width: Number(value.width), height: Number(value.height), distance_unit: 'in', weight: Number(value.weight), mass_unit: 'lb' }; }
 function usCityTownTag(location) {
@@ -378,31 +405,72 @@ app.put('/trade/:id', required, (req, res) => {
 
 function deliveryView(delivery, userId) { const listing = store.data.listings.find(row => row.id === delivery.listingId); const buyer = store.data.users.find(row => row.id === delivery.buyerId); const seller = store.data.users.find(row => row.id === delivery.sellerId); return { ...delivery, listing, buyer: publicUser(buyer), seller: publicUser(seller), shippingAddress: delivery.buyerId === userId || delivery.sellerId === userId ? delivery.shippingAddress : undefined }; }
 function recordDeliveryUpdate(delivery, userId, status, note = '') { if (!Array.isArray(delivery.history)) delivery.history = []; delivery.history.push({ id: id(), userId, status, note, createdAt: now() }); delivery.updatedAt = now(); }
-app.post('/purchase', required, (req, res) => {
-  const { listingId, shippingAddress, deliveryProvider, deliveryMiles, packagingCost, paymentMethod } = req.body;
+function preparePurchase(user, body) {
+  const { listingId, shippingAddress, deliveryProvider, deliveryMiles, paymentMethod } = body;
   const listing = store.data.listings.find(row => row.id === listingId && row.status === 'active');
-  if (!listing) return res.status(404).json({ error: 'Active listing not found' });
-  if (listing.ownerId === req.user.id) return res.status(400).json({ error: 'You cannot purchase your own listing' });
+  if (!listing) throw new Error('Active listing not found');
+  if (listing.ownerId === user.id) throw new Error('You cannot purchase your own listing');
   const address = typeof shippingAddress === 'string' ? shippingAddress.trim() : '';
-  if (!address) return res.status(400).json({ error: 'A delivery address is required' });
-  if (address.length > 500) return res.status(400).json({ error: 'Keep the delivery address under 500 characters.' });
+  if (!address || address.length > 500) throw new Error(address ? 'Keep the delivery address under 500 characters.' : 'A delivery address is required');
   const provider = typeof deliveryProvider === 'string' ? deliveryProvider.trim() : '';
-  if (!provider) return res.status(400).json({ error: 'Choose a delivery provider or courier option.' });
-  if (provider.length > 120) return res.status(400).json({ error: 'Keep the delivery provider under 120 characters.' });
-  if (!deliveryProviders[provider]) return res.status(400).json({ error: 'Choose one of the supported delivery options.' });
-  if (listing.fulfillment === 'pickup' && provider !== 'Local pickup') return res.status(400).json({ error: 'This listing is available for local pickup only.' });
+  if (!provider || !deliveryProviders[provider]) throw new Error('Choose one of the supported delivery options.');
+  if (listing.fulfillment === 'pickup' && provider !== 'Local pickup') throw new Error('This listing is available for local pickup only.');
   const method = typeof paymentMethod === 'string' ? paymentMethod.trim() : '';
-  if (!paymentMethods.has(method)) return res.status(400).json({ error: 'Choose one of the supported payment methods.' });
+  if (!paymentMethods.has(method)) throw new Error('Choose one of the supported payment methods.');
   const miles = Math.min(20000, Math.max(0, Number(deliveryMiles) || 0));
   const packing = Math.min(1000, Math.max(0, Number(listing.upsPackagingCost) || 0));
   const courierPay = calculatedDeliveryFee(miles, packing);
-  const itemPrice = Number(listing.price) || 0; const seller = store.data.users.find(user => user.id === listing.ownerId);
-  const fees = { buyer: { rate: tradeFeeRate(req.user), amount: itemPrice * tradeFeeRate(req.user) }, seller: { rate: tradeFeeRate(seller), amount: itemPrice * tradeFeeRate(seller) } };
+  const itemPrice = Number(listing.price) || 0; const seller = store.data.users.find(candidate => candidate.id === listing.ownerId);
+  const fees = { buyer: { rate: tradeFeeRate(user), amount: itemPrice * tradeFeeRate(user) }, seller: { rate: tradeFeeRate(seller), amount: itemPrice * tradeFeeRate(seller) } };
   const buyerSubtotal = itemPrice + fees.buyer.amount + courierPay;
   const minimumBuyerFee = itemPrice < 10 ? 10 : 0;
   const paypalFee = paypalProcessingFee(buyerSubtotal + minimumBuyerFee);
-  const delivery = { id: id(), listingId: listing.id, buyerId: req.user.id, sellerId: listing.ownerId, shippingAddress: address, itemPrice, fees, deliveryProvider: provider, deliveryMiles: miles, packagingCost: packing, courierPay, deliveryFee: courierPay, paymentMethod: method, paypalFee, buyerSubtotal, minimumBuyerFee, status: 'awaiting_seller_dispatch', courier: '', trackingNumber: '', messages: [], history: [], createdAt: now(), updatedAt: now() }; recordDeliveryUpdate(delivery, req.user.id, delivery.status, `Order placed with ${provider} · ${method}; calculated delivery fee $${courierPay.toFixed(2)}.${minimumBuyerFee ? ` Minimum buyer fee $${minimumBuyerFee.toFixed(2)};` : ''} PayPal processing fee $${paypalFee.toFixed(2)}.`);
-  listing.status = 'pending_delivery'; store.data.deliveries.unshift(delivery); notify(listing.ownerId, 'delivery', `${req.user.username} started a purchase delivery for “${listing.title}”`, `/delivery/${delivery.id}`); activity('purchase', req.user.id, { listingId: listing.id, deliveryId: delivery.id }); store.save(); res.status(201).json(deliveryView(delivery, req.user.id));
+  return { listing, address, provider, method, miles, packing, courierPay, itemPrice, fees, buyerSubtotal, minimumBuyerFee, paypalFee, total: Math.round((buyerSubtotal + minimumBuyerFee + paypalFee) * 100) / 100 };
+}
+function purchaseDelivery(purchase, buyer, status) {
+  return { id: id(), listingId: purchase.listing.id, buyerId: buyer.id, sellerId: purchase.listing.ownerId, shippingAddress: purchase.address, itemPrice: purchase.itemPrice, fees: purchase.fees, deliveryProvider: purchase.provider, deliveryMiles: purchase.miles, packagingCost: purchase.packing, courierPay: purchase.courierPay, deliveryFee: purchase.courierPay, paymentMethod: purchase.method, paypalFee: purchase.paypalFee, buyerSubtotal: purchase.buyerSubtotal, minimumBuyerFee: purchase.minimumBuyerFee, status, courier: '', trackingNumber: '', messages: [], history: [], createdAt: now(), updatedAt: now() };
+}
+app.post('/purchase', required, (req, res) => {
+  res.status(410).json({ error: 'Direct checkout is disabled. Create a PayPal order first.' });
+});
+app.post('/paypal/orders', required, async (req, res) => {
+  let purchase; let delivery;
+  try {
+    purchase = preparePurchase(req.user, req.body);
+    if (purchase.method !== 'PayPal') throw new Error('PayPal is the only checkout method currently available.');
+    delivery = purchaseDelivery(purchase, req.user, 'awaiting_paypal_approval');
+    delivery.paypal = { environment: 'sandbox', status: 'CREATING', amount: purchase.total };
+    purchase.listing.status = 'pending_payment'; store.data.deliveries.unshift(delivery);
+    const origin = publicOrigin(req); const encodedDeliveryId = encodeURIComponent(delivery.id);
+    const order = await paypalRequest('POST', '/v2/checkout/orders', { intent: 'CAPTURE', purchase_units: [{ reference_id: delivery.id, custom_id: delivery.id, description: purchase.listing.title.slice(0, 127), amount: { currency_code: 'USD', value: purchase.total.toFixed(2) } }], payment_source: { paypal: { experience_context: { return_url: `${origin}/paypal/return?deliveryId=${encodedDeliveryId}`, cancel_url: `${origin}/paypal/cancel?deliveryId=${encodedDeliveryId}`, user_action: 'PAY_NOW', shipping_preference: 'NO_SHIPPING' } } } }, delivery.id);
+    const approvalUrl = order.links?.find(link => link.rel === 'payer-action' || link.rel === 'approve')?.href;
+    if (!approvalUrl) throw new Error('PayPal Sandbox did not provide an approval link.');
+    delivery.paypal = { environment: 'sandbox', status: order.status || 'CREATED', orderId: order.id, amount: purchase.total };
+    recordDeliveryUpdate(delivery, req.user.id, delivery.status, 'PayPal Sandbox checkout created; awaiting buyer approval.');
+    store.save(); res.status(201).json({ approvalUrl, deliveryId: delivery.id, orderId: order.id, environment: 'sandbox' });
+  } catch (error) {
+    if (delivery) { store.data.deliveries = store.data.deliveries.filter(row => row.id !== delivery.id); if (purchase?.listing?.status === 'pending_payment') purchase.listing.status = 'active'; store.save(); }
+    res.status(400).json({ error: error.message });
+  }
+});
+app.get('/paypal/return', async (req, res) => {
+  const delivery = store.data.deliveries.find(row => row.id === req.query.deliveryId && row.paypal?.orderId === req.query.token);
+  if (!delivery) return res.redirect('/?paypal=sandbox-error');
+  if (delivery.paypal?.status === 'COMPLETED') return res.redirect(`/?paypal=sandbox-success&delivery=${encodeURIComponent(delivery.id)}`);
+  try {
+    const capture = await paypalRequest('POST', `/v2/checkout/orders/${encodeURIComponent(delivery.paypal.orderId)}/capture`, {}, `capture-${delivery.id}`);
+    if (capture.status !== 'COMPLETED') throw new Error('PayPal Sandbox did not complete the payment.');
+    delivery.paypal = { ...delivery.paypal, status: 'COMPLETED', captureId: capture.purchase_units?.[0]?.payments?.captures?.[0]?.id || '' };
+    delivery.status = 'awaiting_seller_dispatch'; const listing = store.data.listings.find(row => row.id === delivery.listingId); if (listing) listing.status = 'pending_delivery';
+    recordDeliveryUpdate(delivery, delivery.buyerId, delivery.status, 'PayPal Sandbox payment captured. The seller can now prepare dispatch.');
+    notify(delivery.sellerId, 'delivery', 'PayPal Sandbox payment was approved; your item is ready to dispatch.', `/delivery/${delivery.id}`); activity('purchase', delivery.buyerId, { listingId: delivery.listingId, deliveryId: delivery.id }); store.save();
+    res.redirect(`/?paypal=sandbox-success&delivery=${encodeURIComponent(delivery.id)}`);
+  } catch (error) { res.redirect('/?paypal=sandbox-error'); }
+});
+app.get('/paypal/cancel', (req, res) => {
+  const delivery = store.data.deliveries.find(row => row.id === req.query.deliveryId);
+  if (delivery?.status === 'awaiting_paypal_approval') { delivery.status = 'payment_cancelled'; delivery.paypal = { ...delivery.paypal, status: 'CANCELLED' }; const listing = store.data.listings.find(row => row.id === delivery.listingId); if (listing) listing.status = 'active'; recordDeliveryUpdate(delivery, delivery.buyerId, delivery.status, 'Buyer cancelled PayPal Sandbox checkout.'); store.save(); }
+  res.redirect('/?paypal=sandbox-cancelled');
 });
 app.get('/deliveries', required, (req, res) => res.json(store.data.deliveries.filter(row => row.buyerId === req.user.id || row.sellerId === req.user.id).map(row => deliveryView(row, req.user.id))));
 app.get('/delivery/providers', (req, res) => res.json(Object.entries(deliveryProviders).map(([name, details]) => ({ name, ...details }))));
