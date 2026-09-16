@@ -433,6 +433,7 @@ function purchaseDelivery(purchase, buyer, status) {
 app.post('/purchase', required, (req, res) => {
   res.status(410).json({ error: 'Direct checkout is disabled. Create a PayPal order first.' });
 });
+app.get('/paypal/config', (req, res) => res.json({ clientId: process.env.PAYPAL_CLIENT_ID || '', environment: 'sandbox' }));
 app.post('/paypal/orders', required, async (req, res) => {
   let purchase; let delivery;
   try {
@@ -457,23 +458,42 @@ app.post('/paypal/orders', required, async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 });
+async function capturePayPalDelivery(delivery) {
+  if (delivery.paypal?.status === 'COMPLETED') return delivery;
+  const capture = await paypalRequest('POST', `/v2/checkout/orders/${encodeURIComponent(delivery.paypal.orderId)}/capture`, {}, `capture-${delivery.id}`);
+  if (capture.status !== 'COMPLETED') throw new Error('PayPal Sandbox did not complete the payment.');
+  delivery.paypal = { ...delivery.paypal, status: 'COMPLETED', captureId: capture.purchase_units?.[0]?.payments?.captures?.[0]?.id || '' };
+  delivery.status = 'awaiting_seller_dispatch'; const listing = store.data.listings.find(row => row.id === delivery.listingId); if (listing) listing.status = 'pending_delivery';
+  recordDeliveryUpdate(delivery, delivery.buyerId, delivery.status, 'PayPal Sandbox payment captured. The seller can now prepare dispatch.');
+  notify(delivery.sellerId, 'delivery', 'PayPal Sandbox payment was approved; your item is ready to dispatch.', `/delivery/${delivery.id}`); activity('purchase', delivery.buyerId, { listingId: delivery.listingId, deliveryId: delivery.id }); await store.save();
+  return delivery;
+}
+function cancelPayPalDelivery(delivery) {
+  if (!delivery || delivery.status !== 'awaiting_paypal_approval') return;
+  delivery.status = 'payment_cancelled'; delivery.paypal = { ...delivery.paypal, status: 'CANCELLED' }; const listing = store.data.listings.find(row => row.id === delivery.listingId); if (listing) listing.status = 'active'; recordDeliveryUpdate(delivery, delivery.buyerId, delivery.status, 'Buyer cancelled PayPal Sandbox checkout.'); store.save();
+}
+app.post('/paypal/orders/:deliveryId/capture', required, async (req, res) => {
+  const delivery = store.data.deliveries.find(row => row.id === req.params.deliveryId && row.buyerId === req.user.id);
+  if (!delivery?.paypal?.orderId) return res.status(404).json({ error: 'PayPal checkout not found.' });
+  try { res.json(deliveryView(await capturePayPalDelivery(delivery), req.user.id)); } catch (error) { res.status(400).json({ error: error.message }); }
+});
+app.post('/paypal/orders/:deliveryId/cancel', required, (req, res) => {
+  const delivery = store.data.deliveries.find(row => row.id === req.params.deliveryId && row.buyerId === req.user.id);
+  if (!delivery) return res.status(404).json({ error: 'PayPal checkout not found.' });
+  cancelPayPalDelivery(delivery); res.status(204).end();
+});
 app.get('/paypal/return', async (req, res) => {
   const delivery = store.data.deliveries.find(row => row.id === req.query.deliveryId && row.paypal?.orderId === req.query.token);
   if (!delivery) return res.redirect('/?paypal=sandbox-error');
   if (delivery.paypal?.status === 'COMPLETED') return res.redirect(`/?paypal=sandbox-success&delivery=${encodeURIComponent(delivery.id)}`);
   try {
-    const capture = await paypalRequest('POST', `/v2/checkout/orders/${encodeURIComponent(delivery.paypal.orderId)}/capture`, {}, `capture-${delivery.id}`);
-    if (capture.status !== 'COMPLETED') throw new Error('PayPal Sandbox did not complete the payment.');
-    delivery.paypal = { ...delivery.paypal, status: 'COMPLETED', captureId: capture.purchase_units?.[0]?.payments?.captures?.[0]?.id || '' };
-    delivery.status = 'awaiting_seller_dispatch'; const listing = store.data.listings.find(row => row.id === delivery.listingId); if (listing) listing.status = 'pending_delivery';
-    recordDeliveryUpdate(delivery, delivery.buyerId, delivery.status, 'PayPal Sandbox payment captured. The seller can now prepare dispatch.');
-    notify(delivery.sellerId, 'delivery', 'PayPal Sandbox payment was approved; your item is ready to dispatch.', `/delivery/${delivery.id}`); activity('purchase', delivery.buyerId, { listingId: delivery.listingId, deliveryId: delivery.id }); store.save();
+    await capturePayPalDelivery(delivery);
     res.redirect(`/?paypal=sandbox-success&delivery=${encodeURIComponent(delivery.id)}`);
   } catch (error) { res.redirect('/?paypal=sandbox-error'); }
 });
 app.get('/paypal/cancel', (req, res) => {
   const delivery = store.data.deliveries.find(row => row.id === req.query.deliveryId);
-  if (delivery?.status === 'awaiting_paypal_approval') { delivery.status = 'payment_cancelled'; delivery.paypal = { ...delivery.paypal, status: 'CANCELLED' }; const listing = store.data.listings.find(row => row.id === delivery.listingId); if (listing) listing.status = 'active'; recordDeliveryUpdate(delivery, delivery.buyerId, delivery.status, 'Buyer cancelled PayPal Sandbox checkout.'); store.save(); }
+  cancelPayPalDelivery(delivery);
   res.redirect('/?paypal=sandbox-cancelled');
 });
 app.get('/deliveries', required, (req, res) => res.json(store.data.deliveries.filter(row => row.buyerId === req.user.id || row.sellerId === req.user.id).map(row => deliveryView(row, req.user.id))));
