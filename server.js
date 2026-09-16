@@ -442,7 +442,11 @@ app.post('/paypal/orders', required, async (req, res) => {
     delivery.paypal = { environment: 'sandbox', status: 'CREATING', amount: purchase.total };
     purchase.listing.status = 'pending_payment'; store.data.deliveries.unshift(delivery);
     const origin = publicOrigin(req); const encodedDeliveryId = encodeURIComponent(delivery.id);
-    const order = await paypalRequest('POST', '/v2/checkout/orders', { intent: 'CAPTURE', purchase_units: [{ reference_id: delivery.id, custom_id: delivery.id, description: purchase.listing.title.slice(0, 127), amount: { currency_code: 'USD', value: purchase.total.toFixed(2) } }], payment_source: { paypal: { experience_context: { return_url: `${origin}/paypal/return?deliveryId=${encodedDeliveryId}`, cancel_url: `${origin}/paypal/cancel?deliveryId=${encodedDeliveryId}`, user_action: 'PAY_NOW', shipping_preference: 'NO_SHIPPING' } } } }, delivery.id);
+    const returnUrl = `${origin}/paypal/return?deliveryId=${encodedDeliveryId}`; const cancelUrl = `${origin}/paypal/cancel?deliveryId=${encodedDeliveryId}`;
+    const checkoutContext = { return_url: returnUrl, cancel_url: cancelUrl, brand_name: 'CollectorMarketplace.net', landing_page: 'LOGIN', user_action: 'PAY_NOW', shipping_preference: 'NO_SHIPPING' };
+    // application_context is retained as a compatibility fallback for hosted
+    // redirect checkout, while experience_context is the current Orders API path.
+    const order = await paypalRequest('POST', '/v2/checkout/orders', { intent: 'CAPTURE', application_context: checkoutContext, purchase_units: [{ reference_id: delivery.id, custom_id: delivery.id, description: purchase.listing.title.slice(0, 127), amount: { currency_code: 'USD', value: purchase.total.toFixed(2) } }], payment_source: { paypal: { experience_context: checkoutContext } } }, delivery.id);
     const approvalUrl = order.links?.find(link => link.rel === 'payer-action' || link.rel === 'approve')?.href;
     if (!approvalUrl) throw new Error('PayPal Sandbox did not provide an approval link.');
     delivery.paypal = { environment: 'sandbox', status: order.status || 'CREATED', orderId: order.id, amount: purchase.total };
