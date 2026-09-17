@@ -11,11 +11,43 @@
   left: 0;
   overflow: hidden;
   pointer-events: none;
-  opacity: .9;
+  opacity: .78;
   mix-blend-mode: screen;
-  background: linear-gradient(180deg, transparent 0 37%, #9ba39c08 64%, #d6dbd018 100%);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0 12%, #0004 38%, #000 68%);
-  mask-image: linear-gradient(to bottom, transparent 0 12%, #0004 38%, #000 68%);
+  background:
+    radial-gradient(ellipse at 52% 112%, #e5e8e129 0 25%, transparent 62%),
+    linear-gradient(180deg, transparent 0 42%, #9aa39a06 67%, #cbd1c618 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0 18%, #0002 38%, #000 74%);
+  mask-image: linear-gradient(to bottom, transparent 0 18%, #0002 38%, #000 74%);
+}
+
+.conveyor-smog-layer::before,
+.conveyor-smog-layer::after {
+  position: absolute;
+  right: -14%;
+  bottom: -18%;
+  left: -14%;
+  height: 49%;
+  content: "";
+  opacity: .5;
+  background:
+    radial-gradient(ellipse at 8% 100%, #f2f4ee24 0 8%, transparent 25%),
+    radial-gradient(ellipse at 29% 81%, #dbe0d724 0 12%, transparent 31%),
+    radial-gradient(ellipse at 49% 100%, #f0f2ec20 0 9%, transparent 28%),
+    radial-gradient(ellipse at 72% 76%, #d2d9cf20 0 14%, transparent 36%),
+    radial-gradient(ellipse at 94% 99%, #eff2ed22 0 10%, transparent 29%);
+  filter: blur(42px);
+  animation: conveyor-smog-undulate 46s ease-in-out infinite alternate;
+}
+
+.conveyor-smog-layer::after {
+  right: -28%;
+  bottom: 5%;
+  left: -28%;
+  height: 32%;
+  opacity: .27;
+  filter: blur(58px);
+  animation-duration: 62s;
+  animation-direction: alternate-reverse;
 }
 
 .conveyor-smog-layer span {
@@ -24,30 +56,37 @@
   width: 78vw;
   height: 38vh;
   border-radius: 50%;
-  opacity: .58;
+  opacity: .46;
   background:
     radial-gradient(ellipse at 12% 72%, #f0f2ed3f 0 8%, transparent 31%),
     radial-gradient(ellipse at 31% 48%, #d2d8d034 0 13%, transparent 39%),
     radial-gradient(ellipse at 55% 72%, #f3f4ef35 0 10%, transparent 35%),
     radial-gradient(ellipse at 76% 45%, #c2cbc237 0 14%, transparent 43%),
     radial-gradient(ellipse at 96% 74%, #eff2ed36 0 9%, transparent 32%);
-  filter: blur(26px) saturate(.5);
-  animation: conveyor-smog-roll 20s ease-in-out infinite;
+  filter: blur(34px) saturate(.42);
+  animation: conveyor-smog-roll 26s ease-in-out infinite;
 }
 
-.conveyor-smog-layer span:nth-child(1) { bottom: -13vh; left: -22vw; }
-.conveyor-smog-layer span:nth-child(2) { bottom: 4vh; left: 14vw; width: 74vw; opacity: .44; animation-duration: 29s; animation-delay: -9s; }
-.conveyor-smog-layer span:nth-child(3) { right: -26vw; bottom: -8vh; width: 82vw; opacity: .5; animation-duration: 24s; animation-delay: -15s; }
-.conveyor-smog-layer span:nth-child(4) { bottom: 20vh; left: -29vw; width: 70vw; opacity: .3; animation-duration: 35s; animation-delay: -19s; }
-.conveyor-smog-layer span:nth-child(5) { bottom: 13vh; right: -21vw; width: 76vw; opacity: .28; animation-duration: 32s; animation-delay: -5s; }
+.conveyor-smog-layer span:nth-child(1) { bottom: -15vh; left: -22vw; }
+.conveyor-smog-layer span:nth-child(2) { bottom: 2vh; left: 14vw; width: 74vw; opacity: .35; animation-duration: 37s; animation-delay: -9s; }
+.conveyor-smog-layer span:nth-child(3) { right: -26vw; bottom: -10vh; width: 82vw; opacity: .4; animation-duration: 31s; animation-delay: -15s; }
+.conveyor-smog-layer span:nth-child(4) { bottom: 18vh; left: -29vw; width: 70vw; opacity: .2; animation-duration: 45s; animation-delay: -19s; }
+.conveyor-smog-layer span:nth-child(5) { bottom: 11vh; right: -21vw; width: 76vw; opacity: .19; animation-duration: 40s; animation-delay: -5s; }
 
 @keyframes conveyor-smog-roll {
-  0%, 100% { transform: translate3d(-12%, 2%, 0) scale(1.02); }
-  50% { transform: translate3d(13%, -7%, 0) scale(1.18); }
+  0%, 100% { transform: translate3d(-11%, 3%, 0) scale(1.03); }
+  50% { transform: translate3d(12%, -5%, 0) scale(1.15); }
+}
+
+@keyframes conveyor-smog-undulate {
+  from { transform: translate3d(-4%, 4%, 0) scale(1.04); }
+  to { transform: translate3d(5%, -4%, 0) scale(1.14); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .conveyor-smog-layer span { animation: none; }
+  .conveyor-smog-layer span,
+  .conveyor-smog-layer::before,
+  .conveyor-smog-layer::after { animation: none; }
 }
 
 @media (max-width: 680px) {
