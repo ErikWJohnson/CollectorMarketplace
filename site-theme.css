@@ -1,5 +1,7 @@
 .site-theme-control {
-  position: fixed;
+  /* This control is a direct child of body. Force viewport anchoring so
+     Conveyor motion and normal page scrolling can never move it. */
+  position: fixed !important;
   z-index: 130;
   /* The compact masthead is 58px tall. Align this with the List item button
      and keep it immediately beneath that control at every scroll position. */
@@ -19,6 +21,8 @@
   color: #f2d263;
   text-align: left;
   cursor: pointer;
+  transform: none !important;
+  will-change: auto;
 }
 
 .site-theme-control:hover,
