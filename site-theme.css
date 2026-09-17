@@ -1,17 +1,17 @@
 .site-theme-control {
   position: fixed;
-  z-index: 80;
-  right: 16px;
-  bottom: calc(18px + env(safe-area-inset-bottom));
+  z-index: 105;
+  left: 14px;
+  bottom: calc(98px + env(safe-area-inset-bottom));
   display: flex;
   align-items: center;
   gap: 9px;
   min-height: 42px;
   padding: 7px 9px;
   border: 1px solid #756127;
-  border-radius: 5px;
-  background: #151714f2;
-  box-shadow: 0 10px 26px #00000052;
+  border-radius: 3px;
+  background: #17191bf2;
+  box-shadow: 0 8px 22px #00000040;
   color: #f2d263;
   text-align: left;
   cursor: pointer;
@@ -19,7 +19,7 @@
 
 .site-theme-control:hover,
 .site-theme-control:focus-visible { border-color: #f0ca4e; background: #202116; outline: 0; }
-.site-theme-icon { display: grid; place-items: center; width: 25px; height: 25px; border-radius: 50%; background: #453b19; color: #ffe285; font-size: 15px; }
+.site-theme-icon { display: grid; place-items: center; width: 25px; height: 25px; border: 1px solid #7a672e; border-radius: 2px; background: #2b2819; color: #ffe285; font-size: 14px; }
 .site-theme-control span:not(.site-theme-icon) { display: grid; gap: 1px; }
 .site-theme-control b { font: 700 10px "DM Mono", monospace; letter-spacing: .03em; }
 .site-theme-control small { color: #c5c7c4; font: 9px "DM Mono", monospace; }
@@ -28,5 +28,5 @@
 .site-theme-control.is-muted { border-color: #4e5358; color: #b7bec5; }
 
 @media (max-width: 680px) {
-  .site-theme-control { right: 10px; bottom: calc(82px + env(safe-area-inset-bottom)); }
+  .site-theme-control { left: 9px; bottom: calc(87px + env(safe-area-inset-bottom)); }
 }
