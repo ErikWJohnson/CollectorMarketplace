@@ -561,6 +561,8 @@ const rootSiteAssets = new Set([
 app.use('/public', express.static(path.join(__dirname, 'public'), { index: false }));
 app.get('/data/listings.json', (req, res) => res.sendFile(path.join(__dirname, 'data', 'listings.json')));
 app.get('/data/auctions.json', (req, res) => res.sendFile(path.join(__dirname, 'data', 'auctions.json')));
+app.get('/privacy', (req, res) => res.sendFile(path.join(__dirname, 'privacy.html')));
+app.get('/terms', (req, res) => res.sendFile(path.join(__dirname, 'terms.html')));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/:asset', (req, res, next) => {
   if (!rootSiteAssets.has(req.params.asset)) return next();
