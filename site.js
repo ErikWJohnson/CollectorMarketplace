@@ -520,14 +520,23 @@ async function renderPayPalButtonForPurchase(form) {
   const container = form.querySelector('.paypal-button-container');
   if (!container || container.dataset.ready) return;
   container.dataset.ready = 'loading'; container.innerHTML = '<small>Loading PayPal securely…</small>';
-  let order;
-  const paypal = await ensurePayPalSdk();
+  let order; let blockedMessage = '';
+  const showCheckoutError = message => { container.querySelectorAll('.listing-submit-error').forEach(node => node.remove()); container.insertAdjacentHTML('beforeend', `<p class="listing-submit-error" role="alert">${safe(message)}</p>`); };
+  const validatePurchase = () => {
+    const item = listings.find(row => row.id === form.dataset.listing);
+    if (item?.ownerId === session?.user?.id) return 'You cannot purchase your own listing.';
+    if (!form.reportValidity()) return 'Choose UPS Priority and complete every delivery address field first.';
+    if (form.querySelector('#delivery-provider')?.value !== 'UPS Priority') return 'Choose UPS Priority before paying.';
+    return '';
+  };
   try {
+    const paypal = await ensurePayPalSdk();
     const buttons = paypal.Buttons({
-      createOrder: async () => { if (!form.reportValidity()) throw new Error('Complete the required delivery details first.'); const recipientAddress = checkoutRecipientAddress(form); order = await api('/paypal/orders', { method: 'POST', body: JSON.stringify({ listingId: form.dataset.listing, recipientAddress, deliveryProvider: form.querySelector('#delivery-provider').value, deliveryMiles: form.querySelector('#delivery-miles').value, paymentMethod: form.querySelector('[name="paymentMethod"]:checked')?.value }) }); return order.orderId; },
-      onApprove: async (data, actions) => { try { const delivery = await api(`/paypal/orders/${order.deliveryId}/capture`, { method: 'POST', body: JSON.stringify({ orderId: data.orderID }) }); await loadDeliveries(); await loadMarket(); await openDelivery(delivery.id); } catch (error) { if (error.code === 'INSTRUMENT_DECLINED' && actions?.restart) return actions.restart(); const reference = error.debugId ? `<br><small>PayPal reference: ${safe(error.debugId)}</small>` : ''; container.innerHTML = `<p class="listing-submit-error" role="alert">${safe(error.message)}${reference}</p>`; } },
+      onClick: (_data, actions) => { blockedMessage = validatePurchase(); if (blockedMessage) { showCheckoutError(blockedMessage); return actions.reject(); } return actions.resolve(); },
+      createOrder: async () => { const problem = validatePurchase(); if (problem) throw new Error(problem); const recipientAddress = checkoutRecipientAddress(form); order = await api('/paypal/orders', { method: 'POST', body: JSON.stringify({ listingId: form.dataset.listing, recipientAddress, deliveryProvider: form.querySelector('#delivery-provider').value, deliveryMiles: form.querySelector('#delivery-miles').value, paymentMethod: form.querySelector('[name="paymentMethod"]:checked')?.value }) }); return order.orderId; },
+      onApprove: async (data, actions) => { try { const delivery = await api(`/paypal/orders/${order.deliveryId}/capture`, { method: 'POST', body: JSON.stringify({ orderId: data.orderID }) }); await loadDeliveries(); await loadMarket(); await openDelivery(delivery.id); } catch (error) { if (error.code === 'INSTRUMENT_DECLINED' && actions?.restart) return actions.restart(); showCheckoutError(`${error.message}${error.debugId ? ` PayPal reference: ${error.debugId}` : ''}`); } },
       onCancel: () => order ? api(`/paypal/orders/${order.deliveryId}/cancel`, { method: 'POST', body: '{}' }).then(() => { order = null; }).catch(showError) : undefined,
-      onError: error => { const detail = error?.message ? ` ${safe(error.message)}` : ''; container.insertAdjacentHTML('beforeend', `<p class="listing-submit-error" role="alert">PayPal could not continue. No payment was captured.${detail}</p>`); }
+      onError: error => { if (blockedMessage) return; showCheckoutError(`PayPal could not continue. No payment was captured.${error?.message ? ` ${error.message}` : ''}`); }
     });
     if (!buttons.isEligible()) throw new Error('PayPal checkout is not available in this browser.');
     container.innerHTML = ''; await buttons.render(container); container.dataset.ready = 'true';
@@ -884,7 +893,7 @@ document.addEventListener('click', event => {
   if (tag) { setDiscoveryMode('tags'); toggleTag(tag.dataset.tag, event.shiftKey ? 'add' : event.ctrlKey || event.metaKey ? 'remove' : 'toggle'); }
   if (category) { activeCategory = category.dataset.category; renderCategories(); renderFeed(); }
   if (trade) { const item = listings.find(row => row.id === trade.dataset.trade); if (!session) return openAuthPanel('login'); openTradeOfferChat(item); }
-  const purchase = event.target.closest('[data-purchase]'); if (purchase) { const item = listings.find(row => row.id === purchase.dataset.purchase); if (!session) return openAuthPanel('login'); openModal(`Buy ${item.title}`, 'Both buyer and seller pay their own marketplace fee. PayPal stays inside this checkout after you review the order.', feeCalculator(item, 'purchase')); modal.classList.add('purchase-dialog'); document.body.classList.add('purchase-open'); updateFeeSummary(); renderPayPalButtonForPurchase(modalContent.querySelector('.purchase-checkout')); }
+  const purchase = event.target.closest('[data-purchase]'); if (purchase) { const item = listings.find(row => row.id === purchase.dataset.purchase); if (!session) return openAuthPanel('login'); if (item?.ownerId === session.user.id) return openModal('Your own listing', 'You cannot buy your own listing. Use your account page to edit, archive, or manage it instead.'); openModal(`Buy ${item.title}`, 'Choose UPS Priority, then enter the private address used for the real shipping label. PayPal stays inside this checkout after you review the order.', feeCalculator(item, 'purchase')); modal.classList.add('purchase-dialog'); document.body.classList.add('purchase-open'); updateFeeSummary(); renderPayPalButtonForPurchase(modalContent.querySelector('.purchase-checkout')); }
   const commentVote = event.target.closest('[data-comment-vote]'); if (commentVote) { if (!session) return openAuthPanel('login'); const item = listings.find(row => row.id === commentVote.dataset.commentListing); api(`/comment/${commentVote.dataset.comment}/vote`, { method: 'POST', body: JSON.stringify({ direction: Number(commentVote.dataset.commentVote) }) }).then(() => openComments(item)).catch(showError); return; }
   const vote = event.target.closest('[data-vote]'); if (vote) castVote(vote.dataset.post, vote.dataset.vote === 'up' ? 1 : -1);
   const favorite = event.target.closest('[data-favorite]'); if (favorite) toggleFavorite(favorite.dataset.favorite).catch(showError);
