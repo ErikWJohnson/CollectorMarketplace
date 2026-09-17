@@ -105,6 +105,72 @@ body.app-section-listing .listing-media-inputs .listing-upload-field:hover {
 
 body.app-section-listing .listing-media-inputs .listing-image-field { grid-column: 1 / -1; }
 
+body.app-section-listing .listing-tags-source { display: none; }
+
+body.app-section-listing .listing-tag-composer {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #41464a;
+  border-radius: 6px;
+  background: #111315;
+}
+
+body.app-section-listing .listing-tag-composer-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #ece9e0;
+  font: 700 11px "DM Sans", sans-serif;
+}
+
+body.app-section-listing .listing-tag-composer-head small,
+body.app-section-listing .listing-tag-composer > small,
+body.app-section-listing .listing-photo-count {
+  color: #9da7b2;
+  font: 10px "DM Mono", monospace;
+}
+
+body.app-section-listing .listing-tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  min-height: 26px;
+}
+
+body.app-section-listing .listing-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px 6px 10px;
+  border: 1px solid #857138;
+  border-radius: 999px;
+  background: #2a2618;
+  color: #f3d16b;
+  font: 10px "DM Mono", monospace;
+}
+
+body.app-section-listing .listing-tag-chip button {
+  width: 18px;
+  min-width: 18px;
+  min-height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #f3d16b;
+  font-size: 16px;
+  line-height: 1;
+}
+
+body.app-section-listing .listing-tag-chip button:hover { background: #57491f; }
+body.app-section-listing .listing-tag-empty { color: #848d97; font: 11px "DM Sans", sans-serif; }
+
+body.app-section-listing .listing-tag-composer [data-listing-tag-entry] { min-height: 42px; }
+
+body.app-section-listing .listing-photo-count { display: block; margin-top: 7px; color: #9fd4af; }
+
 body.app-section-listing .listing-location-panel {
   gap: 16px;
   border-color: #3c4d45;
@@ -123,6 +189,22 @@ body.app-section-listing .listing-image-preview {
   border-radius: 6px;
   background: #0e0f10;
 }
+
+body.app-section-listing .listing-image-preview::before {
+  content: attr(data-media-count);
+  position: absolute;
+  z-index: 1;
+  top: 10px;
+  right: 10px;
+  padding: 6px 8px;
+  border: 1px solid #4c514f;
+  border-radius: 999px;
+  background: #121416e8;
+  color: #dce6df;
+  font: 9px "DM Mono", monospace;
+}
+
+body.app-section-listing .listing-image-preview { position: relative; padding-top: 40px; }
 
 body.app-section-listing .preview-empty {
   min-height: 346px;
