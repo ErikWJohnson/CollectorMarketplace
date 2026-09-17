@@ -50,6 +50,20 @@
 .site-theme-control.is-muted .site-theme-icon { background: #303234; color: #a6afb9; }
 .site-theme-control.is-muted { border-color: #4e5358; color: #b7bec5; }
 
+/* The legal footer extends the same charcoal surface as the persistent dock
+   rather than leaving a disconnected black band beneath the marketplace. */
+.site-legal-links {
+  position: relative;
+  z-index: 2;
+  margin: 0;
+  border-top: 1px solid #3b3b3b;
+  background: linear-gradient(180deg, #252525, #1d1d1d);
+  box-shadow: inset 0 1px #ffffff08;
+  color: #aaa69c;
+}
+
+.site-legal-links a { color: #bcd6ff; }
+
 @media (max-width: 680px) {
   .masthead .site-theme-control { top: 50% !important; left: 50% !important; }
   .site-theme-control i { display: none; }
