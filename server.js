@@ -21,6 +21,13 @@ const paypalProcessingFee = amount => Math.round((Math.max(0, Number(amount) || 
 const calculatedDeliveryFee = (miles, packaging) => Math.round((Math.max(8, Math.max(0, Number(miles) || 0) * 0.10) + Math.max(0, Number(packaging) || 0)) * 100) / 100;
 const developerPassUsername = 'collectormarketplace';
 const hasDeveloperPass = user => user?.developerPass === true;
+const vipCuratorPrice = 150;
+const vipCuratorDays = 30;
+const hasActiveCuratorMembership = user => {
+  if (!(user?.curator === true || user?.membership === 'curator')) return false;
+  const expiresAt = user?.curatorMembershipExpiresAt;
+  return !expiresAt || new Date(expiresAt).valueOf() > Date.now();
+};
 const collectiveCatalog = [
   { id: 'card-vault', name: 'Card Vault', description: 'Sports cards, TCG, and grading talk for serious collectors.', tags: ['Sports Cards', 'Cards', 'Autographs'], members: 1284 },
   { id: 'modern-relics', name: 'Modern Relics', description: 'Design, art, books, and objects with a lasting story.', tags: ['Art', 'Books', 'Vintage'], members: 846 },
@@ -37,7 +44,7 @@ const chatRoomCatalog = [
 
 class Store {
   constructor() { fs.mkdirSync(dataDir, { recursive: true }); this.data = this.load(); this.ensureData(); this.removeDemoContent(); this.pool = null; this.writeQueue = Promise.resolve(); }
-  ensureData() { ['users', 'listings', 'comments', 'trades', 'notifications', 'activities', 'deliveries', 'conversations', 'communityPosts'].forEach(key => { if (!Array.isArray(this.data[key])) this.data[key] = []; }); this.data.users.forEach(user => { if (!Array.isArray(user.profileTags)) user.profileTags = []; if (String(user.username || '').trim().toLowerCase() === developerPassUsername) user.developerPass = true; }); }
+  ensureData() { ['users', 'listings', 'comments', 'trades', 'notifications', 'activities', 'deliveries', 'conversations', 'communityPosts', 'memberships'].forEach(key => { if (!Array.isArray(this.data[key])) this.data[key] = []; }); this.data.users.forEach(user => { if (!Array.isArray(user.profileTags)) user.profileTags = []; if (String(user.username || '').trim().toLowerCase() === developerPassUsername) user.developerPass = true; }); }
   load() {
     if (fs.existsSync(dataFile)) {
       try { return JSON.parse(fs.readFileSync(dataFile, 'utf8')); } catch { console.warn('Ignoring unreadable local marketplace data.'); }
@@ -293,7 +300,7 @@ app.delete('/comment/:id', required, (req, res) => { const index = store.data.co
 const activeTradeListings = (ids, ownerId) => [...new Set(Array.isArray(ids) ? ids.filter(value => typeof value === 'string') : [])].map(listingId => store.data.listings.find(listing => listing.id === listingId && listing.ownerId === ownerId && listing.status === 'active')).filter(Boolean);
 const tradeSenderIds = trade => Array.isArray(trade.senderListingIds) ? trade.senderListingIds : [];
 const tradeReceiverIds = trade => Array.isArray(trade.receiverListingIds) ? trade.receiverListingIds : [trade.listingId].filter(Boolean);
-const tradeFeeRate = user => hasDeveloperPass(user) ? 0 : user?.curator === true || user?.membership === 'curator' ? 0.01 : 0.04;
+const tradeFeeRate = user => hasDeveloperPass(user) ? 0 : hasActiveCuratorMembership(user) ? 0.01 : 0.04;
 const tradeFeeSnapshot = ({ sender, receiver, senderListings, receiverListings, senderCash, receiverCash }) => {
   const senderRate = tradeFeeRate(sender); const receiverRate = tradeFeeRate(receiver);
   const senderValueReceived = receiverListings.reduce((total, listing) => total + Number(listing.price || 0), 0) + receiverCash;
@@ -440,6 +447,63 @@ app.post('/purchase', required, (req, res) => {
   res.status(410).json({ error: 'Direct checkout is disabled. Create a PayPal order first.' });
 });
 app.get('/paypal/config', (req, res) => res.json({ clientId: process.env.PAYPAL_CLIENT_ID || '', environment: paypalEnvironment() }));
+function addVipCuratorMonth(user) {
+  const currentExpiry = new Date(user.curatorMembershipExpiresAt || 0).valueOf();
+  const startsAt = Math.max(Date.now(), Number.isFinite(currentExpiry) ? currentExpiry : 0);
+  user.curator = true;
+  user.membership = 'curator';
+  user.curatorMembershipExpiresAt = new Date(startsAt + vipCuratorDays * 24 * 60 * 60 * 1000).toISOString();
+  return user.curatorMembershipExpiresAt;
+}
+app.get('/membership/vip-curator', required, (req, res) => res.json({
+  price: vipCuratorPrice,
+  currency: 'USD',
+  durationDays: vipCuratorDays,
+  active: hasActiveCuratorMembership(req.user),
+  developerPass: hasDeveloperPass(req.user),
+  expiresAt: req.user.curatorMembershipExpiresAt || null
+}));
+app.post('/membership/vip-curator/paypal/order', required, async (req, res) => {
+  if (hasDeveloperPass(req.user)) return res.status(400).json({ error: 'Your Developer Pass already includes the marketplace fee benefit.' });
+  try {
+    const membership = { id: id(), userId: req.user.id, type: 'vip_curator', amount: vipCuratorPrice, currency: 'USD', status: 'creating', createdAt: now(), paypal: { environment: paypalEnvironment(), status: 'CREATING' } };
+    store.data.memberships.unshift(membership);
+    const order = await paypalRequest('POST', '/v2/checkout/orders', { intent: 'CAPTURE', purchase_units: [{ reference_id: membership.id, custom_id: membership.id, description: `VIP Curator membership · ${vipCuratorDays} days`, amount: { currency_code: 'USD', value: vipCuratorPrice.toFixed(2) } }] }, `vip-curator-${membership.id}`);
+    membership.status = 'awaiting_paypal_approval';
+    membership.paypal = { environment: paypalEnvironment(), status: order.status || 'CREATED', orderId: order.id, amount: vipCuratorPrice };
+    await store.save();
+    res.status(201).json({ membershipId: membership.id, orderId: order.id, amount: vipCuratorPrice, environment: paypalEnvironment() });
+  } catch (error) {
+    res.status(400).json({ error: error.message, code: error.code || '', debugId: error.debugId || '' });
+  }
+});
+app.post('/membership/vip-curator/:membershipId/paypal/capture', required, async (req, res) => {
+  const membership = store.data.memberships.find(row => row.id === req.params.membershipId && row.userId === req.user.id && row.type === 'vip_curator');
+  if (!membership?.paypal?.orderId) return res.status(404).json({ error: 'VIP Curator checkout not found.' });
+  if (req.body.orderId && req.body.orderId !== membership.paypal.orderId) return res.status(400).json({ error: 'The approved PayPal order does not match this membership checkout.' });
+  try {
+    if (membership.paypal.status !== 'COMPLETED') {
+      const capture = await paypalRequest('POST', `/v2/checkout/orders/${encodeURIComponent(membership.paypal.orderId)}/capture`, {}, `vip-curator-capture-${membership.id}`);
+      if (capture.status !== 'COMPLETED') throw new Error('PayPal did not complete the VIP Curator payment.');
+      membership.status = 'active';
+      membership.paypal = { ...membership.paypal, status: 'COMPLETED', captureId: capture.purchase_units?.[0]?.payments?.captures?.[0]?.id || '', capturedAt: now() };
+      membership.expiresAt = addVipCuratorMonth(req.user);
+      activity('vip_curator', req.user.id, { membershipId: membership.id });
+      await store.save();
+    }
+    res.json({ membership: { id: membership.id, status: membership.status, expiresAt: membership.expiresAt }, user: publicUser(req.user) });
+  } catch (error) {
+    membership.paypal = { ...membership.paypal, lastError: { code: error.code || 'CAPTURE_FAILED', debugId: error.debugId || '', at: now() } };
+    store.save();
+    res.status(400).json({ error: error.message, code: error.code || 'CAPTURE_FAILED', debugId: error.debugId || '' });
+  }
+});
+app.post('/membership/vip-curator/:membershipId/paypal/cancel', required, (req, res) => {
+  const membership = store.data.memberships.find(row => row.id === req.params.membershipId && row.userId === req.user.id && row.type === 'vip_curator');
+  if (!membership) return res.status(404).json({ error: 'VIP Curator checkout not found.' });
+  if (membership.status !== 'active') { membership.status = 'cancelled'; membership.paypal = { ...membership.paypal, status: 'CANCELLED', cancelledAt: now() }; store.save(); }
+  res.status(204).end();
+});
 app.post('/paypal/orders', required, async (req, res) => {
   let purchase; let delivery;
   try {
