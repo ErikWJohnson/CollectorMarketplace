@@ -47,6 +47,30 @@ body.app-section-chat .entity-workspace {
   overflow: visible !important;
 }
 
+/* The older profile grid had a 1fr viewport row, leaving its footer under
+   the fixed navigation with no document height available to reach it. */
+body.app-section-account .profile-workspace {
+  grid-template-rows: auto auto auto auto !important;
+  align-content: start !important;
+  min-height: 0 !important;
+  padding-bottom: calc(142px + env(safe-area-inset-bottom)) !important;
+}
+
+body.app-section-account .app-section-content {
+  min-height: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Direct conversations follow the same document scrollbar as the inbox.
+   This removes the remaining fixed viewport chat track. */
+body.app-section-chat .conversation-workspace,
+body.app-section-chat .collector-thread {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
 body.app-section-chat .conversation-list,
 body.app-section-chat .suggestion-list {
   max-height: none !important;
