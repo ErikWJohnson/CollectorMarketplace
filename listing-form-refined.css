@@ -1,0 +1,164 @@
+/* A focused publishing workspace: clear sections, quiet fields, and a
+   persistent finish line without competing with the seller's content. */
+body.app-section-listing .app-section-page {
+  width: min(1320px, 100%);
+  padding-top: clamp(26px, 4vw, 54px);
+}
+
+body.app-section-listing .app-section-page > .app-section-heading {
+  max-width: 780px;
+  margin-bottom: 34px;
+}
+
+body.app-section-listing .listing-editor-grid {
+  grid-template-columns: minmax(0, 1.25fr) minmax(360px, .75fr);
+  gap: clamp(20px, 2.4vw, 34px);
+}
+
+body.app-section-listing .listing-details,
+body.app-section-listing .listing-media-panel {
+  border-color: #3e4144;
+  background: linear-gradient(145deg, #1b1c1e, #151617);
+  box-shadow: 0 18px 48px #00000026;
+}
+
+body.app-section-listing .listing-details {
+  gap: 26px;
+  padding: clamp(20px, 2.6vw, 36px);
+}
+
+body.app-section-listing .listing-media-panel {
+  top: 24px;
+  padding: clamp(20px, 2.4vw, 30px);
+}
+
+body.app-section-listing .listing-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #f3ca4f;
+  font-size: 10px;
+  letter-spacing: .14em;
+}
+
+body.app-section-listing .listing-step::after {
+  content: '';
+  display: block;
+  height: 1px;
+  flex: 1;
+  background: linear-gradient(90deg, #705f29, transparent);
+}
+
+body.app-section-listing .listing-form-grid,
+body.app-section-listing .listing-media-inputs,
+body.app-section-listing .listing-location-grid {
+  gap: 16px;
+}
+
+body.app-section-listing .listing-form label {
+  color: #e9e7e1;
+  font-size: 11px;
+  letter-spacing: .015em;
+}
+
+body.app-section-listing .listing-form input,
+body.app-section-listing .listing-form textarea,
+body.app-section-listing .listing-form select {
+  min-height: 48px;
+  border-color: #41454a;
+  border-radius: 5px;
+  background: #111214;
+  transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+}
+
+body.app-section-listing .listing-form textarea { min-height: 132px; resize: vertical; }
+
+body.app-section-listing .listing-form input:hover,
+body.app-section-listing .listing-form textarea:hover,
+body.app-section-listing .listing-form select:hover { border-color: #676c72; }
+
+body.app-section-listing .listing-form input:focus,
+body.app-section-listing .listing-form textarea:focus,
+body.app-section-listing .listing-form select:focus {
+  border-color: #dfbb49;
+  background: #101113;
+  box-shadow: 0 0 0 3px #dfbb4918;
+}
+
+body.app-section-listing .listing-media-inputs {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+body.app-section-listing .listing-media-inputs .listing-upload-field {
+  grid-column: auto;
+  min-height: 122px;
+  border: 1px dashed #52575d;
+  border-radius: 6px;
+  background: #141517;
+  transition: background .16s ease, border-color .16s ease;
+}
+
+body.app-section-listing .listing-media-inputs .listing-upload-field:hover {
+  border-color: #b99c42;
+  background: #191816;
+}
+
+body.app-section-listing .listing-media-inputs .listing-image-field { grid-column: 1 / -1; }
+
+body.app-section-listing .listing-location-panel {
+  gap: 16px;
+  border-color: #3c4d45;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #121917, #101312);
+}
+
+body.app-section-listing .listing-fulfillment-field {
+  border-radius: 5px;
+  border-color: #3d4c45;
+}
+
+body.app-section-listing .listing-image-preview {
+  min-height: 390px;
+  border: 1px solid #35393d;
+  border-radius: 6px;
+  background: #0e0f10;
+}
+
+body.app-section-listing .preview-empty {
+  min-height: 346px;
+  padding: 26px;
+  color: #a7adb5;
+}
+
+body.app-section-listing .listing-publish-bar {
+  border-color: #3c4045;
+  background: #17191bf5;
+  backdrop-filter: blur(16px);
+}
+
+body.app-section-listing .listing-publish-bar span::before {
+  content: 'DRAFT SAVES AUTOMATICALLY · ';
+  color: #79bf91;
+}
+
+body.app-section-listing .listing-publish-bar button {
+  min-width: 224px;
+  min-height: 50px;
+  border-radius: 4px;
+  background: #f1ca4d;
+  box-shadow: 0 6px 18px #0000002b;
+}
+
+body.app-section-listing .listing-publish-bar button:hover { background: #ffdb65; transform: translateY(-1px); }
+
+@media (max-width: 840px) {
+  body.app-section-listing .listing-editor-grid { grid-template-columns: 1fr; }
+  body.app-section-listing .listing-media-panel { position: static; order: -1; }
+}
+
+@media (max-width: 580px) {
+  body.app-section-listing .listing-media-inputs { grid-template-columns: 1fr; }
+  body.app-section-listing .listing-media-inputs .listing-upload-field { grid-column: 1 / -1; }
+  body.app-section-listing .listing-image-preview { min-height: 230px; }
+  body.app-section-listing .preview-empty { min-height: 190px; }
+}
