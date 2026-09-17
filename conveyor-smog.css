@@ -58,6 +58,55 @@
 .conveyor-orbit-layer i:nth-child(2) { top: 38%; left: -12%; animation-delay: -5s; animation-duration: 19s; transform: rotate(-12deg) scale(.7); }
 .conveyor-orbit-layer i:nth-child(3) { top: 70%; left: -18%; animation-delay: -11s; animation-duration: 23s; transform: rotate(-28deg) scale(1.15); }
 
+.conveyor-earth {
+  position: absolute;
+  top: 16%;
+  right: 9%;
+  width: 82px;
+  aspect-ratio: 1;
+  overflow: visible;
+  border: 1px solid #9fc8e850;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 31% 28%, #d8f3ffca 0 4%, transparent 10%),
+    radial-gradient(ellipse at 32% 66%, #508b6c 0 12%, transparent 25%),
+    radial-gradient(ellipse at 68% 40%, #356b94 0 13%, transparent 27%),
+    radial-gradient(circle at 45% 48%, #2a6d99 0 43%, #173a64 69%, #091525 100%);
+  box-shadow: 0 0 18px #65b4ea70, 0 0 48px #3f83b63e, inset -12px -8px 16px #02060db0;
+  animation: conveyor-earth-drift 18s ease-in-out infinite alternate;
+}
+
+.conveyor-earth::after {
+  position: absolute;
+  inset: -21px;
+  content: "";
+  border: 1px solid #a9c8df1d;
+  border-radius: 50%;
+}
+
+.conveyor-earth em {
+  position: absolute;
+  inset: -21px;
+  display: block;
+  border-radius: 50%;
+  animation: conveyor-earth-orbit 6s linear infinite;
+}
+
+.conveyor-earth em::after {
+  position: absolute;
+  top: -3px;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  content: "";
+  border-radius: 50%;
+  background: #eaf5ff;
+  box-shadow: 0 0 9px 2px #a8d6ff93;
+}
+
+.conveyor-earth em:nth-child(2) { inset: -36px; animation-duration: 10s; animation-direction: reverse; }
+.conveyor-earth em:nth-child(2)::after { width: 4px; height: 4px; background: #f6d87e; box-shadow: 0 0 8px 2px #efd06c8b; }
+
 .browse-conveyor .app-shell > :not(.conveyor-orbit-layer) { position: relative; z-index: 1; }
 
 @keyframes conveyor-star-drift {
@@ -74,8 +123,14 @@
   50%, 100% { opacity: 0; margin-left: 120vw; margin-top: 34vh; }
 }
 
-/* The astronomy treatment fills normal Conveyor browsing, and is removed
-   before other app sections are opened. */
+@keyframes conveyor-earth-drift {
+  from { transform: translate3d(-10px, 6px, 0) scale(.95); }
+  to { transform: translate3d(18px, -14px, 0) scale(1.06); }
+}
+
+@keyframes conveyor-earth-orbit { to { transform: rotate(360deg); } }
+
+/* Astronomy fills normal Conveyor browsing, while other app sections remove it. */
 .browse-conveyor .app-shell { background: #0a1017 !important; }
 .browse-conveyor .mode-tabs,
 .browse-conveyor .discovery,
@@ -83,6 +138,12 @@
 .browse-conveyor .listing-stream,
 .browse-conveyor .ad,
 .browse-conveyor .market-head { background: transparent !important; }
+
+/* Keep the horizontal Conveyor track distinctly black beneath the feed. */
+.browse-conveyor .listing-stream { scrollbar-color: #7a6e31 #000; }
+.browse-conveyor .listing-stream::-webkit-scrollbar { height: 13px; background: #000; }
+.browse-conveyor .listing-stream::-webkit-scrollbar-track { background: #000; border-top: 1px solid #171717; }
+.browse-conveyor .listing-stream::-webkit-scrollbar-thumb { background: linear-gradient(90deg, #393411, #8c7c32, #393411); border: 3px solid #000; border-radius: 999px; }
 
 .conveyor-smog-layer {
   position: fixed;
@@ -181,6 +242,8 @@
   .conveyor-orbit-layer,
   .conveyor-orbit-layer::before,
   .conveyor-orbit-layer i,
+  .conveyor-earth,
+  .conveyor-earth em,
   .conveyor-smog-layer span,
   .conveyor-smog-layer::before,
   .conveyor-smog-layer::after,
