@@ -100,19 +100,20 @@ const paypalReady = () => Boolean(process.env.PAYPAL_CLIENT_ID && process.env.PA
 const paypalEnvironment = () => process.env.PAYPAL_ENV === 'live' ? 'live' : 'sandbox';
 const paypalBaseUrl = () => paypalEnvironment() === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
 const paypalLabel = () => paypalEnvironment() === 'live' ? 'PayPal' : 'PayPal Sandbox';
+function paypalFailure(payload, fallback) { const error = new Error(payload.message || payload.details?.[0]?.description || fallback); error.code = payload.details?.[0]?.issue || payload.name || ''; error.debugId = payload.debug_id || ''; return error; }
 async function paypalAccessToken() {
   if (!paypalReady()) throw new Error(`${paypalLabel()} is not configured. Add PAYPAL_CLIENT_ID and PAYPAL_SECRET in Render.`);
   const credentials = Buffer.from(`${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_SECRET}`).toString('base64');
   const response = await fetch(`${paypalBaseUrl()}/v1/oauth2/token`, { method: 'POST', headers: { Authorization: `Basic ${credentials}`, 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'grant_type=client_credentials' });
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok || !payload.access_token) throw new Error(payload.error_description || `${paypalLabel()} could not authorize this checkout.`);
+  if (!response.ok || !payload.access_token) throw paypalFailure(payload, `${paypalLabel()} could not authorize this checkout.`);
   return payload.access_token;
 }
 async function paypalRequest(method, pathname, body, requestId) {
   const token = await paypalAccessToken();
   const response = await fetch(`${paypalBaseUrl()}${pathname}`, { method, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Prefer: 'return=representation', ...(requestId ? { 'PayPal-Request-Id': requestId } : {}) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload.message || payload.details?.[0]?.description || `${paypalLabel()} could not complete this checkout.`);
+  if (!response.ok) throw paypalFailure(payload, `${paypalLabel()} could not complete this checkout.`);
   return payload;
 }
 function shippoAddress(input, label) { const value = input && typeof input === 'object' ? input : {}; const required = ['name', 'street1', 'city', 'state', 'zip']; if (required.some(key => !String(value[key] || '').trim())) throw new Error(`Add a complete ${label} address.`); return { name: String(value.name).trim(), street1: String(value.street1).trim(), street2: String(value.street2 || '').trim(), city: String(value.city).trim(), state: String(value.state).trim(), zip: String(value.zip).trim(), country: String(value.country || 'US').trim().toUpperCase() }; }
@@ -466,7 +467,8 @@ function cancelPayPalDelivery(delivery) {
 app.post('/paypal/orders/:deliveryId/capture', required, async (req, res) => {
   const delivery = store.data.deliveries.find(row => row.id === req.params.deliveryId && row.buyerId === req.user.id);
   if (!delivery?.paypal?.orderId) return res.status(404).json({ error: 'PayPal checkout not found.' });
-  try { res.json(deliveryView(await capturePayPalDelivery(delivery), req.user.id)); } catch (error) { res.status(400).json({ error: error.message }); }
+  if (req.body.orderId && req.body.orderId !== delivery.paypal.orderId) return res.status(400).json({ error: 'The approved PayPal order does not match this checkout.' });
+  try { res.json(deliveryView(await capturePayPalDelivery(delivery), req.user.id)); } catch (error) { delivery.paypal = { ...delivery.paypal, lastError: { code: error.code || 'CAPTURE_FAILED', debugId: error.debugId || '', at: now() } }; store.save(); res.status(400).json({ error: error.message, code: error.code || 'CAPTURE_FAILED', debugId: error.debugId || '' }); }
 });
 app.post('/paypal/orders/:deliveryId/cancel', required, (req, res) => {
   const delivery = store.data.deliveries.find(row => row.id === req.params.deliveryId && row.buyerId === req.user.id);
