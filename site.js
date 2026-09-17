@@ -564,13 +564,17 @@ async function renderPayPalButtonForTrade(trade) {
   if (!container || container.dataset.ready) return;
   container.dataset.ready = 'loading'; container.innerHTML = '<small>Loading PayPal securely…</small>';
   let order;
+  const showError = message => {
+    container.querySelectorAll('.listing-submit-error').forEach(node => node.remove());
+    container.insertAdjacentHTML('beforeend', `<p class="listing-submit-error" role="alert">${safe(message)}</p>`);
+  };
   try {
     const paypal = await ensurePayPalSdk();
     const buttons = paypal.Buttons({
       createOrder: async () => { order = await api(`/trade/${trade.id}/paypal/order`, { method: 'POST', body: '{}' }); return order.orderId; },
-      onApprove: async (data, actions) => { try { await api(`/trade/${trade.id}/paypal/capture`, { method: 'POST', body: JSON.stringify({ orderId: data.orderID }) }); await loadMarket(); await openTradeChat(trade.id); } catch (error) { if (error.code === 'INSTRUMENT_DECLINED' && actions?.restart) return actions.restart(); const reference = error.debugId ? `<br><small>PayPal reference: ${safe(error.debugId)}</small>` : ''; container.innerHTML = `<p class="listing-submit-error" role="alert">${safe(error.message)}${reference}</p>`; } },
+      onApprove: async (data, actions) => { try { await api(`/trade/${trade.id}/paypal/capture`, { method: 'POST', body: JSON.stringify({ orderId: data.orderID }) }); await loadMarket(); await loadDeliveries(); await openTradeChat(trade.id); } catch (error) { if (error.code === 'INSTRUMENT_DECLINED' && actions?.restart) return actions.restart(); showError(`${error.message}${error.debugId ? ` PayPal reference: ${error.debugId}` : ''}`); } },
       onCancel: () => order ? api(`/trade/${trade.id}/paypal/cancel`, { method: 'POST', body: '{}' }).then(() => { order = null; }).catch(showError) : undefined,
-      onError: error => { const detail = error?.message ? ` ${safe(error.message)}` : ''; container.insertAdjacentHTML('beforeend', `<p class="listing-submit-error" role="alert">PayPal could not continue. No payment was captured.${detail}</p>`); }
+      onError: error => { const detail = error?.message ? ` ${error.message}` : ''; showError(`PayPal could not continue. No payment was captured.${detail}`); }
     });
     if (!buttons.isEligible()) throw new Error('PayPal checkout is not available in this browser.');
     container.innerHTML = ''; await buttons.render(container); container.dataset.ready = 'true';

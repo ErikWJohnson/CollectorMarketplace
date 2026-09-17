@@ -555,8 +555,14 @@ app.post('/trade/:id/paypal/order', required, async (req, res) => {
   if (trade.cashPayment?.status === 'COMPLETED') return res.status(400).json({ error: 'This trade payment is already complete.' });
   try {
     const total = Math.round((cash.cash + cash.processingFee) * 100) / 100;
-    const order = await paypalRequest('POST', '/v2/checkout/orders', { intent: 'CAPTURE', purchase_units: [{ reference_id: `trade-${trade.id}`, custom_id: trade.id, description: `Trade cash contribution · ${trade.id.slice(0, 8)}`, amount: { currency_code: 'USD', value: total.toFixed(2) } }] }, `trade-${trade.id}`);
-    trade.cashPayment = { payerId: cash.payerId, recipientId: cash.recipientId, cash: cash.cash, processingFee: cash.processingFee, total, environment: paypalEnvironment(), status: order.status || 'CREATED', orderId: order.id, createdAt: now() };
+    // PayPal may invoke createOrder more than once while rendering Smart Buttons.
+    // Reuse an approval-ready order, but never reuse one the buyer cancelled.
+    if (trade.cashPayment?.orderId && ['CREATED', 'SAVED', 'PAYER_ACTION_REQUIRED', 'APPROVED'].includes(trade.cashPayment.status)) {
+      return res.json({ orderId: trade.cashPayment.orderId, tradeId: trade.id, total: trade.cashPayment.total, environment: trade.cashPayment.environment });
+    }
+    const attempt = Number(trade.cashPayment?.attempt || 0) + 1;
+    const order = await paypalRequest('POST', '/v2/checkout/orders', { intent: 'CAPTURE', purchase_units: [{ reference_id: `trade-${trade.id}`, custom_id: trade.id, description: `Trade cash contribution · ${trade.id.slice(0, 8)}`, amount: { currency_code: 'USD', value: total.toFixed(2) } }] }, `trade-${trade.id}-${attempt}`);
+    trade.cashPayment = { payerId: cash.payerId, recipientId: cash.recipientId, cash: cash.cash, processingFee: cash.processingFee, total, environment: paypalEnvironment(), status: order.status || 'CREATED', orderId: order.id, attempt, createdAt: now() };
     store.save(); res.status(201).json({ orderId: order.id, tradeId: trade.id, total, environment: paypalEnvironment() });
   } catch (error) { res.status(400).json({ error: error.message, code: error.code || '', debugId: error.debugId || '' }); }
 });
@@ -572,7 +578,9 @@ app.post('/trade/:id/paypal/capture', required, async (req, res) => {
 app.post('/trade/:id/paypal/cancel', required, (req, res) => {
   const trade = store.data.trades.find(row => row.id === req.params.id); const cash = trade && tradeCashDetails(trade);
   if (!trade || !cash || cash.payerId !== req.user.id || trade.status !== 'awaiting_cash_payment') return res.status(404).json({ error: 'Trade payment not found.' });
-  trade.cashPayment = { ...trade.cashPayment, status: 'CANCELLED', cancelledAt: now() }; store.save(); res.status(204).end();
+  // Keep the audit information but clear the active order so the next attempt
+  // receives a fresh PayPal order rather than an already-cancelled approval.
+  trade.cashPayment = { ...trade.cashPayment, status: 'CANCELLED', cancelledAt: now(), orderId: '' }; store.save(); res.status(204).end();
 });
 app.get('/paypal/return', async (req, res) => {
   const delivery = store.data.deliveries.find(row => row.id === req.query.deliveryId && row.paypal?.orderId === req.query.token);
