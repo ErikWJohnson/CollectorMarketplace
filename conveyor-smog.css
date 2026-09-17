@@ -167,13 +167,13 @@
 .browse-conveyor .ad,
 .browse-conveyor .market-head { background: transparent !important; }
 
-/* The collector header remains a stable identity panel; the rest of each
-   Conveyor card lets the astronomy background show through. */
+/* Only the image frame is transparent. Listing details and actions keep a
+   solid dark surface for legibility. */
 .browse-conveyor .listing,
-.browse-conveyor .media,
-.browse-conveyor .listing-copy,
-.browse-conveyor .listing footer,
-.browse-conveyor .listing-copy p { background: transparent !important; }
+.browse-conveyor .media { background: transparent !important; }
+.browse-conveyor .listing-copy { background: #0d0e10 !important; }
+.browse-conveyor .listing footer { background: #0a0b0d !important; }
+.browse-conveyor .listing-copy p { background: #08090a !important; }
 
 /* Keep the horizontal Conveyor track distinctly black beneath the feed. */
 .browse-conveyor .listing-stream { scrollbar-color: #7a6e31 #000; }
