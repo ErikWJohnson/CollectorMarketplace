@@ -11,6 +11,32 @@ const sentinel = document.querySelector('#sentinel');
 const modal = document.querySelector('#modal');
 const modalContent = document.querySelector('#modal-content');
 let listings = [], auctions = [], accounts = [], collectives = [], brands = [], couriers = [], chatrooms = [], deliveries = [], uploadedListingImages = [], uploadedListingVideos = [], activeCategory = 'All', activeQuery = '', activeTags = [], searchScope = 'listings', sortMode = 'popular', page = 1, observer, searchRenderTimer, auctionClock;
+const siteThemeAudio = document.querySelector('#site-theme-audio');
+const siteThemeControl = document.querySelector('[data-site-theme-toggle]');
+function initializeSiteTheme() {
+  if (!siteThemeAudio || !siteThemeControl) return;
+  const status = siteThemeControl.querySelector('[data-site-theme-status]'); const action = siteThemeControl.querySelector('[data-site-theme-action]');
+  siteThemeAudio.muted = localStorage.getItem('collector-marketplace-theme-muted') === 'true';
+  const render = () => {
+    const paused = siteThemeAudio.paused; const muted = siteThemeAudio.muted;
+    if (status) status.textContent = paused ? '— Ready to play' : muted ? '— Muted' : '— Playing';
+    if (action) action.textContent = paused ? 'Play' : muted ? 'Unmute' : 'Mute';
+    siteThemeControl.classList.toggle('is-muted', muted || paused);
+    siteThemeControl.setAttribute('aria-label', paused ? 'Play site theme' : muted ? 'Unmute site theme' : 'Mute site theme');
+    siteThemeControl.setAttribute('aria-pressed', String(!paused && !muted));
+  };
+  const start = () => siteThemeAudio.play().then(render).catch(render);
+  siteThemeAudio.addEventListener('play', render); siteThemeAudio.addEventListener('pause', render); siteThemeAudio.addEventListener('volumechange', render);
+  siteThemeControl.addEventListener('click', () => {
+    if (siteThemeAudio.paused) { siteThemeAudio.muted = false; localStorage.setItem('collector-marketplace-theme-muted', 'false'); start(); return; }
+    siteThemeAudio.muted = !siteThemeAudio.muted; localStorage.setItem('collector-marketplace-theme-muted', String(siteThemeAudio.muted)); render();
+  });
+  // A browser may block sound before any interaction. The first ordinary tap
+  // starts the loop in that case; the control remains available either way.
+  window.addEventListener('pointerdown', () => { if (siteThemeAudio.paused) start(); }, { once: true, passive: true });
+  render(); start();
+}
+initializeSiteTheme();
 let browseMode = localStorage.getItem('collector-marketplace-browse-mode') === 'doomscroll' ? 'doomscroll' : 'conveyor', conveyorFrame = 0, conveyorTimer = 0;
 // Keep comma/period keyboard navigation in the same order as the visible scope bar.
 const searchScopes = ['listings', 'accounts', 'collectives', 'brands', 'chatrooms', 'couriers'];
