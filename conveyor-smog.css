@@ -121,6 +121,9 @@
   animation: conveyor-constellation-orbit 28s linear infinite;
 }
 
+.conveyor-constellation polyline { fill: none; }
+.conveyor-constellation circle { stroke: none; }
+
 .constellation-a { top: 15%; left: 9%; }
 .constellation-b { right: 13%; bottom: 17%; width: min(23vw, 230px); fill: #f4dc97; stroke: #e5bd5b9b; filter: drop-shadow(0 0 5px #e0b75c8a); animation-duration: 36s; animation-direction: reverse; }
 
