@@ -1092,7 +1092,7 @@ document.addEventListener('click', event => {
 });
 document.addEventListener('pointerover', event => { if (event.target.closest('.auction-house')) pauseAuctionFeed(12000); });
 document.addEventListener('focusin', event => { if (event.target.closest('.auction-house')) pauseAuctionFeed(20000); });
-stream.addEventListener('wheel', event => { if (browseMode !== 'conveyor') return; event.preventDefault(); stream.scrollLeft += event.deltaY || event.deltaX; }, { passive: false });
+stream.addEventListener('wheel', event => { if (browseMode !== 'conveyor' || !document.body.classList.contains('browse-conveyor') || document.body.classList.contains('app-section-mode') || document.body.classList.contains('auction-mode')) return; event.preventDefault(); stream.scrollLeft += event.deltaY || event.deltaX; }, { passive: false });
 tagSearch.addEventListener('input', () => setTimeout(refreshTaggedAuction, 160));
 tagSearch.addEventListener('keydown', event => { if (event.key === 'Enter') setTimeout(refreshTaggedAuction, 0); });
 
