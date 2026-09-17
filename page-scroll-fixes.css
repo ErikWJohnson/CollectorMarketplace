@@ -1,0 +1,74 @@
+/* One document scroll path for every full-page workspace. These rules load
+   last so old modal and fixed-height layouts cannot trap the page. */
+html:has(body.app-section-mode),
+html:has(body.auction-mode),
+body.app-section-mode,
+body.auction-mode {
+  height: auto !important;
+  min-height: 100dvh !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior-y: auto !important;
+  touch-action: pan-y;
+}
+
+body.app-section-mode .app-shell,
+body.app-section-mode .market-stage,
+body.app-section-mode .listing-stream,
+body.app-section-mode .app-section-page,
+body.app-section-mode .app-section-content,
+body.auction-mode .app-shell,
+body.auction-mode .market-stage,
+body.auction-mode .listing-stream,
+body.auction-mode .auction-house {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+body.app-section-mode .listing-stream,
+body.auction-mode .listing-stream {
+  min-height: 100dvh;
+  padding-bottom: calc(128px + env(safe-area-inset-bottom)) !important;
+}
+
+/* Account, Sell, and Chat pages use the browser scrollbar instead of a
+   clipped inner wrapper. Conversation threads retain their own scroll only. */
+body.app-section-account .profile-workspace,
+body.app-section-listing .listing-form,
+body.app-section-chat .social-chat,
+body.app-section-chat .chat-sidebar,
+body.app-section-chat .chat-secondary,
+body.app-section-chat .community-workspace,
+body.app-section-chat .entity-workspace {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+body.app-section-chat .conversation-list,
+body.app-section-chat .suggestion-list {
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+body.app-section-listing .app-section-page {
+  padding-bottom: calc(174px + env(safe-area-inset-bottom)) !important;
+}
+
+body.auction-mode .auction-house {
+  min-height: 100dvh !important;
+  padding-bottom: calc(142px + env(safe-area-inset-bottom)) !important;
+}
+
+@media (max-width: 680px) {
+  body.app-section-mode .listing-stream,
+  body.auction-mode .listing-stream {
+    padding-bottom: calc(118px + env(safe-area-inset-bottom)) !important;
+  }
+
+  body.app-section-listing .app-section-page {
+    padding-bottom: calc(180px + env(safe-area-inset-bottom)) !important;
+  }
+}
