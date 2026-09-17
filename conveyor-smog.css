@@ -1,9 +1,12 @@
 /* A real fixed layer is injected only for conveyor mode. Using a separate
    layer avoids it disappearing inside the horizontally scrolling track. */
 .conveyor-orbit-layer {
-  position: absolute;
+  position: fixed;
   z-index: 0;
-  inset: 0;
+  top: 58px;
+  right: 0;
+  bottom: 86px;
+  left: 0;
   overflow: hidden;
   pointer-events: none;
   opacity: .92;
@@ -55,10 +58,7 @@
 .conveyor-orbit-layer i:nth-child(2) { top: 38%; left: -12%; animation-delay: -5s; animation-duration: 19s; transform: rotate(-12deg) scale(.7); }
 .conveyor-orbit-layer i:nth-child(3) { top: 70%; left: -18%; animation-delay: -11s; animation-duration: 23s; transform: rotate(-28deg) scale(1.15); }
 
-.browse-conveyor .market-stage { position: relative; background: #0a1017 !important; }
-.browse-conveyor .market-stage > :not(.conveyor-orbit-layer) { position: relative; z-index: 1; }
-.browse-conveyor .listing-stream,
-.browse-conveyor .ad { background: transparent !important; }
+.browse-conveyor .app-shell > :not(.conveyor-orbit-layer) { position: relative; z-index: 1; }
 
 @keyframes conveyor-star-drift {
   from { background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, center, center; }
@@ -74,11 +74,15 @@
   50%, 100% { opacity: 0; margin-left: 120vw; margin-top: 34vh; }
 }
 
-/* The astronomy treatment belongs behind cards only, never in controls. */
+/* The astronomy treatment fills normal Conveyor browsing, and is removed
+   before other app sections are opened. */
 .browse-conveyor .app-shell { background: #0a1017 !important; }
 .browse-conveyor .mode-tabs,
 .browse-conveyor .discovery,
-.browse-conveyor .market-head { background: #0a0b0d !important; }
+.browse-conveyor .market-stage,
+.browse-conveyor .listing-stream,
+.browse-conveyor .ad,
+.browse-conveyor .market-head { background: transparent !important; }
 
 .conveyor-smog-layer {
   position: fixed;

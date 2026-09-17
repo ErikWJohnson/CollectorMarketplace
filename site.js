@@ -327,7 +327,7 @@ function syncBrowseModeUi() {
   if (conveyor && !smog) { smog = document.createElement('div'); smog.className = 'conveyor-smog-layer'; smog.setAttribute('aria-hidden', 'true'); smog.innerHTML = '<span></span><span></span><span></span><span></span><span></span>'; document.body.append(smog); }
   if (!conveyor) smog?.remove();
   let orbit = document.querySelector('.conveyor-orbit-layer');
-  if (conveyor && !orbit) { orbit = document.createElement('div'); orbit.className = 'conveyor-orbit-layer'; orbit.setAttribute('aria-hidden', 'true'); orbit.innerHTML = '<i></i><i></i><i></i>'; document.querySelector('.market-stage')?.prepend(orbit); }
+  if (conveyor && !orbit) { orbit = document.createElement('div'); orbit.className = 'conveyor-orbit-layer'; orbit.setAttribute('aria-hidden', 'true'); orbit.innerHTML = '<i></i><i></i><i></i>'; document.querySelector('.app-shell')?.prepend(orbit); }
   if (!conveyor) orbit?.remove();
   const button = document.querySelector('[data-browse-mode]');
   if (button) { button.disabled = searchScope !== 'listings' || auctionActive; button.firstChild.textContent = browseMode === 'conveyor' ? 'Conveyor ' : 'Doomscroll '; button.setAttribute('aria-label', `Browsing mode: ${browseMode}. Press Q to switch.`); button.setAttribute('aria-pressed', String(browseMode === 'conveyor')); }
@@ -734,6 +734,7 @@ function renderFeed(reset = true) {
 function openAppSection(kind, title, copy, content = '') {
   if (modal.open) modal.close(); stopAutoScroll(); stopConveyor(); clearInterval(auctionClock); clearInterval(auctionFeedClock);
   document.querySelector('.conveyor-smog-layer')?.remove();
+  document.querySelector('.conveyor-orbit-layer')?.remove();
   document.body.classList.remove('auction-mode', 'browse-conveyor', 'chat-open', 'account-open', 'purchase-open', 'comments-open', 'app-section-chat', 'app-section-account');
   document.body.classList.add('app-section-mode', `app-section-${kind}`); if (observer) observer.disconnect(); sentinel.hidden = true;
   const workspaceLabel = kind === 'account' ? 'Collector workspace' : kind === 'membership' ? 'Membership' : 'Social workspace';
