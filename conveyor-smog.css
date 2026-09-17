@@ -171,6 +171,7 @@
    solid dark surface for legibility. */
 .browse-conveyor .listing,
 .browse-conveyor .media { background: transparent !important; }
+.browse-conveyor .listing .media img { background: transparent !important; }
 .browse-conveyor .listing-copy { background: #0d0e10 !important; }
 .browse-conveyor .listing footer { background: #0a0b0d !important; }
 .browse-conveyor .listing-copy p { background: #08090a !important; }
