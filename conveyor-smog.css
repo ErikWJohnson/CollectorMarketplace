@@ -9,16 +9,23 @@
   left: 0;
   overflow: hidden;
   pointer-events: none;
-  opacity: .72;
+  opacity: .92;
   background:
     radial-gradient(circle at 9% 18%, #d7e4f2a8 0 1px, transparent 1.7px),
     radial-gradient(circle at 74% 31%, #9fb9d680 0 1px, transparent 1.8px),
     radial-gradient(circle at 29% 68%, #eef3faaa 0 1px, transparent 1.6px),
     radial-gradient(circle at 91% 76%, #b7cce58c 0 1px, transparent 1.8px),
     radial-gradient(circle at 54% 12%, #e2e9f590 0 1px, transparent 1.6px),
+    radial-gradient(circle at 43% 38%, #c6d8e77a 0 .8px, transparent 1.5px),
+    radial-gradient(circle at 17% 88%, #f2f5fa8d 0 1px, transparent 1.6px),
+    radial-gradient(circle at 83% 7%, #91b0d576 0 .8px, transparent 1.5px),
+    radial-gradient(circle at 64% 84%, #dae6f183 0 .9px, transparent 1.6px),
+    radial-gradient(circle at 35% 9%, #a9c1d886 0 .8px, transparent 1.5px),
+    radial-gradient(circle at 6% 47%, #eef4fb74 0 .7px, transparent 1.4px),
     radial-gradient(ellipse at 50% 62%, #18212d94 0 16%, transparent 48%),
-    linear-gradient(180deg, #080b106e, #10151c52 55%, #090d1030);
-  background-size: 170px 130px, 240px 190px, 310px 260px, 390px 300px, 470px 350px, auto, auto;
+    linear-gradient(180deg, #0b11196e, #1019236e 55%, #090f163c);
+  background-size: 170px 130px, 240px 190px, 310px 260px, 390px 300px, 470px 350px, 145px 110px, 215px 175px, 275px 210px, 345px 255px, 420px 320px, 125px 155px, auto, auto;
+  background-color: #0a1017;
 }
 
 .conveyor-orbit-layer {
@@ -26,11 +33,13 @@
 }
 
 .browse-conveyor .app-shell > :not(.conveyor-orbit-layer) { position: relative; z-index: 1; }
+.browse-conveyor .app-shell { background: #0a1017; }
 .browse-conveyor .market-stage,
 .browse-conveyor .listing-stream,
-.browse-conveyor .ad { background: transparent; }
+.browse-conveyor .ad,
+.browse-conveyor .market-head { background: transparent; }
 
-@keyframes conveyor-star-twinkle { from { opacity: .48; } to { opacity: .78; } }
+@keyframes conveyor-star-twinkle { from { opacity: .72; } to { opacity: .96; } }
 
 .conveyor-smog-layer {
   position: fixed;
