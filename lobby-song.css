@@ -1,0 +1,47 @@
+.profile-lobby-song {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 0;
+  padding: 14px clamp(20px, 2.2vw, 32px);
+  border-top: 1px solid #4d4530;
+  border-bottom: 1px solid #4d4530;
+  background: linear-gradient(90deg, #1e1b13, #171818 60%);
+}
+
+.profile-lobby-song > div { display: grid; gap: 3px; flex: 1; min-width: 0; }
+.profile-lobby-song small { color: #efc94e; font: 700 9px "DM Mono", monospace; letter-spacing: .1em; }
+.profile-lobby-song b { color: #efeee8; font: 700 13px "DM Sans", sans-serif; }
+.profile-lobby-song span { color: #9fa8b3; font: 11px "DM Sans", sans-serif; }
+.profile-lobby-song button,
+.lobby-song-editor button {
+  border: 1px solid #c9aa41;
+  border-radius: 4px;
+  padding: 9px 12px;
+  background: #252113;
+  color: #f5d76d;
+  font: 700 10px "DM Mono", monospace;
+  cursor: pointer;
+}
+
+.profile-lobby-song button:hover,
+.lobby-song-editor button:hover { background: #393117; }
+
+.lobby-song-editor {
+  display: grid;
+  gap: 9px;
+  padding: 13px;
+  border: 1px solid #4e4735;
+  border-radius: 5px;
+  background: #171612;
+}
+
+.lobby-song-editor b { color: #eeeae0; font: 700 12px "DM Sans", sans-serif; }
+.lobby-song-editor b small,
+.lobby-song-editor > small { color: #aeb4ba; font: 10px "DM Mono", monospace; }
+.lobby-song-editor .profile-upload { margin: 0; }
+
+@media (max-width: 640px) {
+  .profile-lobby-song { align-items: stretch; flex-direction: column; }
+  .profile-lobby-song button { width: 100%; }
+}
