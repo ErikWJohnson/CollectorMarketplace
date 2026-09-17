@@ -1,9 +1,8 @@
 .site-theme-control {
-  /* The control lives in the sticky masthead and bridges the Search / Tags
-     tabs at their center point. */
+  /* The control lives in the sticky masthead, centered above Search and Tags. */
   position: absolute !important;
   z-index: 2;
-  top: calc(100% + 2px);
+  top: 50%;
   right: auto;
   left: 50%;
   bottom: auto;
@@ -19,20 +18,20 @@
   color: #d8e9f7;
   text-align: left;
   cursor: pointer;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
 }
 
 /* Override the legacy generic masthead button rule. Without this targeted
    selector, it shrinks the player to a 27px corner button. */
 .masthead .site-theme-control {
-  top: calc(100% + 2px) !important;
+  top: 50% !important;
   right: auto !important;
   bottom: auto !important;
   left: 50% !important;
   width: auto !important;
   height: auto !important;
   margin: 0 !important;
-  transform: translateX(-50%) !important;
+  transform: translate(-50%, -50%) !important;
 }
 
 .masthead {
@@ -52,6 +51,6 @@
 .site-theme-control.is-muted { border-color: #4e5358; color: #b7bec5; }
 
 @media (max-width: 680px) {
-  .masthead .site-theme-control { top: calc(100% + 2px) !important; left: 50% !important; }
+  .masthead .site-theme-control { top: 50% !important; left: 50% !important; }
   .site-theme-control i { display: none; }
 }
