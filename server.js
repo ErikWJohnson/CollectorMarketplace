@@ -344,6 +344,23 @@ function tradeView(trade, userId) {
   const deliveries = (trade.deliveryIds || []).map(deliveryId => store.data.deliveries.find(row => row.id === deliveryId)).filter(Boolean);
   return { ...trade, listing, senderListings, receiverListings, deliveries, otherUser: publicUser(otherUser) };
 }
+function tradeCashDetails(trade) {
+  const senderCash = Number(trade.senderCashAmount || 0); const receiverCash = Number(trade.receiverCashAmount || 0);
+  if (senderCash > 0) return { role: 'sender', payerId: trade.senderId, recipientId: trade.receiverId, cash: senderCash, processingFee: Number(trade.paymentFees?.sender || 0) };
+  if (receiverCash > 0) return { role: 'receiver', payerId: trade.receiverId, recipientId: trade.senderId, cash: receiverCash, processingFee: Number(trade.paymentFees?.receiver || 0) };
+  return null;
+}
+function activateTradeDeliveries(trade, actorId) {
+  if (trade.deliveryIds?.length) return;
+  const createTradeDelivery = (listingId, buyerId, sellerId, plan) => {
+    const listing = store.data.listings.find(row => row.id === listingId);
+    const delivery = { id: id(), tradeId: trade.id, listingId, buyerId, sellerId, shippingAddress: plan.shippingAddress, itemPrice: Number(listing?.price) || 0, deliveryProvider: plan.deliveryProvider, deliveryMiles: plan.deliveryMiles, packagingCost: plan.packagingCost, courierPay: plan.courierPay, paymentMethod: plan.paymentMethod, status: 'awaiting_seller_dispatch', courier: '', trackingNumber: '', messages: [], history: [], createdAt: now(), updatedAt: now() };
+    recordDeliveryUpdate(delivery, buyerId, delivery.status, `Trade delivery created with ${plan.deliveryProvider} · ${plan.paymentMethod}; delivery estimate $${plan.courierPay.toFixed(2)}.`);
+    store.data.deliveries.unshift(delivery); if (listing) listing.status = 'pending_delivery'; notify(sellerId, 'delivery', `Trade delivery is ready for “${listing?.title || 'collector item'}”`, `/delivery/${delivery.id}`); return delivery.id;
+  };
+  trade.deliveryIds = [...tradeSenderIds(trade).map(listingId => createTradeDelivery(listingId, trade.receiverId, trade.senderId, trade.deliveryPlans.receiver)), ...tradeReceiverIds(trade).map(listingId => createTradeDelivery(listingId, trade.senderId, trade.receiverId, trade.deliveryPlans.sender))];
+  trade.status = 'delivery_in_progress'; notify(trade.senderId === actorId ? trade.receiverId : trade.senderId, 'trade', 'Trade payment is complete — delivery threads are now open for both sides.', `/trade/${trade.id}`);
+}
 app.get('/trades', required, (req, res) => res.json(store.data.trades.filter(t => t.senderId === req.user.id || t.receiverId === req.user.id).map(t => tradeView(t, req.user.id))));
 app.get('/trade/:id', required, (req, res) => { const trade = store.data.trades.find(t => t.id === req.params.id); if (!trade || (trade.senderId !== req.user.id && trade.receiverId !== req.user.id)) return res.status(404).json({ error: 'Trade not found' }); res.json(tradeView(trade, req.user.id)); });
 app.put('/trade/:id', required, (req, res) => {
@@ -369,21 +386,9 @@ app.put('/trade/:id', required, (req, res) => {
     trade.acceptances[role] = true;
     const otherRole = role === 'sender' ? 'receiver' : 'sender';
     if (trade.acceptances.sender && trade.acceptances.receiver) {
-      const createTradeDelivery = (listingId, buyerId, sellerId, plan) => {
-        const listing = store.data.listings.find(row => row.id === listingId);
-        const delivery = { id: id(), tradeId: trade.id, listingId, buyerId, sellerId, shippingAddress: plan.shippingAddress, itemPrice: Number(listing?.price) || 0, deliveryProvider: plan.deliveryProvider, deliveryMiles: plan.deliveryMiles, packagingCost: plan.packagingCost, courierPay: plan.courierPay, paymentMethod: plan.paymentMethod, status: 'awaiting_seller_dispatch', courier: '', trackingNumber: '', messages: [], history: [], createdAt: now(), updatedAt: now() };
-        recordDeliveryUpdate(delivery, buyerId, delivery.status, `Trade delivery created with ${plan.deliveryProvider} · ${plan.paymentMethod}; delivery estimate $${plan.courierPay.toFixed(2)}.`);
-        store.data.deliveries.unshift(delivery);
-        if (listing) listing.status = 'pending_delivery';
-        notify(sellerId, 'delivery', `Trade delivery is ready for “${listing?.title || 'collector item'}”`, `/delivery/${delivery.id}`);
-        return delivery.id;
-      };
-      trade.deliveryIds = [
-        ...tradeSenderIds(trade).map(listingId => createTradeDelivery(listingId, trade.receiverId, trade.senderId, trade.deliveryPlans.receiver)),
-        ...tradeReceiverIds(trade).map(listingId => createTradeDelivery(listingId, trade.senderId, trade.receiverId, trade.deliveryPlans.sender))
-      ];
-      trade.status = 'delivery_in_progress';
-      notify(trade.senderId === req.user.id ? trade.receiverId : trade.senderId, 'trade', `${req.user.username} locked in the trade — delivery threads are now open for both sides`, `/trade/${trade.id}`);
+      const cash = tradeCashDetails(trade);
+      if (cash) { trade.status = 'awaiting_cash_payment'; trade.cashPayment = trade.cashPayment || { payerId: cash.payerId, recipientId: cash.recipientId, cash: cash.cash, processingFee: cash.processingFee, total: Math.round((cash.cash + cash.processingFee) * 100) / 100, status: 'awaiting_payment' }; notify(cash.payerId, 'trade', `Your trade needs a PayPal payment of $${trade.cashPayment.total.toFixed(2)} before delivery can begin.`, `/trade/${trade.id}`); }
+      else activateTradeDeliveries(trade, req.user.id);
     } else {
       trade.status = `awaiting_${otherRole}`;
       notify(trade.senderId === req.user.id ? trade.receiverId : trade.senderId, 'trade', `${req.user.username} locked in the trade — your acceptance is needed`, `/trade/${trade.id}`);
@@ -474,6 +479,31 @@ app.post('/paypal/orders/:deliveryId/cancel', required, (req, res) => {
   const delivery = store.data.deliveries.find(row => row.id === req.params.deliveryId && row.buyerId === req.user.id);
   if (!delivery) return res.status(404).json({ error: 'PayPal checkout not found.' });
   cancelPayPalDelivery(delivery); res.status(204).end();
+});
+app.post('/trade/:id/paypal/order', required, async (req, res) => {
+  const trade = store.data.trades.find(row => row.id === req.params.id && (row.senderId === req.user.id || row.receiverId === req.user.id)); const cash = trade && tradeCashDetails(trade);
+  if (!trade || !cash || cash.payerId !== req.user.id || trade.status !== 'awaiting_cash_payment') return res.status(400).json({ error: 'This trade is not awaiting a cash payment from your account.' });
+  if (trade.cashPayment?.status === 'COMPLETED') return res.status(400).json({ error: 'This trade payment is already complete.' });
+  try {
+    const total = Math.round((cash.cash + cash.processingFee) * 100) / 100;
+    const order = await paypalRequest('POST', '/v2/checkout/orders', { intent: 'CAPTURE', purchase_units: [{ reference_id: `trade-${trade.id}`, custom_id: trade.id, description: `Trade cash contribution · ${trade.id.slice(0, 8)}`, amount: { currency_code: 'USD', value: total.toFixed(2) } }] }, `trade-${trade.id}`);
+    trade.cashPayment = { payerId: cash.payerId, recipientId: cash.recipientId, cash: cash.cash, processingFee: cash.processingFee, total, environment: paypalEnvironment(), status: order.status || 'CREATED', orderId: order.id, createdAt: now() };
+    store.save(); res.status(201).json({ orderId: order.id, tradeId: trade.id, total, environment: paypalEnvironment() });
+  } catch (error) { res.status(400).json({ error: error.message, code: error.code || '', debugId: error.debugId || '' }); }
+});
+app.post('/trade/:id/paypal/capture', required, async (req, res) => {
+  const trade = store.data.trades.find(row => row.id === req.params.id && (row.senderId === req.user.id || row.receiverId === req.user.id)); const cash = trade && tradeCashDetails(trade);
+  if (!trade || !cash || cash.payerId !== req.user.id || !trade.cashPayment?.orderId) return res.status(404).json({ error: 'Trade payment not found.' });
+  if (req.body.orderId && req.body.orderId !== trade.cashPayment.orderId) return res.status(400).json({ error: 'The approved PayPal order does not match this trade.' });
+  try {
+    if (trade.cashPayment.status !== 'COMPLETED') { const capture = await paypalRequest('POST', `/v2/checkout/orders/${encodeURIComponent(trade.cashPayment.orderId)}/capture`, {}, `trade-capture-${trade.id}`); if (capture.status !== 'COMPLETED') throw new Error('PayPal did not complete the trade payment.'); trade.cashPayment = { ...trade.cashPayment, status: 'COMPLETED', captureId: capture.purchase_units?.[0]?.payments?.captures?.[0]?.id || '', capturedAt: now() }; activateTradeDeliveries(trade, req.user.id); }
+    store.save(); res.json(tradeView(trade, req.user.id));
+  } catch (error) { trade.cashPayment = { ...trade.cashPayment, lastError: { code: error.code || 'CAPTURE_FAILED', debugId: error.debugId || '', at: now() } }; store.save(); res.status(400).json({ error: error.message, code: error.code || 'CAPTURE_FAILED', debugId: error.debugId || '' }); }
+});
+app.post('/trade/:id/paypal/cancel', required, (req, res) => {
+  const trade = store.data.trades.find(row => row.id === req.params.id); const cash = trade && tradeCashDetails(trade);
+  if (!trade || !cash || cash.payerId !== req.user.id || trade.status !== 'awaiting_cash_payment') return res.status(404).json({ error: 'Trade payment not found.' });
+  trade.cashPayment = { ...trade.cashPayment, status: 'CANCELLED', cancelledAt: now() }; store.save(); res.status(204).end();
 });
 app.get('/paypal/return', async (req, res) => {
   const delivery = store.data.deliveries.find(row => row.id === req.query.deliveryId && row.paypal?.orderId === req.query.token);

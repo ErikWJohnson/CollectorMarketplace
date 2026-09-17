@@ -242,6 +242,11 @@ body.chat-open .app-shell { height: auto; min-height: 100dvh; overflow: visible 
 .trade-acceptance-board span { color: #aaa69c; font: .68rem/1 var(--mono, monospace); text-transform: uppercase; }
 .trade-acceptance-board .is-locked { background: #2e2917; }
 .trade-acceptance-board .is-locked span { color: #f2bc35; }
+.trade-paypal-payment { display: grid; gap: 9px; padding: 16px; border-bottom: 1px solid #4a4a4a; background: linear-gradient(135deg, #17211d, #171717); }
+.trade-paypal-payment h3 { margin: 0; color: #f5f3eb; font-size: .95rem; }
+.trade-paypal-payment p { margin: 0; color: #d2d0c8; font-size: .82rem; line-height: 1.5; }
+.trade-paypal-payment small { color: #aaa69c; font-size: .7rem; line-height: 1.45; }
+.trade-paypal-button-container { width: min(360px, 100%); min-height: 42px; }
 
 /* One predictable full-page scroll surface for the trade builder. */
 dialog.trade-dialog:not([open]){display:none!important}
