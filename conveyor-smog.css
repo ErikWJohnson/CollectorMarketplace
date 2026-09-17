@@ -3,7 +3,7 @@
 .conveyor-orbit-layer {
   position: fixed;
   z-index: 0;
-  top: 96px;
+  top: 58px;
   right: 0;
   bottom: 86px;
   left: 0;
@@ -33,11 +33,13 @@
 }
 
 .browse-conveyor .app-shell > :not(.conveyor-orbit-layer) { position: relative; z-index: 1; }
-.browse-conveyor .app-shell { background: #0a1017; }
+.browse-conveyor .app-shell { background: #0a1017 !important; }
+.browse-conveyor .mode-tabs,
+.browse-conveyor .discovery,
 .browse-conveyor .market-stage,
 .browse-conveyor .listing-stream,
 .browse-conveyor .ad,
-.browse-conveyor .market-head { background: transparent; }
+.browse-conveyor .market-head { background: transparent !important; }
 
 @keyframes conveyor-star-twinkle { from { opacity: .72; } to { opacity: .96; } }
 

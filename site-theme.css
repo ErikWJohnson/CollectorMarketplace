@@ -22,6 +22,19 @@
   transform: translateX(-50%);
 }
 
+/* Override the legacy generic masthead button rule. Without this targeted
+   selector, it shrinks the player to a 27px corner button. */
+.masthead .site-theme-control {
+  top: calc(100% + 2px) !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: 50% !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+  transform: translateX(-50%) !important;
+}
+
 .masthead {
   position: sticky !important;
   top: 0 !important;
@@ -39,6 +52,6 @@
 .site-theme-control.is-muted { border-color: #4e5358; color: #b7bec5; }
 
 @media (max-width: 680px) {
-  .site-theme-control { top: calc(100% + 2px); left: 50%; }
+  .masthead .site-theme-control { top: calc(100% + 2px) !important; left: 50% !important; }
   .site-theme-control i { display: none; }
 }
