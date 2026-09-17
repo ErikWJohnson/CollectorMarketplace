@@ -1,16 +1,17 @@
 .site-theme-control {
-  /* The control lives inside the masthead, below List item. */
+  /* The control lives in the sticky masthead and bridges the Search / Tags
+     tabs at their center point. */
   position: absolute !important;
   z-index: 2;
-  top: calc(100% + 6px);
-  right: clamp(14px, 3vw, 38px);
-  left: auto;
+  top: calc(100% + 2px);
+  right: auto;
+  left: 50%;
   bottom: auto;
   display: flex;
   align-items: center;
   gap: 9px;
-  min-height: 42px;
-  padding: 7px 9px;
+  min-height: 32px;
+  padding: 4px 9px;
   border: 1px solid #756127;
   border-radius: 6px;
   background: linear-gradient(135deg, #20211d, #141617);
@@ -18,6 +19,7 @@
   color: #f2d263;
   text-align: left;
   cursor: pointer;
+  transform: translateX(-50%);
 }
 
 .masthead {
@@ -37,6 +39,6 @@
 .site-theme-control.is-muted { border-color: #4e5358; color: #b7bec5; }
 
 @media (max-width: 680px) {
-  .site-theme-control { top: calc(100% + 5px); right: 10px; }
+  .site-theme-control { top: calc(100% + 2px); left: 50%; }
   .site-theme-control i { display: none; }
 }
