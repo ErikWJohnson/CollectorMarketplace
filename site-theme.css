@@ -9,14 +9,14 @@
   bottom: auto;
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   min-height: 32px;
-  padding: 4px 9px;
-  border: 1px solid #756127;
-  border-radius: 6px;
-  background: linear-gradient(135deg, #20211d, #141617);
-  box-shadow: 0 10px 24px #0000004a, inset 0 1px #ffffff08;
-  color: #f2d263;
+  padding: 4px 7px 4px 5px;
+  border: 1px solid #46576a;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #121b25ee, #0b0f14f5);
+  box-shadow: 0 8px 24px #00000078, inset 0 1px #d6edff12;
+  color: #d8e9f7;
   text-align: left;
   cursor: pointer;
   transform: translateX(-50%);
@@ -29,12 +29,12 @@
 }
 
 .site-theme-control:hover,
-.site-theme-control:focus-visible { border-color: #f0ca4e; background: #202116; outline: 0; }
-.site-theme-icon { display: grid; place-items: center; width: 25px; height: 25px; border: 1px solid #7a672e; border-radius: 50%; background: #2b2819; color: #ffe285; font-size: 14px; }
+.site-theme-control:focus-visible { border-color: #9bbbd6; background: #172431; outline: 0; box-shadow: 0 9px 26px #0000008c, 0 0 20px #71a8d52a; }
+.site-theme-icon { display: grid; place-items: center; width: 23px; height: 23px; border: 1px solid #58758e; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #3d6c8a, #142535 72%); color: #d8efff; font-size: 12px; box-shadow: inset 0 1px #d6edff24; }
 .site-theme-control span:not(.site-theme-icon) { display: grid; gap: 1px; }
-.site-theme-control b { font: 700 10px "DM Mono", monospace; letter-spacing: .03em; }
-.site-theme-control small { color: #c5c7c4; font: 9px "DM Mono", monospace; }
-.site-theme-control i { margin-left: 4px; padding-left: 9px; border-left: 1px solid #5b5a47; color: #f4efe0; font: 700 9px "DM Mono", monospace; font-style: normal; }
+.site-theme-control b { color: #e5f2fb; font: 700 9px "DM Mono", monospace; letter-spacing: .08em; text-transform: uppercase; }
+.site-theme-control small { color: #91abc0; font: 8px "DM Mono", monospace; }
+.site-theme-control i { margin-left: 2px; padding: 4px 6px; border: 1px solid #3b5368; border-radius: 999px; color: #bed9eb; font: 700 8px "DM Mono", monospace; font-style: normal; }
 .site-theme-control.is-muted .site-theme-icon { background: #303234; color: #a6afb9; }
 .site-theme-control.is-muted { border-color: #4e5358; color: #b7bec5; }
 

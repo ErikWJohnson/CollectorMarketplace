@@ -21,55 +21,16 @@
   background-size: 170px 130px, 240px 190px, 310px 260px, 390px 300px, 470px 350px, auto, auto;
 }
 
-.conveyor-orbit-layer::before {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: min(112vw, 1280px);
-  aspect-ratio: 1;
-  content: "";
-  border: 1px solid #87a3bd1d;
-  border-radius: 50%;
-  background: repeating-radial-gradient(circle at center, transparent 0 13%, #92abc21b 13.1% 13.22%, transparent 13.35% 26%);
-  box-shadow: 0 0 75px #79a1c315, inset 0 0 100px #182d421f;
-  transform: translate(-50%, -50%);
-  animation: conveyor-orbit-spin 42s linear infinite;
+.conveyor-orbit-layer {
+  animation: conveyor-star-twinkle 6s ease-in-out infinite alternate;
 }
-
-.conveyor-orbit-layer span {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: min(94vw, 1050px);
-  aspect-ratio: 1;
-  border: 1px solid #b9d0e322;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  animation: conveyor-orbit-spin 24s linear infinite;
-}
-
-.conveyor-orbit-layer span::after {
-  position: absolute;
-  top: -4px;
-  left: 50%;
-  width: 7px;
-  height: 7px;
-  content: "";
-  border-radius: 50%;
-  background: #d9eaff;
-  box-shadow: 0 0 12px 3px #a4c9ef70;
-}
-
-.conveyor-orbit-layer span:nth-child(2) { width: min(68vw, 760px); animation-duration: 17s; animation-direction: reverse; }
-.conveyor-orbit-layer span:nth-child(3) { width: min(42vw, 480px); border-color: #e0c77528; animation-duration: 11s; }
-.conveyor-orbit-layer span:nth-child(3)::after { background: #f2d572; box-shadow: 0 0 12px 3px #e8c14c70; }
 
 .browse-conveyor .app-shell > :not(.conveyor-orbit-layer) { position: relative; z-index: 1; }
 .browse-conveyor .market-stage,
 .browse-conveyor .listing-stream,
 .browse-conveyor .ad { background: transparent; }
 
-@keyframes conveyor-orbit-spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+@keyframes conveyor-star-twinkle { from { opacity: .48; } to { opacity: .78; } }
 
 .conveyor-smog-layer {
   position: fixed;
@@ -165,8 +126,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .conveyor-orbit-layer::before,
-  .conveyor-orbit-layer span,
+  .conveyor-orbit-layer,
   .conveyor-smog-layer span,
   .conveyor-smog-layer::before,
   .conveyor-smog-layer::after,
