@@ -1,12 +1,9 @@
 /* A real fixed layer is injected only for conveyor mode. Using a separate
    layer avoids it disappearing inside the horizontally scrolling track. */
 .conveyor-orbit-layer {
-  position: fixed;
+  position: absolute;
   z-index: 0;
-  top: 58px;
-  right: 0;
-  bottom: 86px;
-  left: 0;
+  inset: 0;
   overflow: hidden;
   pointer-events: none;
   opacity: .92;
@@ -26,22 +23,62 @@
     linear-gradient(180deg, #0b11196e, #1019236e 55%, #090f163c);
   background-size: 170px 130px, 240px 190px, 310px 260px, 390px 300px, 470px 350px, 145px 110px, 215px 175px, 275px 210px, 345px 255px, 420px 320px, 125px 155px, auto, auto;
   background-color: #0a1017;
+  animation: conveyor-star-drift 30s linear infinite, conveyor-star-twinkle 4.8s ease-in-out infinite alternate;
 }
 
-.conveyor-orbit-layer {
-  animation: conveyor-star-twinkle 6s ease-in-out infinite alternate;
+.conveyor-orbit-layer::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  opacity: .58;
+  background:
+    radial-gradient(circle at 16% 24%, #ffffff 0 1px, transparent 2px),
+    radial-gradient(circle at 67% 15%, #cfe7ff 0 .9px, transparent 1.8px),
+    radial-gradient(circle at 84% 67%, #ffffff 0 1px, transparent 1.9px),
+    radial-gradient(circle at 38% 81%, #c7ddf5 0 .8px, transparent 1.7px);
+  background-size: 330px 270px, 410px 340px, 520px 390px, 240px 210px;
+  animation: conveyor-star-sparkle 3.6s steps(2) infinite alternate;
 }
 
-.browse-conveyor .app-shell > :not(.conveyor-orbit-layer) { position: relative; z-index: 1; }
+.conveyor-orbit-layer i {
+  position: absolute;
+  width: 28px;
+  height: 5px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, transparent, #71808c8c 48%, #c7d7dfd5 100%);
+  box-shadow: -16px 0 15px #7891a438, 0 0 7px #d7e6ee90;
+  opacity: 0;
+  transform: rotate(-22deg);
+  animation: conveyor-asteroid 15s linear infinite;
+}
+
+.conveyor-orbit-layer i:nth-child(2) { top: 38%; left: -12%; animation-delay: -5s; animation-duration: 19s; transform: rotate(-12deg) scale(.7); }
+.conveyor-orbit-layer i:nth-child(3) { top: 70%; left: -18%; animation-delay: -11s; animation-duration: 23s; transform: rotate(-28deg) scale(1.15); }
+
+.browse-conveyor .market-stage { position: relative; background: #0a1017 !important; }
+.browse-conveyor .market-stage > :not(.conveyor-orbit-layer) { position: relative; z-index: 1; }
+.browse-conveyor .listing-stream,
+.browse-conveyor .ad { background: transparent !important; }
+
+@keyframes conveyor-star-drift {
+  from { background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, center, center; }
+  to { background-position: 170px -130px, -240px 190px, 310px -260px, -390px 300px, 470px -350px, -145px 110px, 215px -175px, -275px 210px, 345px -255px, -420px 320px, 125px -155px, center, center; }
+}
+
+@keyframes conveyor-star-twinkle { from { opacity: .68; } to { opacity: .98; } }
+@keyframes conveyor-star-sparkle { from { opacity: .24; } to { opacity: .72; } }
+@keyframes conveyor-asteroid {
+  0%, 15% { opacity: 0; margin-left: -10vw; margin-top: -3vh; }
+  18% { opacity: .72; }
+  44% { opacity: .55; }
+  50%, 100% { opacity: 0; margin-left: 120vw; margin-top: 34vh; }
+}
+
+/* The astronomy treatment belongs behind cards only, never in controls. */
 .browse-conveyor .app-shell { background: #0a1017 !important; }
 .browse-conveyor .mode-tabs,
 .browse-conveyor .discovery,
-.browse-conveyor .market-stage,
-.browse-conveyor .listing-stream,
-.browse-conveyor .ad,
-.browse-conveyor .market-head { background: transparent !important; }
-
-@keyframes conveyor-star-twinkle { from { opacity: .72; } to { opacity: .96; } }
+.browse-conveyor .market-head { background: #0a0b0d !important; }
 
 .conveyor-smog-layer {
   position: fixed;
@@ -138,6 +175,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .conveyor-orbit-layer,
+  .conveyor-orbit-layer::before,
+  .conveyor-orbit-layer i,
   .conveyor-smog-layer span,
   .conveyor-smog-layer::before,
   .conveyor-smog-layer::after,
