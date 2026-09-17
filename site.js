@@ -326,6 +326,9 @@ function syncBrowseModeUi() {
   let smog = document.querySelector('.conveyor-smog-layer');
   if (conveyor && !smog) { smog = document.createElement('div'); smog.className = 'conveyor-smog-layer'; smog.setAttribute('aria-hidden', 'true'); smog.innerHTML = '<span></span><span></span><span></span><span></span><span></span>'; document.body.append(smog); }
   if (!conveyor) smog?.remove();
+  let orbit = document.querySelector('.conveyor-orbit-layer');
+  if (conveyor && !orbit) { orbit = document.createElement('div'); orbit.className = 'conveyor-orbit-layer'; orbit.setAttribute('aria-hidden', 'true'); orbit.innerHTML = '<span></span><span></span><span></span>'; document.querySelector('.app-shell')?.prepend(orbit); }
+  if (!conveyor) orbit?.remove();
   const button = document.querySelector('[data-browse-mode]');
   if (button) { button.disabled = searchScope !== 'listings' || auctionActive; button.firstChild.textContent = browseMode === 'conveyor' ? 'Conveyor ' : 'Doomscroll '; button.setAttribute('aria-label', `Browsing mode: ${browseMode}. Press Q to switch.`); button.setAttribute('aria-pressed', String(browseMode === 'conveyor')); }
   if (conveyor) startConveyor(); else stopConveyor();
