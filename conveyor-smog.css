@@ -11,16 +11,17 @@
   left: 0;
   overflow: hidden;
   pointer-events: none;
-  opacity: .86;
-  mix-blend-mode: screen;
+  opacity: .72;
+  mix-blend-mode: normal;
+  filter: brightness(.68) contrast(.9) saturate(.28);
   /* A blurred, low-frequency vapor texture breaks up the cloud banks without
      introducing rain-like particles. */
   --cloud-vapor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 700'%3E%3Cfilter id='v'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.003 .017' numOctaves='4' seed='17'/%3E%3CfeGaussianBlur stdDeviation='15'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23v)' opacity='.34'/%3E%3C/svg%3E");
   background:
-    radial-gradient(ellipse at 52% 112%, #e9ece440 0 25%, transparent 64%),
-    linear-gradient(180deg, transparent 0 39%, #a8b0a709 66%, #d9ded229 100%);
-  background-blend-mode: screen, normal;
-  box-shadow: inset 0 -90px 145px #d8e3d118;
+    radial-gradient(ellipse at 52% 112%, #9ca49a42 0 25%, transparent 66%),
+    linear-gradient(180deg, transparent 0 39%, #5961590a 66%, #89918524 100%);
+  background-blend-mode: normal;
+  box-shadow: inset 0 -90px 145px #82908216;
   -webkit-mask-image: linear-gradient(to bottom, transparent 0 18%, #0002 38%, #000 74%);
   mask-image: linear-gradient(to bottom, transparent 0 18%, #0002 38%, #000 74%);
 }
@@ -33,7 +34,7 @@
   left: -14%;
   height: 49%;
   content: "";
-  opacity: .63;
+  opacity: .56;
   background:
     var(--cloud-vapor) center / 100% 100% no-repeat,
     radial-gradient(ellipse at 8% 100%, #f2f4ee24 0 8%, transparent 25%),
@@ -41,7 +42,7 @@
     radial-gradient(ellipse at 49% 100%, #f0f2ec20 0 9%, transparent 28%),
     radial-gradient(ellipse at 72% 76%, #d2d9cf20 0 14%, transparent 36%),
     radial-gradient(ellipse at 94% 99%, #eff2ed22 0 10%, transparent 29%);
-  background-blend-mode: soft-light, screen, screen, screen, screen, screen;
+  background-blend-mode: soft-light, normal, normal, normal, normal, normal;
   filter: blur(48px);
   animation: conveyor-smog-undulate 23s ease-in-out infinite alternate;
 }
@@ -63,7 +64,7 @@
   width: 78vw;
   height: 38vh;
   border-radius: 50%;
-  opacity: .56;
+  opacity: .48;
   background:
     var(--cloud-vapor) center / 100% 100% no-repeat,
     radial-gradient(ellipse at 12% 72%, #f0f2ed3f 0 8%, transparent 31%),
@@ -71,16 +72,16 @@
     radial-gradient(ellipse at 55% 72%, #f3f4ef35 0 10%, transparent 35%),
     radial-gradient(ellipse at 76% 45%, #c2cbc237 0 14%, transparent 43%),
     radial-gradient(ellipse at 96% 74%, #eff2ed36 0 9%, transparent 32%);
-  background-blend-mode: soft-light, screen, screen, screen, screen, screen;
-  filter: blur(42px) saturate(.36);
+  background-blend-mode: soft-light, normal, normal, normal, normal, normal;
+  filter: blur(46px) saturate(.3);
   animation: conveyor-smog-roll 13s ease-in-out infinite;
 }
 
 .conveyor-smog-layer span:nth-child(1) { bottom: -15vh; left: -22vw; }
-.conveyor-smog-layer span:nth-child(2) { bottom: 2vh; left: 14vw; width: 74vw; opacity: .43; animation-duration: 18s; animation-delay: -9s; }
-.conveyor-smog-layer span:nth-child(3) { right: -26vw; bottom: -10vh; width: 82vw; opacity: .48; animation-duration: 16s; animation-delay: -15s; }
-.conveyor-smog-layer span:nth-child(4) { bottom: 18vh; left: -29vw; width: 70vw; opacity: .27; animation-duration: 22s; animation-delay: -19s; }
-.conveyor-smog-layer span:nth-child(5) { bottom: 11vh; right: -21vw; width: 76vw; opacity: .25; animation-duration: 20s; animation-delay: -5s; }
+.conveyor-smog-layer span:nth-child(2) { bottom: 2vh; left: 14vw; width: 74vw; opacity: .36; animation-duration: 18s; animation-delay: -9s; }
+.conveyor-smog-layer span:nth-child(3) { right: -26vw; bottom: -10vh; width: 82vw; opacity: .41; animation-duration: 16s; animation-delay: -15s; }
+.conveyor-smog-layer span:nth-child(4) { bottom: 18vh; left: -29vw; width: 70vw; opacity: .22; animation-duration: 22s; animation-delay: -19s; }
+.conveyor-smog-layer span:nth-child(5) { bottom: 11vh; right: -21vw; width: 76vw; opacity: .2; animation-duration: 20s; animation-delay: -5s; }
 
 @keyframes conveyor-smog-roll {
   0%, 100% { transform: translate3d(-14%, 4%, 0) scale(1.04); }
