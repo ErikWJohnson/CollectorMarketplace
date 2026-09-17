@@ -107,6 +107,31 @@
 .conveyor-earth em:nth-child(2) { inset: -36px; animation-duration: 10s; animation-direction: reverse; }
 .conveyor-earth em:nth-child(2)::after { width: 4px; height: 4px; background: #f6d87e; box-shadow: 0 0 8px 2px #efd06c8b; }
 
+.conveyor-constellation {
+  position: absolute;
+  width: min(26vw, 260px);
+  overflow: visible;
+  fill: #e8f4ff;
+  filter: drop-shadow(0 0 5px #94c8ef9b);
+  opacity: .62;
+  stroke: #94c8ef9c;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.25;
+  animation: conveyor-constellation-orbit 28s linear infinite;
+}
+
+.constellation-a { top: 15%; left: 9%; }
+.constellation-b { right: 13%; bottom: 17%; width: min(23vw, 230px); fill: #f4dc97; stroke: #e5bd5b9b; filter: drop-shadow(0 0 5px #e0b75c8a); animation-duration: 36s; animation-direction: reverse; }
+
+@keyframes conveyor-constellation-orbit {
+  0% { transform: translate3d(-5vw, 4vh, 0) rotate(-12deg); opacity: .32; }
+  22% { opacity: .72; }
+  50% { transform: translate3d(11vw, -6vh, 0) rotate(8deg); opacity: .58; }
+  78% { opacity: .72; }
+  100% { transform: translate3d(-5vw, 4vh, 0) rotate(-12deg); opacity: .32; }
+}
+
 .browse-conveyor .app-shell > :not(.conveyor-orbit-layer) { position: relative; z-index: 1; }
 
 @keyframes conveyor-star-drift {
@@ -138,6 +163,14 @@
 .browse-conveyor .listing-stream,
 .browse-conveyor .ad,
 .browse-conveyor .market-head { background: transparent !important; }
+
+/* The collector header remains a stable identity panel; the rest of each
+   Conveyor card lets the astronomy background show through. */
+.browse-conveyor .listing,
+.browse-conveyor .media,
+.browse-conveyor .listing-copy,
+.browse-conveyor .listing footer,
+.browse-conveyor .listing-copy p { background: transparent !important; }
 
 /* Keep the horizontal Conveyor track distinctly black beneath the feed. */
 .browse-conveyor .listing-stream { scrollbar-color: #7a6e31 #000; }
@@ -244,6 +277,7 @@
   .conveyor-orbit-layer i,
   .conveyor-earth,
   .conveyor-earth em,
+  .conveyor-constellation,
   .conveyor-smog-layer span,
   .conveyor-smog-layer::before,
   .conveyor-smog-layer::after,
