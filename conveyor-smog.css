@@ -1,43 +1,43 @@
-/* Decorative atmospheric layer for the horizontal conveyor only. It sits
-   behind cards and never receives pointer input. */
-.browse-conveyor .listing-stream {
-  position: relative;
-  isolation: isolate;
-  overflow-x: auto !important;
-}
-
-.browse-conveyor .listing-stream::before,
-.browse-conveyor .listing-stream::after {
-  content: '';
-  position: absolute;
-  z-index: 0;
-  inset: -20% -10%;
+/* A real fixed layer is injected only for conveyor mode. Using a separate
+   layer avoids it disappearing inside the horizontally scrolling track. */
+.conveyor-smog-layer {
+  position: fixed;
+  z-index: 8;
+  top: 145px;
+  right: 0;
+  bottom: 86px;
+  left: 0;
+  overflow: hidden;
   pointer-events: none;
-  opacity: .52;
-  background:
-    radial-gradient(ellipse 34% 25% at 18% 64%, #a6afae24 0 38%, transparent 72%),
-    radial-gradient(ellipse 32% 22% at 58% 44%, #d2d4ce1c 0 34%, transparent 70%),
-    radial-gradient(ellipse 38% 28% at 88% 78%, #a6afae20 0 32%, transparent 72%);
-  filter: blur(18px);
-  animation: conveyor-smog-drift 24s linear infinite alternate;
+  mix-blend-mode: screen;
 }
 
-.browse-conveyor .listing-stream::after {
-  opacity: .34;
-  transform: scale(1.15) translateX(-8%);
-  filter: blur(34px);
-  animation-duration: 34s;
-  animation-direction: alternate-reverse;
+.conveyor-smog-layer span {
+  position: absolute;
+  display: block;
+  width: 54vw;
+  height: 32vh;
+  border-radius: 50%;
+  opacity: .6;
+  background: radial-gradient(ellipse at center, #d8ddd54d 0, #8e9a9726 33%, transparent 72%);
+  filter: blur(22px);
+  animation: conveyor-smog-drift 18s ease-in-out infinite alternate;
 }
 
-.browse-conveyor .listing { position: relative; z-index: 1; }
+.conveyor-smog-layer span:nth-child(1) { bottom: -7vh; left: -14vw; }
+.conveyor-smog-layer span:nth-child(2) { top: 28%; left: 26vw; width: 48vw; opacity: .44; animation-duration: 25s; animation-direction: alternate-reverse; }
+.conveyor-smog-layer span:nth-child(3) { right: -16vw; bottom: 11%; width: 50vw; opacity: .55; animation-duration: 21s; }
 
 @keyframes conveyor-smog-drift {
-  from { transform: translate3d(-4%, -2%, 0) scale(1.04); }
-  to { transform: translate3d(7%, 3%, 0) scale(1.14); }
+  from { transform: translate3d(-8%, -3%, 0) scale(1.02); }
+  to { transform: translate3d(10%, 5%, 0) scale(1.18); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .browse-conveyor .listing-stream::before,
-  .browse-conveyor .listing-stream::after { animation: none; }
+  .conveyor-smog-layer span { animation: none; }
+}
+
+@media (max-width: 680px) {
+  .conveyor-smog-layer { top: 124px; bottom: 77px; }
+  .conveyor-smog-layer span { width: 86vw; }
 }

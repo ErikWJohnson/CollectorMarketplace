@@ -322,6 +322,9 @@ function syncBrowseModeUi() {
   const auctionActive = document.body.classList.contains('auction-mode');
   const conveyor = browseMode === 'conveyor' && searchScope === 'listings' && !auctionActive;
   document.body.classList.toggle('browse-conveyor', conveyor);
+  let smog = document.querySelector('.conveyor-smog-layer');
+  if (conveyor && !smog) { smog = document.createElement('div'); smog.className = 'conveyor-smog-layer'; smog.setAttribute('aria-hidden', 'true'); smog.innerHTML = '<span></span><span></span><span></span>'; document.body.append(smog); }
+  if (!conveyor) smog?.remove();
   const button = document.querySelector('[data-browse-mode]');
   if (button) { button.disabled = searchScope !== 'listings' || auctionActive; button.firstChild.textContent = browseMode === 'conveyor' ? 'Conveyor ' : 'Doomscroll '; button.setAttribute('aria-label', `Browsing mode: ${browseMode}. Press Q to switch.`); button.setAttribute('aria-pressed', String(browseMode === 'conveyor')); }
   if (conveyor) startConveyor(); else stopConveyor();
