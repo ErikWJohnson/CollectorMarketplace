@@ -320,7 +320,8 @@ document.addEventListener('visibilitychange', () => {
 });
 function syncBrowseModeUi() {
   const auctionActive = document.body.classList.contains('auction-mode');
-  const conveyor = browseMode === 'conveyor' && searchScope === 'listings' && !auctionActive;
+  const browseSurface = !document.body.classList.contains('app-section-mode') && !modal.open;
+  const conveyor = browseMode === 'conveyor' && searchScope === 'listings' && browseSurface && !auctionActive;
   document.body.classList.toggle('browse-conveyor', conveyor);
   let smog = document.querySelector('.conveyor-smog-layer');
   if (conveyor && !smog) { smog = document.createElement('div'); smog.className = 'conveyor-smog-layer'; smog.setAttribute('aria-hidden', 'true'); smog.innerHTML = '<span></span><span></span><span></span><span></span><span></span>'; document.body.append(smog); }
@@ -729,6 +730,7 @@ function renderFeed(reset = true) {
 }
 function openAppSection(kind, title, copy, content = '') {
   if (modal.open) modal.close(); stopAutoScroll(); stopConveyor(); clearInterval(auctionClock); clearInterval(auctionFeedClock);
+  document.querySelector('.conveyor-smog-layer')?.remove();
   document.body.classList.remove('auction-mode', 'browse-conveyor', 'chat-open', 'account-open', 'purchase-open', 'comments-open', 'app-section-chat', 'app-section-account');
   document.body.classList.add('app-section-mode', `app-section-${kind}`); if (observer) observer.disconnect(); sentinel.hidden = true;
   const workspaceLabel = kind === 'account' ? 'Collector workspace' : kind === 'membership' ? 'Membership' : 'Social workspace';
@@ -743,6 +745,7 @@ function openModal(title, copy, form) {
   document.body.classList.remove('purchase-open', 'comments-open');
   modalContent.innerHTML = `<h2 class="modal-title">${title}</h2><p class="modal-copy">${copy}</p>${form || ''}`;
   if (!modal.open) modal.showModal();
+  syncBrowseModeUi();
   if (form?.includes('listing-form')) {
     const listingForm = modalContent.querySelector('.listing-form');
     if (!listingForm?.querySelector('[name="sellerCity"]')) listingForm.querySelector('.listing-form-grid')?.insertAdjacentHTML('afterend', `<section class="listing-location-panel"><p class="listing-step">02 · LOCATION & HANDOFF</p><div class="listing-location-grid"><label>Seller city + state/region<input required name="sellerCity" maxlength="80" autocomplete="address-level2" placeholder="e.g. Portland, OR"></label><label>ZIP code<input required name="sellerZip" inputmode="numeric" autocomplete="postal-code" pattern="[0-9]{5}(-[0-9]{4})?" placeholder="97205"></label><label>Pickup radius (miles)<input required name="pickupRadiusMiles" type="number" min="0" max="500" step="1" value="25"></label><label>UPS packaging cost<input name="shippingPackagingCost" type="number" min="0" max="1000" step="0.01" value="0"></label></div><fieldset class="listing-fulfillment-field"><legend>Fulfillment</legend><div><label><input required type="radio" name="fulfillment" value="pickup_delivery" checked> Pickup & delivery</label><label><input type="radio" name="fulfillment" value="pickup"> Pickup only</label></div><small>Set the documented UPS box, padding, and handling cost. Buyers see this amount before ordering.</small></fieldset><fieldset class="listing-fulfillment-field listing-auction-field"><legend>Where to list it</legend><div><label><input required type="radio" name="listingMode" value="marketplace" checked> Marketplace</label><label><input type="radio" name="listingMode" value="auction_only"> Auction only</label><label><input type="radio" name="listingMode" value="marketplace_auction"> Both</label></div><section class="auction-listing-details" hidden><label>Starting bid<input name="auctionStartPrice" type="number" min="0" step="0.01" placeholder="0.00"></label><label>Auction length<select name="auctionDurationHours"><option value="24">1 day</option><option value="72" selected>3 days</option><option value="168">7 days</option></select></label></section></fieldset><input type="hidden" name="locationLat"><input type="hidden" name="locationLng"><button type="button" class="location-capture" data-capture-location>Add approximate location for distance</button><span class="location-capture-note">Optional. It improves distance and pickup estimates; your exact location is never shown.</span></section>`);
@@ -1129,7 +1132,7 @@ modal.addEventListener('cancel', event => { if (modal.classList.contains('listin
 modal.addEventListener('close', () => {
   stopCommentRecording();
   document.body.classList.remove('chat-open', 'account-open', 'purchase-open', 'comments-open');
-  if (browseMode === 'conveyor' && searchScope === 'listings') startConveyor();
+  syncBrowseModeUi();
   const workspace = location.hash.slice(1).toLowerCase();
   if (restoringWorkspaceHistory || !modalWorkspaceHashes.has(workspace)) return;
   if (history.state?.returnHash) history.back();

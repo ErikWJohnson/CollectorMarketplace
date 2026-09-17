@@ -1,10 +1,10 @@
 .site-theme-control {
   position: fixed;
   z-index: 130;
-  /* The masthead is 88px tall; keep this directly beneath List item rather
-     than overlapping the header controls while scrolling. */
-  top: calc(98px + env(safe-area-inset-top));
-  right: 18px;
+  /* The compact masthead is 58px tall. Align this with the List item button
+     and keep it immediately beneath that control at every scroll position. */
+  top: calc(64px + env(safe-area-inset-top));
+  right: clamp(14px, 3vw, 38px);
   left: auto;
   bottom: auto;
   display: flex;
@@ -32,6 +32,6 @@
 .site-theme-control.is-muted { border-color: #4e5358; color: #b7bec5; }
 
 @media (max-width: 680px) {
-  .site-theme-control { top: calc(96px + env(safe-area-inset-top)); right: 9px; }
+  .site-theme-control { top: calc(59px + env(safe-area-inset-top)); right: 10px; }
   .site-theme-control i { display: none; }
 }
