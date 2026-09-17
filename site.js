@@ -503,8 +503,8 @@ let paypalSdkPromise;
 async function ensurePayPalSdk() {
   if (window.paypal?.Buttons) return window.paypal;
   if (paypalSdkPromise) return paypalSdkPromise;
-  const config = await fetch('/paypal/config').then(response => response.ok ? response.json() : Promise.reject(new Error('PayPal Sandbox is unavailable.')));
-  if (!config.clientId) throw new Error('PayPal Sandbox is not configured yet.');
+  const config = await fetch('/paypal/config').then(response => response.ok ? response.json() : Promise.reject(new Error('PayPal is unavailable.')));
+  if (!config.clientId) throw new Error('PayPal is not configured yet.');
   paypalSdkPromise = new Promise((resolve, reject) => {
     const script = document.createElement('script'); script.async = true;
     script.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(config.clientId)}&currency=USD&intent=capture&components=buttons`;
@@ -767,7 +767,7 @@ function feeCalculator(item, type) {
   const agreement = '<label class="check purchase-agreement"><input required type="checkbox" id="purchase-agreement"> I confirm this order and delivery address.</label>';
   const itemImage = item.image || item.images?.[0] || '';
   const itemSummary = `<article class="purchase-item-summary"><img src="${safe(itemImage)}" alt=""><div><small>Purchasing from @${safe(item.owner?.username || 'collector')}</small><b>${safe(item.title)}</b><span>${safe(item.condition || item.category || 'Collector item')} · ${money(item.price)}</span></div></article>`;
-  return `<form class="fee-calculator purchase-checkout" data-type="${type}" data-listing="${item.id}" data-seller="${safe(item.ownerId || '')}" data-seller-zip="${safe(item.sellerZip || '')}"><section class="purchase-fields"><header><span>1</span><div><b>Delivery details</b><small>Choose a provider, estimate the route, and confirm where this collector item should go.</small></div></header>${fields}${address}${paymentChoices}</section><aside class="purchase-review"><header><span>2</span><div><b>Order review</b><small>Review the item, fees, delivery estimate, and payment choice.</small></div></header>${itemSummary}<div id="fee-summary" class="fee-summary" aria-live="polite"></div>${agreement}<p class="policy-note">Pay with the secure PayPal Sandbox button below. The checkout stays on CollectorMarketplace.net; no real funds move in Sandbox.</p><div class="paypal-button-container" aria-live="polite"></div></aside></form>`;
+  return `<form class="fee-calculator purchase-checkout" data-type="${type}" data-listing="${item.id}" data-seller="${safe(item.ownerId || '')}" data-seller-zip="${safe(item.sellerZip || '')}"><section class="purchase-fields"><header><span>1</span><div><b>Delivery details</b><small>Choose a provider, estimate the route, and confirm where this collector item should go.</small></div></header>${fields}${address}${paymentChoices}</section><aside class="purchase-review"><header><span>2</span><div><b>Order review</b><small>Review the item, fees, delivery estimate, and payment choice.</small></div></header>${itemSummary}<div id="fee-summary" class="fee-summary" aria-live="polite"></div>${agreement}<p class="policy-note">Pay securely with PayPal below. The checkout stays on CollectorMarketplace.net. Sandbox mode does not move real funds.</p><div class="paypal-button-container" aria-live="polite"></div></aside></form>`;
 }
 function updateFeeSummary() {
   const box = document.querySelector('.fee-calculator'); if (!box) return;

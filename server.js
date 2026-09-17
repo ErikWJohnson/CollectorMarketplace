@@ -97,20 +97,22 @@ function notify(userId, type, message, link) { store.data.notifications.unshift(
 const shippoReady = () => Boolean(process.env.SHIPPO_API_KEY);
 async function shippoRequest(pathname, body) { if (!shippoReady()) throw new Error('Shipping labels are not configured yet. Add SHIPPO_API_KEY in Render.'); const response = await fetch(`https://api.goshippo.com${pathname}`, { method: 'POST', headers: { Authorization: `ShippoToken ${process.env.SHIPPO_API_KEY}`, 'Content-Type': 'application/json', 'SHIPPO-API-VERSION': '2018-02-08' }, body: JSON.stringify(body) }); const payload = await response.json().catch(() => ({})); if (!response.ok) throw new Error(payload.detail || payload.messages?.[0]?.text || 'Shippo could not complete that request.'); return payload; }
 const paypalReady = () => Boolean(process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_SECRET);
-const paypalBaseUrl = 'https://api-m.sandbox.paypal.com';
+const paypalEnvironment = () => process.env.PAYPAL_ENV === 'live' ? 'live' : 'sandbox';
+const paypalBaseUrl = () => paypalEnvironment() === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
+const paypalLabel = () => paypalEnvironment() === 'live' ? 'PayPal' : 'PayPal Sandbox';
 async function paypalAccessToken() {
-  if (!paypalReady()) throw new Error('PayPal Sandbox is not configured. Add PAYPAL_CLIENT_ID and PAYPAL_SECRET in Render.');
+  if (!paypalReady()) throw new Error(`${paypalLabel()} is not configured. Add PAYPAL_CLIENT_ID and PAYPAL_SECRET in Render.`);
   const credentials = Buffer.from(`${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_SECRET}`).toString('base64');
-  const response = await fetch(`${paypalBaseUrl}/v1/oauth2/token`, { method: 'POST', headers: { Authorization: `Basic ${credentials}`, 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'grant_type=client_credentials' });
+  const response = await fetch(`${paypalBaseUrl()}/v1/oauth2/token`, { method: 'POST', headers: { Authorization: `Basic ${credentials}`, 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'grant_type=client_credentials' });
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok || !payload.access_token) throw new Error(payload.error_description || 'PayPal Sandbox could not authorize this checkout.');
+  if (!response.ok || !payload.access_token) throw new Error(payload.error_description || `${paypalLabel()} could not authorize this checkout.`);
   return payload.access_token;
 }
 async function paypalRequest(method, pathname, body, requestId) {
   const token = await paypalAccessToken();
-  const response = await fetch(`${paypalBaseUrl}${pathname}`, { method, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Prefer: 'return=representation', ...(requestId ? { 'PayPal-Request-Id': requestId } : {}) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+  const response = await fetch(`${paypalBaseUrl()}${pathname}`, { method, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Prefer: 'return=representation', ...(requestId ? { 'PayPal-Request-Id': requestId } : {}) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload.message || payload.details?.[0]?.description || 'PayPal Sandbox could not complete this checkout.');
+  if (!response.ok) throw new Error(payload.message || payload.details?.[0]?.description || `${paypalLabel()} could not complete this checkout.`);
   return payload;
 }
 function shippoAddress(input, label) { const value = input && typeof input === 'object' ? input : {}; const required = ['name', 'street1', 'city', 'state', 'zip']; if (required.some(key => !String(value[key] || '').trim())) throw new Error(`Add a complete ${label} address.`); return { name: String(value.name).trim(), street1: String(value.street1).trim(), street2: String(value.street2 || '').trim(), city: String(value.city).trim(), state: String(value.state).trim(), zip: String(value.zip).trim(), country: String(value.country || 'US').trim().toUpperCase() }; }
@@ -426,22 +428,22 @@ function purchaseDelivery(purchase, buyer, status) {
 app.post('/purchase', required, (req, res) => {
   res.status(410).json({ error: 'Direct checkout is disabled. Create a PayPal order first.' });
 });
-app.get('/paypal/config', (req, res) => res.json({ clientId: process.env.PAYPAL_CLIENT_ID || '', environment: 'sandbox' }));
+app.get('/paypal/config', (req, res) => res.json({ clientId: process.env.PAYPAL_CLIENT_ID || '', environment: paypalEnvironment() }));
 app.post('/paypal/orders', required, async (req, res) => {
   let purchase; let delivery;
   try {
     purchase = preparePurchase(req.user, req.body);
     if (purchase.method !== 'PayPal') throw new Error('PayPal is the only checkout method currently available.');
     delivery = purchaseDelivery(purchase, req.user, 'awaiting_paypal_approval');
-    delivery.paypal = { environment: 'sandbox', status: 'CREATING', amount: purchase.total };
+    delivery.paypal = { environment: paypalEnvironment(), status: 'CREATING', amount: purchase.total };
     purchase.listing.status = 'pending_payment'; store.data.deliveries.unshift(delivery);
     // Smart Buttons handles the payer's payment source in its secure in-page
     // checkout. Supplying a payment_source here turns this into redirect flow.
     const order = await paypalRequest('POST', '/v2/checkout/orders', { intent: 'CAPTURE', purchase_units: [{ reference_id: delivery.id, custom_id: delivery.id, description: purchase.listing.title.slice(0, 127), amount: { currency_code: 'USD', value: purchase.total.toFixed(2) } }] }, delivery.id);
     const approvalUrl = order.links?.find(link => link.rel === 'payer-action' || link.rel === 'approve')?.href;
-    delivery.paypal = { environment: 'sandbox', status: order.status || 'CREATED', orderId: order.id, amount: purchase.total };
-    recordDeliveryUpdate(delivery, req.user.id, delivery.status, 'PayPal Sandbox checkout created; awaiting buyer approval.');
-    store.save(); res.status(201).json({ approvalUrl, deliveryId: delivery.id, orderId: order.id, environment: 'sandbox' });
+    delivery.paypal = { environment: paypalEnvironment(), status: order.status || 'CREATED', orderId: order.id, amount: purchase.total };
+    recordDeliveryUpdate(delivery, req.user.id, delivery.status, `${paypalLabel()} checkout created; awaiting buyer approval.`);
+    store.save(); res.status(201).json({ approvalUrl, deliveryId: delivery.id, orderId: order.id, environment: paypalEnvironment() });
   } catch (error) {
     if (delivery) { store.data.deliveries = store.data.deliveries.filter(row => row.id !== delivery.id); if (purchase?.listing?.status === 'pending_payment') purchase.listing.status = 'active'; store.save(); }
     res.status(400).json({ error: error.message });
@@ -450,16 +452,16 @@ app.post('/paypal/orders', required, async (req, res) => {
 async function capturePayPalDelivery(delivery) {
   if (delivery.paypal?.status === 'COMPLETED') return delivery;
   const capture = await paypalRequest('POST', `/v2/checkout/orders/${encodeURIComponent(delivery.paypal.orderId)}/capture`, {}, `capture-${delivery.id}`);
-  if (capture.status !== 'COMPLETED') throw new Error('PayPal Sandbox did not complete the payment.');
+  if (capture.status !== 'COMPLETED') throw new Error(`${paypalLabel()} did not complete the payment.`);
   delivery.paypal = { ...delivery.paypal, status: 'COMPLETED', captureId: capture.purchase_units?.[0]?.payments?.captures?.[0]?.id || '' };
   delivery.status = 'awaiting_seller_dispatch'; const listing = store.data.listings.find(row => row.id === delivery.listingId); if (listing) listing.status = 'pending_delivery';
-  recordDeliveryUpdate(delivery, delivery.buyerId, delivery.status, 'PayPal Sandbox payment captured. The seller can now prepare dispatch.');
-  notify(delivery.sellerId, 'delivery', 'PayPal Sandbox payment was approved; your item is ready to dispatch.', `/delivery/${delivery.id}`); activity('purchase', delivery.buyerId, { listingId: delivery.listingId, deliveryId: delivery.id }); await store.save();
+  recordDeliveryUpdate(delivery, delivery.buyerId, delivery.status, `${paypalLabel()} payment captured. The seller can now prepare dispatch.`);
+  notify(delivery.sellerId, 'delivery', `${paypalLabel()} payment was approved; your item is ready to dispatch.`, `/delivery/${delivery.id}`); activity('purchase', delivery.buyerId, { listingId: delivery.listingId, deliveryId: delivery.id }); await store.save();
   return delivery;
 }
 function cancelPayPalDelivery(delivery) {
   if (!delivery || delivery.status !== 'awaiting_paypal_approval') return;
-  delivery.status = 'payment_cancelled'; delivery.paypal = { ...delivery.paypal, status: 'CANCELLED' }; const listing = store.data.listings.find(row => row.id === delivery.listingId); if (listing) listing.status = 'active'; recordDeliveryUpdate(delivery, delivery.buyerId, delivery.status, 'Buyer cancelled PayPal Sandbox checkout.'); store.save();
+  delivery.status = 'payment_cancelled'; delivery.paypal = { ...delivery.paypal, status: 'CANCELLED' }; const listing = store.data.listings.find(row => row.id === delivery.listingId); if (listing) listing.status = 'active'; recordDeliveryUpdate(delivery, delivery.buyerId, delivery.status, `Buyer cancelled ${paypalLabel()} checkout.`); store.save();
 }
 app.post('/paypal/orders/:deliveryId/capture', required, async (req, res) => {
   const delivery = store.data.deliveries.find(row => row.id === req.params.deliveryId && row.buyerId === req.user.id);
