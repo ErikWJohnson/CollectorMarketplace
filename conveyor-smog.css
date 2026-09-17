@@ -3,34 +3,47 @@
 .conveyor-smog-layer {
   position: fixed;
   z-index: 8;
-  top: 145px;
+  /* Cover the complete browse surface, from beneath the sticky header to
+     above the dock. The opacity keeps search and listing actions readable. */
+  top: 88px;
   right: 0;
   bottom: 86px;
   left: 0;
   overflow: hidden;
   pointer-events: none;
+  opacity: .9;
   mix-blend-mode: screen;
+  background: linear-gradient(180deg, transparent 0 37%, #9ba39c08 64%, #d6dbd018 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0 12%, #0004 38%, #000 68%);
+  mask-image: linear-gradient(to bottom, transparent 0 12%, #0004 38%, #000 68%);
 }
 
 .conveyor-smog-layer span {
   position: absolute;
   display: block;
-  width: 54vw;
-  height: 32vh;
+  width: 78vw;
+  height: 38vh;
   border-radius: 50%;
-  opacity: .6;
-  background: radial-gradient(ellipse at center, #d8ddd54d 0, #8e9a9726 33%, transparent 72%);
-  filter: blur(22px);
-  animation: conveyor-smog-drift 18s ease-in-out infinite alternate;
+  opacity: .58;
+  background:
+    radial-gradient(ellipse at 12% 72%, #f0f2ed3f 0 8%, transparent 31%),
+    radial-gradient(ellipse at 31% 48%, #d2d8d034 0 13%, transparent 39%),
+    radial-gradient(ellipse at 55% 72%, #f3f4ef35 0 10%, transparent 35%),
+    radial-gradient(ellipse at 76% 45%, #c2cbc237 0 14%, transparent 43%),
+    radial-gradient(ellipse at 96% 74%, #eff2ed36 0 9%, transparent 32%);
+  filter: blur(26px) saturate(.5);
+  animation: conveyor-smog-roll 20s ease-in-out infinite;
 }
 
-.conveyor-smog-layer span:nth-child(1) { bottom: -7vh; left: -14vw; }
-.conveyor-smog-layer span:nth-child(2) { top: 28%; left: 26vw; width: 48vw; opacity: .44; animation-duration: 25s; animation-direction: alternate-reverse; }
-.conveyor-smog-layer span:nth-child(3) { right: -16vw; bottom: 11%; width: 50vw; opacity: .55; animation-duration: 21s; }
+.conveyor-smog-layer span:nth-child(1) { bottom: -13vh; left: -22vw; }
+.conveyor-smog-layer span:nth-child(2) { bottom: 4vh; left: 14vw; width: 74vw; opacity: .44; animation-duration: 29s; animation-delay: -9s; }
+.conveyor-smog-layer span:nth-child(3) { right: -26vw; bottom: -8vh; width: 82vw; opacity: .5; animation-duration: 24s; animation-delay: -15s; }
+.conveyor-smog-layer span:nth-child(4) { bottom: 20vh; left: -29vw; width: 70vw; opacity: .3; animation-duration: 35s; animation-delay: -19s; }
+.conveyor-smog-layer span:nth-child(5) { bottom: 13vh; right: -21vw; width: 76vw; opacity: .28; animation-duration: 32s; animation-delay: -5s; }
 
-@keyframes conveyor-smog-drift {
-  from { transform: translate3d(-8%, -3%, 0) scale(1.02); }
-  to { transform: translate3d(10%, 5%, 0) scale(1.18); }
+@keyframes conveyor-smog-roll {
+  0%, 100% { transform: translate3d(-12%, 2%, 0) scale(1.02); }
+  50% { transform: translate3d(13%, -7%, 0) scale(1.18); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -38,6 +51,6 @@
 }
 
 @media (max-width: 680px) {
-  .conveyor-smog-layer { top: 124px; bottom: 77px; }
-  .conveyor-smog-layer span { width: 86vw; }
+  .conveyor-smog-layer { top: 88px; bottom: 77px; }
+  .conveyor-smog-layer span { width: 120vw; height: 35vh; }
 }
