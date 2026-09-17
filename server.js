@@ -113,13 +113,6 @@ async function paypalRequest(method, pathname, body, requestId) {
   if (!response.ok) throw new Error(payload.message || payload.details?.[0]?.description || 'PayPal Sandbox could not complete this checkout.');
   return payload;
 }
-function publicOrigin(req) {
-  const configured = String(process.env.PUBLIC_BASE_URL || '').trim().replace(/\/$/, '');
-  if (configured) return configured;
-  const host = String(req.get('host') || '');
-  if (!/^[a-z0-9.-]+(?::\d+)?$/i.test(host)) throw new Error('Could not determine the public checkout URL.');
-  return `${req.protocol}://${host}`;
-}
 function shippoAddress(input, label) { const value = input && typeof input === 'object' ? input : {}; const required = ['name', 'street1', 'city', 'state', 'zip']; if (required.some(key => !String(value[key] || '').trim())) throw new Error(`Add a complete ${label} address.`); return { name: String(value.name).trim(), street1: String(value.street1).trim(), street2: String(value.street2 || '').trim(), city: String(value.city).trim(), state: String(value.state).trim(), zip: String(value.zip).trim(), country: String(value.country || 'US').trim().toUpperCase() }; }
 function shippoParcel(input) { const value = input && typeof input === 'object' ? input : {}; const keys = ['length', 'width', 'height', 'weight']; if (keys.some(key => !(Number(value[key]) > 0))) throw new Error('Add positive package dimensions and weight.'); return { length: Number(value.length), width: Number(value.width), height: Number(value.height), distance_unit: 'in', weight: Number(value.weight), mass_unit: 'lb' }; }
 function usCityTownTag(location) {
@@ -442,14 +435,10 @@ app.post('/paypal/orders', required, async (req, res) => {
     delivery = purchaseDelivery(purchase, req.user, 'awaiting_paypal_approval');
     delivery.paypal = { environment: 'sandbox', status: 'CREATING', amount: purchase.total };
     purchase.listing.status = 'pending_payment'; store.data.deliveries.unshift(delivery);
-    const origin = publicOrigin(req); const encodedDeliveryId = encodeURIComponent(delivery.id);
-    const returnUrl = `${origin}/paypal/return?deliveryId=${encodedDeliveryId}`; const cancelUrl = `${origin}/paypal/cancel?deliveryId=${encodedDeliveryId}`;
-    const checkoutContext = { return_url: returnUrl, cancel_url: cancelUrl, brand_name: 'CollectorMarketplace.net', landing_page: 'LOGIN', user_action: 'PAY_NOW', shipping_preference: 'NO_SHIPPING' };
-    // application_context is retained as a compatibility fallback for hosted
-    // redirect checkout, while experience_context is the current Orders API path.
-    const order = await paypalRequest('POST', '/v2/checkout/orders', { intent: 'CAPTURE', application_context: checkoutContext, purchase_units: [{ reference_id: delivery.id, custom_id: delivery.id, description: purchase.listing.title.slice(0, 127), amount: { currency_code: 'USD', value: purchase.total.toFixed(2) } }], payment_source: { paypal: { experience_context: checkoutContext } } }, delivery.id);
+    // Smart Buttons handles the payer's payment source in its secure in-page
+    // checkout. Supplying a payment_source here turns this into redirect flow.
+    const order = await paypalRequest('POST', '/v2/checkout/orders', { intent: 'CAPTURE', purchase_units: [{ reference_id: delivery.id, custom_id: delivery.id, description: purchase.listing.title.slice(0, 127), amount: { currency_code: 'USD', value: purchase.total.toFixed(2) } }] }, delivery.id);
     const approvalUrl = order.links?.find(link => link.rel === 'payer-action' || link.rel === 'approve')?.href;
-    if (!approvalUrl) throw new Error('PayPal Sandbox did not provide an approval link.');
     delivery.paypal = { environment: 'sandbox', status: order.status || 'CREATED', orderId: order.id, amount: purchase.total };
     recordDeliveryUpdate(delivery, req.user.id, delivery.status, 'PayPal Sandbox checkout created; awaiting buyer approval.');
     store.save(); res.status(201).json({ approvalUrl, deliveryId: delivery.id, orderId: order.id, environment: 'sandbox' });
