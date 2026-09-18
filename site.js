@@ -366,7 +366,7 @@ function zodiacSkyMarkup() {
 }
 
 const conveyorRocket = { node: null, frame: 0, x: 50, y: 76, vx: .055, vy: -.025, angle: 0, keys: new Set() };
-const conveyorRocketGame = { layer: null, hud: null, score: 0, hull: 3, asteroids: [], enemies: [], lasers: [], enemyLasers: [], lastAsteroid: 0, lastEnemy: 0, lastScore: 0, lastShot: 0, lastHit: 0 };
+const conveyorRocketGame = { layer: null, hud: null, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-star-run-high-score') || 0), hull: 3, asteroids: [], enemies: [], lasers: [], enemyLasers: [], lastAsteroid: 0, lastEnemy: 0, lastScore: 0, lastShot: 0, lastHit: 0 };
 const rocketControlCodes = new Set(['Equal', 'BracketLeft', 'BracketRight', 'Backquote']);
 const pauseRocketBoost = () => { if (!rocketBoostAudio) return; rocketBoostAudio.pause(); rocketBoostAudio.currentTime = 0; };
 const playRocketBoost = () => { if (!rocketBoostAudio || !rocketBoostAudio.paused) return; rocketBoostAudio.volume = .46; rocketBoostAudio.play().catch(() => {}); };
@@ -375,7 +375,7 @@ const rocketRandom = (min, max) => min + Math.random() * (max - min);
 function startRocketGame(node) {
   const game = conveyorRocketGame;
   game.layer = node.parentElement?.querySelector('.rocket-game-layer') || null;
-  game.hud = node.parentElement?.querySelector('.rocket-game-hud') || null;
+  game.hud = document.querySelector('.rocket-game-hud');
   game.score = 0; game.hull = 3; game.asteroids = []; game.enemies = []; game.lasers = []; game.enemyLasers = [];
   game.lastAsteroid = 0; game.lastEnemy = 0; game.lastScore = Date.now(); game.lastShot = 0; game.lastHit = 0;
 }
@@ -408,7 +408,8 @@ function updateRocketGame() {
   if (game.asteroids.some(asteroid => rocketDistance(conveyorRocket, asteroid) < asteroid.radius + 1.8) || game.enemies.some(enemy => rocketDistance(conveyorRocket, enemy) < 3)) hitRocket();
   game.enemyLasers.forEach(laser => { if (rocketDistance(conveyorRocket, laser) < 1.7) hitRocket(); });
   game.layer.innerHTML = `${game.asteroids.map(asteroid => `<i class="rocket-game-asteroid" style="--x:${asteroid.x}%;--y:${asteroid.y}%;--size:${asteroid.radius * 10}px;--spin:${asteroid.rotation}deg"></i>`).join('')}${game.enemies.map(enemy => `<i class="rocket-game-enemy" style="--x:${enemy.x}%;--y:${enemy.y}%;--rotation:${enemy.rotation}deg"></i>`).join('')}${game.lasers.map(laser => `<i class="rocket-game-laser" style="--x:${laser.x}%;--y:${laser.y}%;--rotation:${laser.rotation}deg"></i>`).join('')}${game.enemyLasers.map(laser => `<i class="rocket-game-enemy-laser" style="--x:${laser.x}%;--y:${laser.y}%;--rotation:${laser.rotation}deg"></i>`).join('')}`;
-  if (game.hud) game.hud.innerHTML = `<b>STAR RUN</b><span>SCORE ${String(game.score).padStart(6, '0')}</span><small>HULL ${'●'.repeat(game.hull)}${'○'.repeat(3 - game.hull)}</small><em>[ / ] TURN · = BOOST · \` LASER</em>`;
+  if (game.score > game.highScore) { game.highScore = game.score; localStorage.setItem('collector-marketplace-star-run-high-score', String(game.highScore)); }
+  if (game.hud) game.hud.innerHTML = `<b>STAR RUN</b><span>SCORE ${String(game.score).padStart(6, '0')}</span><span>HIGH ${String(game.highScore).padStart(6, '0')}</span><small>HULL ${'●'.repeat(game.hull)}${'○'.repeat(3 - game.hull)}</small><em><strong>[</strong> / <strong>]</strong> TURN &nbsp;·&nbsp; <strong>=</strong> BOOST &nbsp;·&nbsp; <strong>\`</strong> LASER</em>`;
 }
 function stopConveyorRocket() {
   if (conveyorRocket.frame) cancelAnimationFrame(conveyorRocket.frame);
@@ -445,14 +446,15 @@ function startConveyorRocket(node) {
   if (!conveyorRocket.frame) conveyorRocket.frame = requestAnimationFrame(flyConveyorRocket);
 }
 document.addEventListener('keydown', event => {
-  if (!rocketControlCodes.has(event.code) || !document.body.classList.contains('browse-conveyor') || !canUseAutoScroll(event.target)) return;
+  const laserKey = event.code === 'Backquote' || event.key === '`';
+  if ((!rocketControlCodes.has(event.code) && !laserKey) || !document.body.classList.contains('browse-conveyor') || !canUseAutoScroll(event.target)) return;
   event.preventDefault();
-  if (event.code === 'Backquote') { fireRocketLaser(); return; }
+  if (laserKey) { fireRocketLaser(); return; }
   const isNewBoost = event.code === 'Equal' && !conveyorRocket.keys.has('Equal');
   conveyorRocket.keys.add(event.code);
   if (isNewBoost) playRocketBoost();
 });
-document.addEventListener('keyup', event => { if (!rocketControlCodes.has(event.code)) return; conveyorRocket.keys.delete(event.code); if (event.code === 'Equal') pauseRocketBoost(); });
+document.addEventListener('keyup', event => { if (!rocketControlCodes.has(event.code) && event.key !== '`') return; conveyorRocket.keys.delete(event.code); if (event.code === 'Equal') pauseRocketBoost(); });
 window.addEventListener('blur', () => { conveyorRocket.keys.clear(); pauseRocketBoost(); });
 
 function syncBrowseModeUi() {
@@ -464,8 +466,10 @@ function syncBrowseModeUi() {
   if (conveyor && !smog) { smog = document.createElement('div'); smog.className = 'conveyor-smog-layer'; smog.setAttribute('aria-hidden', 'true'); smog.innerHTML = '<span></span><span></span><span></span><span></span><span></span>'; document.body.append(smog); }
   if (!conveyor) smog?.remove();
   let orbit = document.querySelector('.conveyor-orbit-layer');
-  if (conveyor && !orbit) { orbit = document.createElement('div'); orbit.className = 'conveyor-orbit-layer'; orbit.setAttribute('aria-hidden', 'true'); orbit.innerHTML = `<i></i><i></i><i></i><b class="conveyor-earth"><em></em><em></em></b><div class="rocket-game-layer"></div><aside class="rocket-game-hud"></aside><div class="conveyor-rocket"><span class="rocket-window"></span><span class="rocket-fin rocket-fin-left"></span><span class="rocket-fin rocket-fin-right"></span><span class="rocket-flame"></span></div><svg class="conveyor-constellation constellation-a" viewBox="0 0 240 150"><polyline points="18,104 63,64 112,82 155,34 211,57"/><circle cx="18" cy="104" r="3"/><circle cx="63" cy="64" r="3"/><circle cx="112" cy="82" r="3"/><circle cx="155" cy="34" r="3"/><circle cx="211" cy="57" r="3"/></svg><svg class="conveyor-constellation constellation-b" viewBox="0 0 220 150"><polyline points="20,43 67,80 114,34 160,91 204,56"/><circle cx="20" cy="43" r="3"/><circle cx="67" cy="80" r="3"/><circle cx="114" cy="34" r="3"/><circle cx="160" cy="91" r="3"/><circle cx="204" cy="56" r="3"/></svg>${zodiacSkyMarkup()}`; document.querySelector('.app-shell')?.prepend(orbit); }
-  if (conveyor) startConveyorRocket(orbit?.querySelector('.conveyor-rocket')); else { orbit?.remove(); stopConveyorRocket(); }
+  if (conveyor && !orbit) { orbit = document.createElement('div'); orbit.className = 'conveyor-orbit-layer'; orbit.setAttribute('aria-hidden', 'true'); orbit.innerHTML = `<i></i><i></i><i></i><b class="conveyor-earth"><em></em><em></em></b><div class="rocket-game-layer"></div><div class="conveyor-rocket"><span class="rocket-window"></span><span class="rocket-fin rocket-fin-left"></span><span class="rocket-fin rocket-fin-right"></span><span class="rocket-flame"></span></div><svg class="conveyor-constellation constellation-a" viewBox="0 0 240 150"><polyline points="18,104 63,64 112,82 155,34 211,57"/><circle cx="18" cy="104" r="3"/><circle cx="63" cy="64" r="3"/><circle cx="112" cy="82" r="3"/><circle cx="155" cy="34" r="3"/><circle cx="211" cy="57" r="3"/></svg><svg class="conveyor-constellation constellation-b" viewBox="0 0 220 150"><polyline points="20,43 67,80 114,34 160,91 204,56"/><circle cx="20" cy="43" r="3"/><circle cx="67" cy="80" r="3"/><circle cx="114" cy="34" r="3"/><circle cx="160" cy="91" r="3"/><circle cx="204" cy="56" r="3"/></svg>${zodiacSkyMarkup()}`; document.querySelector('.app-shell')?.prepend(orbit); }
+  let gameHud = document.querySelector('.rocket-game-hud');
+  if (conveyor && !gameHud) { gameHud = document.createElement('aside'); gameHud.className = 'rocket-game-hud'; gameHud.setAttribute('aria-live', 'polite'); document.querySelector('.app-shell')?.append(gameHud); }
+  if (conveyor) startConveyorRocket(orbit?.querySelector('.conveyor-rocket')); else { orbit?.remove(); gameHud?.remove(); stopConveyorRocket(); }
   const button = document.querySelector('[data-browse-mode]');
   if (button) { button.disabled = searchScope !== 'listings' || auctionActive; button.firstChild.textContent = browseMode === 'conveyor' ? 'Conveyor ' : 'Doomscroll '; button.setAttribute('aria-label', `Browsing mode: ${browseMode}. Press Q to switch.`); button.setAttribute('aria-pressed', String(browseMode === 'conveyor')); }
   if (conveyor) startConveyor(); else stopConveyor();
