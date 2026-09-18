@@ -216,6 +216,14 @@ html body.browse-doomscroll .category-row button.active,
 html body.browse-doomscroll .audience-quick-tags button.active { color: #3c2433 !important; background: #ffd496 !important; border-color: #c8776d !important; }
 html body.browse-doomscroll .market-head { color: #493a42; }
 html body.browse-doomscroll .listing { border-color: #fef4e7b8 !important; box-shadow: 0 14px 34px #6f2b4366 !important; }
+/* Doomscroll listings float directly over the cloud scene. Content remains
+   legible in its own panels, but there is no enclosing card backdrop. */
+html body.browse-doomscroll .listing {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
 html body.browse-doomscroll .collector-head,
 html body.browse-doomscroll .listing-copy,
 html body.browse-doomscroll .listing footer { color: #26333d !important; background: #fffaf2ed !important; border-color: #d8ae9c !important; }
