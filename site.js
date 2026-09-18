@@ -481,7 +481,7 @@ document.addEventListener('click', event => { if (event.target.closest('[data-st
 // Puppy Jump is a light Doodle-Jump-style counterpoint to the space game.
 // It only exists while collectors are browsing in Doomscroll mode.
 const puppyJump = { node: null, frame: 0, x: 50, y: 82, vx: 0, vy: 0, keys: new Set() };
-const puppyJumpGame = { layer: null, hud: null, started: false, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-puppy-jump-high-score') || 0), platforms: [], airships: [], lasers: [], jumps: 2, lastHud: 0, lastAirship: 0, lastShot: 0, lastJump: 0, jumpHeld: false, invulnerableUntil: 0, combo: 0 };
+const puppyJumpGame = { layer: null, hud: null, started: false, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-puppy-jump-high-score') || 0), platforms: [], airships: [], lasers: [], jumps: 2, lastHud: 0, lastAirship: 0, lastShot: 0, lastJump: 0, jumpHeld: false, invulnerableUntil: 0, combo: 0, restarting: false, restartTimer: 0 };
 const puppyControlCodes = new Set(['BracketLeft', 'BracketRight', 'Equal', 'Backquote']);
 const puppyRandom = (min, max) => min + Math.random() * (max - min);
 function puppyStartingPlatforms() {
@@ -493,6 +493,10 @@ function puppyStartingPlatforms() {
 }
 function renderPuppyJumpHud() {
   const game = puppyJumpGame; if (!game.hud) return;
+  if (game.restarting) {
+    game.hud.innerHTML = `<b>PUPPY JUMP</b><span>RUN COMPLETE · ${String(game.score).padStart(6, '0')}</span><small>NEW CLOUD RUN STARTING…</small>`;
+    return;
+  }
   if (!game.started) {
     game.hud.innerHTML = `<button type="button" data-puppy-jump-play title="Start Puppy Jump">🐾 PUPPY JUMP · PLAY</button><small>HIGH ${String(game.highScore).padStart(6, '0')}</small>`;
     return;
@@ -519,14 +523,21 @@ function launchPuppyJump() {
 }
 function stopPuppyJump() {
   if (puppyJump.frame) cancelAnimationFrame(puppyJump.frame);
+  if (puppyJumpGame.restartTimer) clearTimeout(puppyJumpGame.restartTimer);
   puppyJump.frame = 0; puppyJump.keys.clear(); puppyJump.node = null;
+  puppyJumpGame.restartTimer = 0; puppyJumpGame.restarting = false;
   puppyJumpGame.layer = null; puppyJumpGame.hud = null; puppyJumpGame.started = false; puppyJumpGame.jumpHeld = false;
 }
 function finishPuppyJump() {
   const game = puppyJumpGame;
+  if (game.restarting) return;
   game.highScore = Math.max(game.highScore, game.score);
   localStorage.setItem('collector-marketplace-puppy-jump-high-score', String(game.highScore));
-  game.started = false; puppyJump.node?.parentElement?.classList.remove('is-running'); renderPuppyJumpHud();
+  game.started = false; game.restarting = true; puppyJump.keys.clear(); puppyJump.node?.parentElement?.classList.remove('is-running'); renderPuppyJumpHud();
+  game.restartTimer = setTimeout(() => {
+    if (!game.layer?.isConnected || !puppyJump.node?.isConnected || !document.body.classList.contains('browse-doomscroll')) return;
+    game.restarting = false; game.restartTimer = 0; game.started = true; resetPuppyJump(); puppyJump.node.parentElement?.classList.add('is-running'); renderPuppyJumpHud();
+  }, 900);
 }
 function spawnPuppyAirship() {
   puppyJumpGame.airships.push({ x: puppyRandom(12, 88), y: -8, vx: puppyRandom(-.08, .08) || .045, drift: puppyRandom(.015, .05) });
