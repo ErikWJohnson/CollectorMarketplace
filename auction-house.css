@@ -10,3 +10,45 @@ body.auction-mode{background:#090a0b}.auction-mode .app-shell{width:100%;max-wid
 @media(max-width:1050px){.auction-stage{grid-template-columns:1fr}.auction-live-panel{display:none}.auction-showcase{grid-template-columns:1.1fr .9fr}.auction-grid{grid-template-columns:1fr}.auction-card{grid-template-columns:100px 1fr}.auction-card-image{height:95px}}
 @media(max-width:720px){.auction-mode .app-shell{min-width:0}.auction-house{min-height:100vh}.auction-head{height:88px;padding:0 16px}.auction-head h1{font-size:36px}.auction-head-meta{display:none}.auction-ticker{height:38px}.auction-showcase{display:block;min-height:0}.auction-art{min-height:48vh;height:48vh}.auction-details{padding:27px 18px 30px}.auction-details h2{font-size:39px}.auction-description{font-size:12px;margin-bottom:20px}.auction-countdown{right:12px;bottom:12px;min-width:150px}.auction-countdown strong{font-size:23px}.auction-lot-number{left:12px;top:12px}.auction-lot-rail{padding:35px 13px 15px}.auction-lot-rail>header>span{display:none}.auction-grid{display:flex;overflow:auto;scroll-snap-type:x mandatory}.auction-card{flex:0 0 84%;scroll-snap-align:center}.auction-mode .bottom-nav{width:100%;max-width:none}.voice-dock{bottom:82px}}
 .auction-card.is-active{animation:auction-feed-pulse .55s ease}.auction-lot-rail>header>span::before{content:'AUTO LOOP · ';color:var(--gold)}@keyframes auction-feed-pulse{0%{opacity:.55;transform:translateY(2px)}100%{opacity:1;transform:translateY(-3px)}}
+
+/* A cinematic waterfall carries through the empty Auction House backdrop,
+   while each bidding surface retains enough dark glass for legible pricing. */
+body.auction-mode { background: #071216; }
+.auction-mode .app-shell,
+.auction-mode .market-stage,
+.auction-mode .listing-stream { background: transparent; }
+.auction-house {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: #071216;
+}
+.auction-house::before,
+.auction-house::after {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+}
+.auction-house::before {
+  inset: -7% -4%;
+  opacity: .78;
+  background: url("/public/auction-waterfall.png") center 32% / cover no-repeat;
+  filter: saturate(.78) contrast(1.08) brightness(.68);
+  animation: auction-waterfall-flow 18s ease-in-out infinite alternate;
+}
+.auction-house::after {
+  background: linear-gradient(90deg, #041014c9, #06171a66 35%, #07171b73 68%, #02090ccf), linear-gradient(180deg, #02090cbe, transparent 28%, #041013ac 100%);
+}
+.auction-house > * { position: relative; z-index: 1; }
+.auction-head,
+.auction-ticker,
+.auction-details,
+.auction-live-panel,
+.auction-card { background-color: #071113df; backdrop-filter: blur(4px); }
+@keyframes auction-waterfall-flow {
+  from { transform: scale(1.04) translate3d(0, -1.6%, 0); background-position: center 26%; }
+  to { transform: scale(1.1) translate3d(0, 2.4%, 0); background-position: center 52%; }
+}
+@media (prefers-reduced-motion: reduce) { .auction-house::before { animation: none; } }
