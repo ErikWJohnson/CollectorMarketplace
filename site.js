@@ -12,6 +12,7 @@ const modal = document.querySelector('#modal');
 const modalContent = document.querySelector('#modal-content');
 let listings = [], auctions = [], accounts = [], collectives = [], brands = [], couriers = [], chatrooms = [], deliveries = [], uploadedListingImages = [], uploadedListingVideos = [], activeCategory = 'All', activeQuery = '', activeTags = [], searchScope = 'listings', sortMode = 'popular', page = 1, observer, searchRenderTimer, auctionClock;
 const siteThemeAudio = document.querySelector('#site-theme-audio');
+const rocketBoostAudio = document.querySelector('#rocket-boost-audio');
 const siteThemeControl = document.querySelector('[data-site-theme-toggle]');
 const siteThemePlaylist = [
   { name: 'Finding the Old Docks', src: '/public/finding-the-old-docks.mp3' },
@@ -364,30 +365,34 @@ function zodiacSkyMarkup() {
   }).join('');
 }
 
-const conveyorRocket = { node: null, frame: 0, x: 50, y: 76, vx: 0, vy: 0, keys: new Set() };
+const conveyorRocket = { node: null, frame: 0, x: 50, y: 76, vx: .1, vy: -.04, angle: 0, keys: new Set() };
 const rocketControlCodes = new Set(['Equal', 'BracketLeft', 'BracketRight']);
+const pauseRocketBoost = () => { if (!rocketBoostAudio) return; rocketBoostAudio.pause(); rocketBoostAudio.currentTime = 0; };
+const playRocketBoost = () => { if (!rocketBoostAudio || !rocketBoostAudio.paused) return; rocketBoostAudio.volume = .46; rocketBoostAudio.play().catch(() => {}); };
 function stopConveyorRocket() {
   if (conveyorRocket.frame) cancelAnimationFrame(conveyorRocket.frame);
   conveyorRocket.frame = 0;
   conveyorRocket.keys.clear();
   conveyorRocket.node = null;
+  pauseRocketBoost();
 }
 function flyConveyorRocket() {
   const rocket = conveyorRocket;
   if (!rocket.node?.isConnected) return stopConveyorRocket();
-  if (rocket.keys.has('Equal')) rocket.vy -= .17;
-  if (rocket.keys.has('BracketLeft')) rocket.vx -= .1;
-  if (rocket.keys.has('BracketRight')) rocket.vx += .1;
-  rocket.vy += .042;
-  rocket.vx *= .985;
-  rocket.vy *= .992;
+  if (rocket.keys.has('BracketLeft')) rocket.angle -= 2.25;
+  if (rocket.keys.has('BracketRight')) rocket.angle += 2.25;
+  const radians = rocket.angle * Math.PI / 180;
+  const thrust = rocket.keys.has('Equal') ? .028 : .0024;
+  rocket.vx = (rocket.vx + Math.sin(radians) * thrust) * .985;
+  rocket.vy = (rocket.vy - Math.cos(radians) * thrust) * .985;
+  const speed = Math.hypot(rocket.vx, rocket.vy);
+  if (speed > .56) { rocket.vx = rocket.vx / speed * .56; rocket.vy = rocket.vy / speed * .56; }
   rocket.x = (rocket.x + rocket.vx + 100) % 100;
-  rocket.y = Math.min(89, Math.max(4, rocket.y + rocket.vy));
-  if (rocket.y >= 89 && rocket.vy > 0) rocket.vy = 0;
-  const tilt = Math.max(-28, Math.min(28, rocket.vx * 7));
+  rocket.y = (rocket.y + rocket.vy + 100) % 100;
   rocket.node.style.setProperty('--rocket-x', `${rocket.x}%`);
   rocket.node.style.setProperty('--rocket-y', `${rocket.y}%`);
-  rocket.node.style.setProperty('--rocket-tilt', `${tilt}deg`);
+  rocket.node.style.setProperty('--rocket-tilt', `${rocket.angle}deg`);
+  rocket.node.classList.add('is-cruising');
   rocket.node.classList.toggle('is-thrusting', rocket.keys.has('Equal'));
   rocket.frame = requestAnimationFrame(flyConveyorRocket);
 }
@@ -399,10 +404,12 @@ function startConveyorRocket(node) {
 document.addEventListener('keydown', event => {
   if (!rocketControlCodes.has(event.code) || !document.body.classList.contains('browse-conveyor') || !canUseAutoScroll(event.target)) return;
   event.preventDefault();
+  const isNewBoost = event.code === 'Equal' && !conveyorRocket.keys.has('Equal');
   conveyorRocket.keys.add(event.code);
+  if (isNewBoost) playRocketBoost();
 });
-document.addEventListener('keyup', event => { if (rocketControlCodes.has(event.code)) conveyorRocket.keys.delete(event.code); });
-window.addEventListener('blur', () => conveyorRocket.keys.clear());
+document.addEventListener('keyup', event => { if (!rocketControlCodes.has(event.code)) return; conveyorRocket.keys.delete(event.code); if (event.code === 'Equal') pauseRocketBoost(); });
+window.addEventListener('blur', () => { conveyorRocket.keys.clear(); pauseRocketBoost(); });
 
 function syncBrowseModeUi() {
   const auctionActive = document.body.classList.contains('auction-mode');

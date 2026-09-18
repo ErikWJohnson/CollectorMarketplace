@@ -128,9 +128,10 @@
 .rocket-fin { position: absolute; bottom: 4px; width: 11px; height: 18px; background: linear-gradient(#d44c48, #621b28); z-index: -1; }
 .rocket-fin-left { right: 17px; clip-path: polygon(100% 0, 0 100%, 100% 100%); }
 .rocket-fin-right { left: 17px; clip-path: polygon(0 0, 100% 100%, 0 100%); }
-.rocket-flame { position: absolute; bottom: -16px; left: 5px; width: 12px; height: 19px; border-radius: 50% 50% 65% 65%; background: linear-gradient(#fff4ae 0 20%, #ffaf3e 45%, #f24731 72%, transparent); filter: blur(.2px); opacity: .25; transform: scaleY(.45); transform-origin: top; }
-.conveyor-rocket.is-thrusting { filter: brightness(1.28); }
-.conveyor-rocket.is-thrusting .rocket-flame { opacity: 1; transform: scaleY(1.2); animation: conveyor-rocket-flame .12s steps(2) infinite; }
+.rocket-flame { position: absolute; bottom: -16px; left: 5px; width: 12px; height: 19px; border-radius: 50% 50% 65% 65%; background: linear-gradient(#fff4ae 0 20%, #ffaf3e 45%, #f24731 72%, transparent); filter: blur(.25px); opacity: .72; transform: scaleY(.72); transform-origin: top; }
+.conveyor-rocket.is-cruising .rocket-flame { animation: conveyor-rocket-cruise .42s ease-in-out infinite alternate; }
+.conveyor-rocket.is-thrusting { filter: brightness(1.3); }
+.conveyor-rocket.is-thrusting .rocket-flame { opacity: 1; transform: scaleY(1.5); animation: conveyor-rocket-flame .11s steps(2) infinite; }
 
 .conveyor-constellation {
   position: absolute;
@@ -172,6 +173,7 @@
 @keyframes conveyor-star-twinkle { from { opacity: .68; } to { opacity: .98; } }
 @keyframes conveyor-star-sparkle { from { opacity: .24; } to { opacity: .72; } }
 @keyframes conveyor-rocket-flame { 50% { transform: scaleY(.74) scaleX(.84); } }
+@keyframes conveyor-rocket-cruise { to { opacity: .96; transform: scaleY(.9) scaleX(.9); } }
 @keyframes conveyor-asteroid {
   0%, 15% { opacity: 0; margin-left: -10vw; margin-top: -3vh; }
   18% { opacity: .72; }
