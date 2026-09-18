@@ -120,13 +120,13 @@
   border: 0;
   border-radius: 0;
   background: transparent;
-  box-shadow: 0 0 16px #a9d7fa70;
+  box-shadow: none;
   transform: translate(-50%, -50%) rotate(var(--rocket-tilt));
   transition: filter .12s ease;
 }
 .conveyor-rocket::before,.conveyor-rocket::after { display: none; }
-.conveyor-rocket img { display: block; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 7px #000b); }
-.conveyor-rocket.is-thrusting img { filter: brightness(1.18) drop-shadow(0 0 9px #ff9c42cc); }
+.conveyor-rocket img { display: block; width: 100%; height: 100%; object-fit: contain; filter: none; }
+.conveyor-rocket.is-thrusting img { filter: brightness(1.12); }
 .conveyor-rocket.is-hit { animation: conveyor-rocket-hit .42s steps(2); }
 
 .rocket-game-playfield { position: fixed; z-index: 4; top: 58px; right: 0; bottom: 86px; left: 0; overflow: hidden; pointer-events: none; opacity: .9; mix-blend-mode: screen; }
