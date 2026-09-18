@@ -380,18 +380,18 @@ function startRocketGame(node) {
   const game = conveyorRocketGame;
   game.layer = node.parentElement?.querySelector('.rocket-game-layer') || null;
   game.hud = document.querySelector('.rocket-game-hud');
-  game.started = false; game.score = 0; game.hull = 3; game.asteroids = []; game.enemies = []; game.lasers = []; game.enemyLasers = [];
+  game.started = false; node.parentElement?.classList.remove('is-running'); game.score = 0; game.hull = 3; game.asteroids = []; game.enemies = []; game.lasers = []; game.enemyLasers = [];
   game.lastAsteroid = 0; game.lastEnemy = 0; game.lastScore = Date.now(); game.lastShot = 0; game.lastHit = 0;
   renderRocketGameHud();
 }
 function renderRocketGameHud() {
   const game = conveyorRocketGame; if (!game.hud) return;
-  if (!game.started) { game.hud.innerHTML = `<button type="button" data-star-run-play>▶ STAR RUN · PLAY</button><span>READY TO LAUNCH</span><span>HIGH ${String(game.highScore).padStart(6, '0')}</span><em>PRESS PLAY TO START &nbsp;·&nbsp; [ / ] TURN &nbsp;·&nbsp; = BOOST &nbsp;·&nbsp; \` LASER</em>`; return; }
-  game.hud.innerHTML = `<b>STAR RUN</b><span>SCORE ${String(game.score).padStart(6, '0')}</span><span>HIGH ${String(game.highScore).padStart(6, '0')}</span><small>HULL ${'●'.repeat(game.hull)}${'○'.repeat(3 - game.hull)}</small><em><strong>[</strong> / <strong>]</strong> TURN &nbsp;·&nbsp; <strong>=</strong> BOOST &nbsp;·&nbsp; <strong>\`</strong> LASER</em>`;
+  if (!game.started) { game.hud.innerHTML = `<button type="button" data-star-run-play title="Press Play to launch STAR RUN">▶ STAR RUN · PLAY</button><small>HIGH ${String(game.highScore).padStart(6, '0')}</small>`; return; }
+  game.hud.innerHTML = `<b>STAR RUN</b><span>SCORE ${String(game.score).padStart(6, '0')} · HIGH ${String(game.highScore).padStart(6, '0')}</span><small>HULL ${'●'.repeat(game.hull)}${'○'.repeat(3 - game.hull)}</small><em><strong>[</strong> <strong>]</strong> TURN · <strong>=</strong> BOOST · <strong>\`</strong> LASER</em>`;
 }
 function launchStarRun() {
   const game = conveyorRocketGame; if (!game.layer || game.started) return;
-  game.started = true; game.score = 0; game.hull = 3; game.asteroids = []; game.enemies = []; game.lasers = []; game.enemyLasers = [];
+  game.started = true; conveyorRocket.node?.parentElement?.classList.add('is-running'); game.score = 0; game.hull = 3; game.asteroids = []; game.enemies = []; game.lasers = []; game.enemyLasers = [];
   game.lastAsteroid = 0; game.lastEnemy = 0; game.lastScore = Date.now(); game.lastShot = 0; game.lastHit = 0;
   renderRocketGameHud();
 }
