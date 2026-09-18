@@ -370,7 +370,7 @@ function zodiacSkyMarkup() {
 
 const conveyorRocket = { node: null, frame: 0, x: 50, y: 76, vx: .055, vy: -.025, angle: 0, keys: new Set() };
 const conveyorRocketGame = { layer: null, hud: null, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-star-run-high-score') || 0), hull: 3, asteroids: [], enemies: [], lasers: [], enemyLasers: [], lastAsteroid: 0, lastEnemy: 0, lastScore: 0, lastShot: 0, lastHit: 0 };
-const rocketControlCodes = new Set(['Equal', 'BracketLeft', 'BracketRight', 'Backquote']);
+const rocketControlCodes = new Set(['Equal', 'BracketLeft', 'BracketRight', 'ArrowLeft', 'ArrowRight', 'Backquote']);
 const pauseRocketBoost = () => { if (!rocketBoostAudio) return; rocketBoostAudio.pause(); rocketBoostAudio.currentTime = 0; };
 const playRocketBoost = () => { if (!rocketBoostAudio || !rocketBoostAudio.paused) return; rocketBoostAudio.volume = .46; rocketBoostAudio.play().catch(() => {}); };
 const playGameEffect = (source, volume = .5) => { if (!source?.src) return; const effect = new Audio(source.currentSrc || source.src); effect.volume = volume; effect.play().catch(() => {}); };
@@ -384,7 +384,7 @@ function startRocketGame(node) {
   game.lastAsteroid = 0; game.lastEnemy = 0; game.lastScore = Date.now(); game.lastShot = 0; game.lastHit = 0;
 }
 function spawnRocketAsteroid() { const radius = rocketRandom(1.3, 2.8); conveyorRocketGame.asteroids.push({ x: rocketRandom(2, 98), y: -radius * 2, vx: rocketRandom(-.055, .055), vy: rocketRandom(.045, .11), radius, spin: rocketRandom(-4, 4), rotation: rocketRandom(0, 360) }); }
-function spawnRocketEnemy() { const fromLeft = Math.random() > .5; conveyorRocketGame.enemies.push({ x: fromLeft ? -4 : 104, y: rocketRandom(9, 78), vx: fromLeft ? rocketRandom(.055, .09) : rocketRandom(-.09, -.055), vy: rocketRandom(-.025, .025), rotation: fromLeft ? 90 : -90, nextShot: Date.now() + rocketRandom(2200, 4800) }); }
+function spawnRocketEnemy() { const fromLeft = Math.random() > .5; conveyorRocketGame.enemies.push({ x: fromLeft ? -4 : 104, y: rocketRandom(9, 78), vx: fromLeft ? rocketRandom(.055, .09) : rocketRandom(-.09, -.055), vy: rocketRandom(-.025, .025), rotation: 0, nextShot: Date.now() + rocketRandom(2200, 4800) }); }
 function hitRocket() {
   const game = conveyorRocketGame; const now = Date.now(); if (now - game.lastHit < 900) return;
   game.lastHit = now; game.hull -= 1; playGameEffect(gameSpaceshipExplosionAudio, .56); conveyorRocket.node?.classList.add('is-hit'); setTimeout(() => conveyorRocket.node?.classList.remove('is-hit'), 420);
@@ -426,8 +426,9 @@ function stopConveyorRocket() {
 function flyConveyorRocket() {
   const rocket = conveyorRocket;
   if (!rocket.node?.isConnected) return stopConveyorRocket();
-  if (rocket.keys.has('BracketLeft')) rocket.angle -= 2.25;
-  if (rocket.keys.has('BracketRight')) rocket.angle += 2.25;
+  if (rocket.keys.has('BracketLeft') || rocket.keys.has('ArrowLeft')) rocket.angle -= 4.25;
+  if (rocket.keys.has('BracketRight') || rocket.keys.has('ArrowRight')) rocket.angle += 4.25;
+  rocket.angle = (rocket.angle + 360) % 360;
   const radians = rocket.angle * Math.PI / 180;
   const thrust = rocket.keys.has('Equal') ? .014 : .0009;
   rocket.vx = (rocket.vx + Math.sin(radians) * thrust) * .985;
