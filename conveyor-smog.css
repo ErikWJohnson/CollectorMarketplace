@@ -258,6 +258,39 @@ html body.browse-doomscroll .vote.selected { color: #7f3048 !important; backgrou
 html body.browse-doomscroll .listing-actions .action-buy,
 html body.browse-doomscroll .listing-actions .action-buy:hover { color: #fffdf8 !important; background: #387e59 !important; border-color: #25603f !important; }
 html body.browse-doomscroll .listing-actions .trade { color: #314e67 !important; }
+
+/* Final sunset palette pass: every light surface borrows from the sky rather
+   than reading as neutral white over the cloudscape. */
+html body.browse-doomscroll .masthead { background: linear-gradient(100deg,#ffe5bbef,#ffc7a8eb 56%,#df8e91e8) !important; }
+html body.browse-doomscroll .mode-tabs,
+html body.browse-doomscroll .discovery,
+html body.browse-doomscroll .search-mode-bar,
+html body.browse-doomscroll .search-scope,
+html body.browse-doomscroll .search-scope section,
+html body.browse-doomscroll .listing-filter-controls,
+html body.browse-doomscroll .tag-group,
+html body.browse-doomscroll .category-row { background: linear-gradient(135deg,#fff0d6e8,#ffcdb3e0) !important; }
+html body.browse-doomscroll button,
+html body.browse-doomscroll select,
+html body.browse-doomscroll input,
+html body.browse-doomscroll textarea { background: linear-gradient(135deg,#fff2d8ed,#ffd7bde8) !important; border-color: #d88b79 !important; }
+html body.browse-doomscroll button:hover,
+html body.browse-doomscroll button:focus-visible,
+html body.browse-doomscroll select:focus,
+html body.browse-doomscroll input:focus { background: linear-gradient(135deg,#ffe9c4,#ffc29f) !important; border-color: #a94b61 !important; }
+html body.browse-doomscroll .collector-head,
+html body.browse-doomscroll .listing-copy,
+html body.browse-doomscroll .listing footer { background: linear-gradient(135deg,#fff0d8f2,#ffd0b4ed) !important; }
+html body.browse-doomscroll .listing-copy p { background: linear-gradient(135deg,#ffe2c2ef,#f7bdacdf) !important; border-color: #d58c7e !important; }
+html body.browse-doomscroll .bottom-nav { background: linear-gradient(100deg,#ffe4b9ed,#ffc9afea 55%,#df8a91e8) !important; }
+html body.browse-doomscroll .puppy-game-hud { background: linear-gradient(135deg,#fff0d5f2,#ffc8abe9) !important; border-color: #df9a78 !important; }
+html body.browse-doomscroll .tag-row button.active,
+html body.browse-doomscroll .category-row button.active,
+html body.browse-doomscroll .audience-quick-tags button.active,
+html body.browse-doomscroll .search-scope button.active,
+html body.browse-doomscroll .browse-mode-toggle[aria-pressed="true"] { color: #452438 !important; background: linear-gradient(135deg,#ffd36f,#eea06d) !important; border-color: #a94b61 !important; }
+html body.browse-doomscroll .listing-actions .action-buy,
+html body.browse-doomscroll .listing-actions .action-buy:hover { color: #fffdf8 !important; background: linear-gradient(135deg,#2f7455,#4a9c6c) !important; border-color: #22563d !important; }
 .puppy-game-playfield { position: fixed; z-index: 3; inset: 58px 0 86px; overflow: hidden; pointer-events: none; }
 .puppy-game-layer { position: absolute; inset: 0; overflow: hidden; }
 .puppy-game-pup { --puppy-x:50%; --puppy-y:82%; position: absolute; top:var(--puppy-y); left:var(--puppy-x); z-index:2; width:76px; height:76px; transform:translate(-50%,-82%); transition:filter .12s ease; }
