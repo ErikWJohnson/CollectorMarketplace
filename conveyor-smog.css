@@ -107,6 +107,31 @@
 .conveyor-earth em:nth-child(2) { inset: -36px; animation-duration: 10s; animation-direction: reverse; }
 .conveyor-earth em:nth-child(2)::after { width: 4px; height: 4px; background: #f6d87e; box-shadow: 0 0 8px 2px #efd06c8b; }
 
+.conveyor-rocket {
+  --rocket-x: 50%;
+  --rocket-y: 76%;
+  --rocket-tilt: 0deg;
+  position: absolute;
+  top: var(--rocket-y);
+  left: var(--rocket-x);
+  width: 23px;
+  height: 54px;
+  border: 1px solid #c5d9e7;
+  border-radius: 50% 50% 12px 12px;
+  background: linear-gradient(90deg, #507189, #dae9f1 45%, #7998ad 72%, #31495e);
+  box-shadow: inset 3px 0 4px #ffffff80, inset -4px 0 6px #112131ba, 0 0 13px #a9d7fa80;
+  transform: translate(-50%, -50%) rotate(var(--rocket-tilt));
+  transition: filter .12s ease;
+}
+.conveyor-rocket::before { position: absolute; top: -13px; left: 3px; width: 15px; height: 20px; content: ""; border: 1px solid #d8e8f1; border-bottom: 0; border-radius: 50% 50% 5px 5px; background: linear-gradient(135deg, #d9f2ff, #386c90 57%, #142b41); box-shadow: inset 3px 2px 3px #ffffff80; }
+.rocket-window { position: absolute; top: 9px; left: 6px; width: 9px; height: 9px; border: 1px solid #e5f7ff; border-radius: 50%; background: radial-gradient(circle at 32% 28%, #ffffff, #6eb9df 35%, #12374f 72%); box-shadow: 0 0 5px #9ee5ff; }
+.rocket-fin { position: absolute; bottom: 4px; width: 11px; height: 18px; background: linear-gradient(#d44c48, #621b28); z-index: -1; }
+.rocket-fin-left { right: 17px; clip-path: polygon(100% 0, 0 100%, 100% 100%); }
+.rocket-fin-right { left: 17px; clip-path: polygon(0 0, 100% 100%, 0 100%); }
+.rocket-flame { position: absolute; bottom: -16px; left: 5px; width: 12px; height: 19px; border-radius: 50% 50% 65% 65%; background: linear-gradient(#fff4ae 0 20%, #ffaf3e 45%, #f24731 72%, transparent); filter: blur(.2px); opacity: .25; transform: scaleY(.45); transform-origin: top; }
+.conveyor-rocket.is-thrusting { filter: brightness(1.28); }
+.conveyor-rocket.is-thrusting .rocket-flame { opacity: 1; transform: scaleY(1.2); animation: conveyor-rocket-flame .12s steps(2) infinite; }
+
 .conveyor-constellation {
   position: absolute;
   width: min(26vw, 260px);
@@ -146,6 +171,7 @@
 
 @keyframes conveyor-star-twinkle { from { opacity: .68; } to { opacity: .98; } }
 @keyframes conveyor-star-sparkle { from { opacity: .24; } to { opacity: .72; } }
+@keyframes conveyor-rocket-flame { 50% { transform: scaleY(.74) scaleX(.84); } }
 @keyframes conveyor-asteroid {
   0%, 15% { opacity: 0; margin-left: -10vw; margin-top: -3vh; }
   18% { opacity: .72; }
@@ -284,6 +310,8 @@
   .conveyor-earth,
   .conveyor-earth em,
   .conveyor-constellation,
+  .conveyor-rocket,
+  .conveyor-rocket .rocket-flame,
   .conveyor-smog-layer span,
   .conveyor-smog-layer::before,
   .conveyor-smog-layer::after,

@@ -364,6 +364,46 @@ function zodiacSkyMarkup() {
   }).join('');
 }
 
+const conveyorRocket = { node: null, frame: 0, x: 50, y: 76, vx: 0, vy: 0, keys: new Set() };
+const rocketControlCodes = new Set(['Equal', 'BracketLeft', 'BracketRight']);
+function stopConveyorRocket() {
+  if (conveyorRocket.frame) cancelAnimationFrame(conveyorRocket.frame);
+  conveyorRocket.frame = 0;
+  conveyorRocket.keys.clear();
+  conveyorRocket.node = null;
+}
+function flyConveyorRocket() {
+  const rocket = conveyorRocket;
+  if (!rocket.node?.isConnected) return stopConveyorRocket();
+  if (rocket.keys.has('Equal')) rocket.vy -= .17;
+  if (rocket.keys.has('BracketLeft')) rocket.vx -= .1;
+  if (rocket.keys.has('BracketRight')) rocket.vx += .1;
+  rocket.vy += .042;
+  rocket.vx *= .985;
+  rocket.vy *= .992;
+  rocket.x = (rocket.x + rocket.vx + 100) % 100;
+  rocket.y = Math.min(89, Math.max(4, rocket.y + rocket.vy));
+  if (rocket.y >= 89 && rocket.vy > 0) rocket.vy = 0;
+  const tilt = Math.max(-28, Math.min(28, rocket.vx * 7));
+  rocket.node.style.setProperty('--rocket-x', `${rocket.x}%`);
+  rocket.node.style.setProperty('--rocket-y', `${rocket.y}%`);
+  rocket.node.style.setProperty('--rocket-tilt', `${tilt}deg`);
+  rocket.node.classList.toggle('is-thrusting', rocket.keys.has('Equal'));
+  rocket.frame = requestAnimationFrame(flyConveyorRocket);
+}
+function startConveyorRocket(node) {
+  if (!node) return stopConveyorRocket();
+  if (conveyorRocket.node !== node) { stopConveyorRocket(); conveyorRocket.node = node; }
+  if (!conveyorRocket.frame) conveyorRocket.frame = requestAnimationFrame(flyConveyorRocket);
+}
+document.addEventListener('keydown', event => {
+  if (!rocketControlCodes.has(event.code) || !document.body.classList.contains('browse-conveyor') || !canUseAutoScroll(event.target)) return;
+  event.preventDefault();
+  conveyorRocket.keys.add(event.code);
+});
+document.addEventListener('keyup', event => { if (rocketControlCodes.has(event.code)) conveyorRocket.keys.delete(event.code); });
+window.addEventListener('blur', () => conveyorRocket.keys.clear());
+
 function syncBrowseModeUi() {
   const auctionActive = document.body.classList.contains('auction-mode');
   const browseSurface = !document.body.classList.contains('app-section-mode') && !modal.open;
@@ -373,8 +413,8 @@ function syncBrowseModeUi() {
   if (conveyor && !smog) { smog = document.createElement('div'); smog.className = 'conveyor-smog-layer'; smog.setAttribute('aria-hidden', 'true'); smog.innerHTML = '<span></span><span></span><span></span><span></span><span></span>'; document.body.append(smog); }
   if (!conveyor) smog?.remove();
   let orbit = document.querySelector('.conveyor-orbit-layer');
-  if (conveyor && !orbit) { orbit = document.createElement('div'); orbit.className = 'conveyor-orbit-layer'; orbit.setAttribute('aria-hidden', 'true'); orbit.innerHTML = `<i></i><i></i><i></i><b class="conveyor-earth"><em></em><em></em></b><svg class="conveyor-constellation constellation-a" viewBox="0 0 240 150"><polyline points="18,104 63,64 112,82 155,34 211,57"/><circle cx="18" cy="104" r="3"/><circle cx="63" cy="64" r="3"/><circle cx="112" cy="82" r="3"/><circle cx="155" cy="34" r="3"/><circle cx="211" cy="57" r="3"/></svg><svg class="conveyor-constellation constellation-b" viewBox="0 0 220 150"><polyline points="20,43 67,80 114,34 160,91 204,56"/><circle cx="20" cy="43" r="3"/><circle cx="67" cy="80" r="3"/><circle cx="114" cy="34" r="3"/><circle cx="160" cy="91" r="3"/><circle cx="204" cy="56" r="3"/></svg>${zodiacSkyMarkup()}`; document.querySelector('.app-shell')?.prepend(orbit); }
-  if (!conveyor) orbit?.remove();
+  if (conveyor && !orbit) { orbit = document.createElement('div'); orbit.className = 'conveyor-orbit-layer'; orbit.setAttribute('aria-hidden', 'true'); orbit.innerHTML = `<i></i><i></i><i></i><b class="conveyor-earth"><em></em><em></em></b><div class="conveyor-rocket"><span class="rocket-window"></span><span class="rocket-fin rocket-fin-left"></span><span class="rocket-fin rocket-fin-right"></span><span class="rocket-flame"></span></div><svg class="conveyor-constellation constellation-a" viewBox="0 0 240 150"><polyline points="18,104 63,64 112,82 155,34 211,57"/><circle cx="18" cy="104" r="3"/><circle cx="63" cy="64" r="3"/><circle cx="112" cy="82" r="3"/><circle cx="155" cy="34" r="3"/><circle cx="211" cy="57" r="3"/></svg><svg class="conveyor-constellation constellation-b" viewBox="0 0 220 150"><polyline points="20,43 67,80 114,34 160,91 204,56"/><circle cx="20" cy="43" r="3"/><circle cx="67" cy="80" r="3"/><circle cx="114" cy="34" r="3"/><circle cx="160" cy="91" r="3"/><circle cx="204" cy="56" r="3"/></svg>${zodiacSkyMarkup()}`; document.querySelector('.app-shell')?.prepend(orbit); }
+  if (conveyor) startConveyorRocket(orbit?.querySelector('.conveyor-rocket')); else { orbit?.remove(); stopConveyorRocket(); }
   const button = document.querySelector('[data-browse-mode]');
   if (button) { button.disabled = searchScope !== 'listings' || auctionActive; button.firstChild.textContent = browseMode === 'conveyor' ? 'Conveyor ' : 'Doomscroll '; button.setAttribute('aria-label', `Browsing mode: ${browseMode}. Press Q to switch.`); button.setAttribute('aria-pressed', String(browseMode === 'conveyor')); }
   if (conveyor) startConveyor(); else stopConveyor();
