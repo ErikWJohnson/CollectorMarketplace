@@ -13,6 +13,9 @@ const modalContent = document.querySelector('#modal-content');
 let listings = [], auctions = [], accounts = [], collectives = [], brands = [], couriers = [], chatrooms = [], deliveries = [], uploadedListingImages = [], uploadedListingVideos = [], activeCategory = 'All', activeQuery = '', activeTags = [], searchScope = 'listings', sortMode = 'popular', page = 1, observer, searchRenderTimer, auctionClock;
 const siteThemeAudio = document.querySelector('#site-theme-audio');
 const rocketBoostAudio = document.querySelector('#rocket-boost-audio');
+const gameLaserAudio = document.querySelector('#game-laser-audio');
+const gameAsteroidAudio = document.querySelector('#game-asteroid-audio');
+const gameSpaceshipExplosionAudio = document.querySelector('#game-spaceship-explosion-audio');
 const siteThemeControl = document.querySelector('[data-site-theme-toggle]');
 const siteThemePlaylist = [
   { name: 'Finding the Old Docks', src: '/public/finding-the-old-docks.mp3' },
@@ -370,6 +373,7 @@ const conveyorRocketGame = { layer: null, hud: null, score: 0, highScore: Number
 const rocketControlCodes = new Set(['Equal', 'BracketLeft', 'BracketRight', 'Backquote']);
 const pauseRocketBoost = () => { if (!rocketBoostAudio) return; rocketBoostAudio.pause(); rocketBoostAudio.currentTime = 0; };
 const playRocketBoost = () => { if (!rocketBoostAudio || !rocketBoostAudio.paused) return; rocketBoostAudio.volume = .46; rocketBoostAudio.play().catch(() => {}); };
+const playGameEffect = (source, volume = .5) => { if (!source?.src) return; const effect = new Audio(source.currentSrc || source.src); effect.volume = volume; effect.play().catch(() => {}); };
 const rocketDistance = (first, second) => Math.hypot(first.x - second.x, first.y - second.y);
 const rocketRandom = (min, max) => min + Math.random() * (max - min);
 function startRocketGame(node) {
@@ -383,14 +387,14 @@ function spawnRocketAsteroid() { const radius = rocketRandom(1.3, 2.8); conveyor
 function spawnRocketEnemy() { const fromLeft = Math.random() > .5; conveyorRocketGame.enemies.push({ x: fromLeft ? -4 : 104, y: rocketRandom(9, 78), vx: fromLeft ? rocketRandom(.055, .09) : rocketRandom(-.09, -.055), vy: rocketRandom(-.025, .025), rotation: fromLeft ? 90 : -90, nextShot: Date.now() + rocketRandom(2200, 4800) }); }
 function hitRocket() {
   const game = conveyorRocketGame; const now = Date.now(); if (now - game.lastHit < 900) return;
-  game.lastHit = now; game.hull -= 1; conveyorRocket.node?.classList.add('is-hit'); setTimeout(() => conveyorRocket.node?.classList.remove('is-hit'), 420);
+  game.lastHit = now; game.hull -= 1; playGameEffect(gameSpaceshipExplosionAudio, .56); conveyorRocket.node?.classList.add('is-hit'); setTimeout(() => conveyorRocket.node?.classList.remove('is-hit'), 420);
   if (game.hull > 0) return;
   game.score = 0; game.hull = 3; game.asteroids = []; game.enemies = []; game.enemyLasers = [];
   conveyorRocket.x = 50; conveyorRocket.y = 76; conveyorRocket.vx = .055; conveyorRocket.vy = -.025;
 }
 function fireRocketLaser() {
   const game = conveyorRocketGame; const now = Date.now(); if (!game.layer || now - game.lastShot < 180) return;
-  game.lastShot = now; const radians = conveyorRocket.angle * Math.PI / 180;
+  game.lastShot = now; playGameEffect(gameLaserAudio, .32); const radians = conveyorRocket.angle * Math.PI / 180;
   game.lasers.push({ x: conveyorRocket.x + Math.sin(radians) * 3, y: conveyorRocket.y - Math.cos(radians) * 3, vx: Math.sin(radians) * .92 + conveyorRocket.vx, vy: -Math.cos(radians) * .92 + conveyorRocket.vy, rotation: conveyorRocket.angle });
 }
 function updateRocketGame() {
@@ -404,7 +408,7 @@ function updateRocketGame() {
   game.enemies = game.enemies.filter(enemy => enemy.x > -8 && enemy.x < 108 && enemy.y > -8 && enemy.y < 108);
   game.lasers.forEach(laser => { laser.x += laser.vx; laser.y += laser.vy; }); game.enemyLasers.forEach(laser => { laser.x += laser.vx; laser.y += laser.vy; });
   game.lasers = game.lasers.filter(laser => laser.x > -4 && laser.x < 104 && laser.y > -4 && laser.y < 104); game.enemyLasers = game.enemyLasers.filter(laser => laser.x > -4 && laser.x < 104 && laser.y > -4 && laser.y < 104);
-  for (let index = game.lasers.length - 1; index >= 0; index--) { const laser = game.lasers[index]; const asteroidIndex = game.asteroids.findIndex(asteroid => rocketDistance(laser, asteroid) < asteroid.radius + .7); const enemyIndex = game.enemies.findIndex(enemy => rocketDistance(laser, enemy) < 2.5); if (asteroidIndex >= 0) { game.asteroids.splice(asteroidIndex, 1); game.lasers.splice(index, 1); game.score += 10; continue; } if (enemyIndex >= 0) { game.enemies.splice(enemyIndex, 1); game.lasers.splice(index, 1); game.score += 50; } }
+  for (let index = game.lasers.length - 1; index >= 0; index--) { const laser = game.lasers[index]; const asteroidIndex = game.asteroids.findIndex(asteroid => rocketDistance(laser, asteroid) < asteroid.radius + .7); const enemyIndex = game.enemies.findIndex(enemy => rocketDistance(laser, enemy) < 2.5); if (asteroidIndex >= 0) { game.asteroids.splice(asteroidIndex, 1); game.lasers.splice(index, 1); playGameEffect(gameAsteroidAudio, .48); game.score += 10; continue; } if (enemyIndex >= 0) { game.enemies.splice(enemyIndex, 1); game.lasers.splice(index, 1); playGameEffect(gameSpaceshipExplosionAudio, .5); game.score += 50; } }
   if (game.asteroids.some(asteroid => rocketDistance(conveyorRocket, asteroid) < asteroid.radius + 1.8) || game.enemies.some(enemy => rocketDistance(conveyorRocket, enemy) < 3)) hitRocket();
   game.enemyLasers.forEach(laser => { if (rocketDistance(conveyorRocket, laser) < 1.7) hitRocket(); });
   game.layer.innerHTML = `${game.asteroids.map(asteroid => `<i class="rocket-game-asteroid" style="--x:${asteroid.x}%;--y:${asteroid.y}%;--size:${asteroid.radius * 10}px;--spin:${asteroid.rotation}deg"></i>`).join('')}${game.enemies.map(enemy => `<i class="rocket-game-enemy" style="--x:${enemy.x}%;--y:${enemy.y}%;--rotation:${enemy.rotation}deg"></i>`).join('')}${game.lasers.map(laser => `<i class="rocket-game-laser" style="--x:${laser.x}%;--y:${laser.y}%;--rotation:${laser.rotation}deg"></i>`).join('')}${game.enemyLasers.map(laser => `<i class="rocket-game-enemy-laser" style="--x:${laser.x}%;--y:${laser.y}%;--rotation:${laser.rotation}deg"></i>`).join('')}`;
