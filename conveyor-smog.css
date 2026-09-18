@@ -137,11 +137,13 @@
   overflow: hidden;
   pointer-events: none;
   background:
-    radial-gradient(ellipse at 18% 7%, #ffd2c4a6 0 13%, transparent 41%),
-    radial-gradient(ellipse at 88% 90%, #8f326f80 0 12%, transparent 46%),
-    linear-gradient(160deg, #9a3a7598 0%, #df719080 44%, #ffb67b65 100%),
+    radial-gradient(ellipse at 18% 7%, #fff0d5b0 0 13%, transparent 41%),
+    radial-gradient(ellipse at 88% 90%, #df8e91a0 0 12%, transparent 46%),
+    linear-gradient(160deg, #ffe4b9b8 0%, #ffc9afd0 44%, #df8e91a8 100%),
     url("/public/puppy-jump-sunset-clouds.png") center / cover no-repeat;
-  background-color: #c85f87;
+  /* Same rose-and-gold base as the Doomscroll controls, visible through the
+     transparent areas of the cloud artwork. */
+  background-color: #ffc9af;
   animation: puppy-sky-drift 32s ease-in-out infinite alternate;
 }
 .puppy-cloud-layer::before,
