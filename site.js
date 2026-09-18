@@ -365,15 +365,57 @@ function zodiacSkyMarkup() {
   }).join('');
 }
 
-const conveyorRocket = { node: null, frame: 0, x: 50, y: 76, vx: .1, vy: -.04, angle: 0, keys: new Set() };
-const rocketControlCodes = new Set(['Equal', 'BracketLeft', 'BracketRight']);
+const conveyorRocket = { node: null, frame: 0, x: 50, y: 76, vx: .055, vy: -.025, angle: 0, keys: new Set() };
+const conveyorRocketGame = { layer: null, hud: null, score: 0, hull: 3, asteroids: [], enemies: [], lasers: [], enemyLasers: [], lastAsteroid: 0, lastEnemy: 0, lastScore: 0, lastShot: 0, lastHit: 0 };
+const rocketControlCodes = new Set(['Equal', 'BracketLeft', 'BracketRight', 'Backquote']);
 const pauseRocketBoost = () => { if (!rocketBoostAudio) return; rocketBoostAudio.pause(); rocketBoostAudio.currentTime = 0; };
 const playRocketBoost = () => { if (!rocketBoostAudio || !rocketBoostAudio.paused) return; rocketBoostAudio.volume = .46; rocketBoostAudio.play().catch(() => {}); };
+const rocketDistance = (first, second) => Math.hypot(first.x - second.x, first.y - second.y);
+const rocketRandom = (min, max) => min + Math.random() * (max - min);
+function startRocketGame(node) {
+  const game = conveyorRocketGame;
+  game.layer = node.parentElement?.querySelector('.rocket-game-layer') || null;
+  game.hud = node.parentElement?.querySelector('.rocket-game-hud') || null;
+  game.score = 0; game.hull = 3; game.asteroids = []; game.enemies = []; game.lasers = []; game.enemyLasers = [];
+  game.lastAsteroid = 0; game.lastEnemy = 0; game.lastScore = Date.now(); game.lastShot = 0; game.lastHit = 0;
+}
+function spawnRocketAsteroid() { const radius = rocketRandom(1.3, 2.8); conveyorRocketGame.asteroids.push({ x: rocketRandom(2, 98), y: -radius * 2, vx: rocketRandom(-.055, .055), vy: rocketRandom(.045, .11), radius, spin: rocketRandom(-4, 4), rotation: rocketRandom(0, 360) }); }
+function spawnRocketEnemy() { const fromLeft = Math.random() > .5; conveyorRocketGame.enemies.push({ x: fromLeft ? -4 : 104, y: rocketRandom(9, 78), vx: fromLeft ? rocketRandom(.055, .09) : rocketRandom(-.09, -.055), vy: rocketRandom(-.025, .025), rotation: fromLeft ? 90 : -90, nextShot: Date.now() + rocketRandom(2200, 4800) }); }
+function hitRocket() {
+  const game = conveyorRocketGame; const now = Date.now(); if (now - game.lastHit < 900) return;
+  game.lastHit = now; game.hull -= 1; conveyorRocket.node?.classList.add('is-hit'); setTimeout(() => conveyorRocket.node?.classList.remove('is-hit'), 420);
+  if (game.hull > 0) return;
+  game.score = 0; game.hull = 3; game.asteroids = []; game.enemies = []; game.enemyLasers = [];
+  conveyorRocket.x = 50; conveyorRocket.y = 76; conveyorRocket.vx = .055; conveyorRocket.vy = -.025;
+}
+function fireRocketLaser() {
+  const game = conveyorRocketGame; const now = Date.now(); if (!game.layer || now - game.lastShot < 180) return;
+  game.lastShot = now; const radians = conveyorRocket.angle * Math.PI / 180;
+  game.lasers.push({ x: conveyorRocket.x + Math.sin(radians) * 3, y: conveyorRocket.y - Math.cos(radians) * 3, vx: Math.sin(radians) * .92 + conveyorRocket.vx, vy: -Math.cos(radians) * .92 + conveyorRocket.vy, rotation: conveyorRocket.angle });
+}
+function updateRocketGame() {
+  const game = conveyorRocketGame; const now = Date.now(); if (!game.layer?.isConnected) return;
+  if (now - game.lastAsteroid > 740 && game.asteroids.length < 15) { spawnRocketAsteroid(); game.lastAsteroid = now; }
+  if (now - game.lastEnemy > 5200 && game.enemies.length < 3) { spawnRocketEnemy(); game.lastEnemy = now; }
+  if (now - game.lastScore > 650) { game.score += 1; game.lastScore = now; }
+  game.asteroids.forEach(asteroid => { asteroid.x += asteroid.vx; asteroid.y += asteroid.vy; asteroid.rotation += asteroid.spin; });
+  game.asteroids = game.asteroids.filter(asteroid => asteroid.y < 106 && asteroid.x > -7 && asteroid.x < 107);
+  game.enemies.forEach(enemy => { enemy.y += Math.sign(conveyorRocket.y - enemy.y) * .01 + enemy.vy; enemy.x += enemy.vx; if (now >= enemy.nextShot) { const length = Math.max(.01, rocketDistance(conveyorRocket, enemy)); game.enemyLasers.push({ x: enemy.x, y: enemy.y, vx: (conveyorRocket.x - enemy.x) / length * .36, vy: (conveyorRocket.y - enemy.y) / length * .36, rotation: Math.atan2(conveyorRocket.x - enemy.x, -(conveyorRocket.y - enemy.y)) * 180 / Math.PI }); enemy.nextShot = now + rocketRandom(2900, 5100); } });
+  game.enemies = game.enemies.filter(enemy => enemy.x > -8 && enemy.x < 108 && enemy.y > -8 && enemy.y < 108);
+  game.lasers.forEach(laser => { laser.x += laser.vx; laser.y += laser.vy; }); game.enemyLasers.forEach(laser => { laser.x += laser.vx; laser.y += laser.vy; });
+  game.lasers = game.lasers.filter(laser => laser.x > -4 && laser.x < 104 && laser.y > -4 && laser.y < 104); game.enemyLasers = game.enemyLasers.filter(laser => laser.x > -4 && laser.x < 104 && laser.y > -4 && laser.y < 104);
+  for (let index = game.lasers.length - 1; index >= 0; index--) { const laser = game.lasers[index]; const asteroidIndex = game.asteroids.findIndex(asteroid => rocketDistance(laser, asteroid) < asteroid.radius + .7); const enemyIndex = game.enemies.findIndex(enemy => rocketDistance(laser, enemy) < 2.5); if (asteroidIndex >= 0) { game.asteroids.splice(asteroidIndex, 1); game.lasers.splice(index, 1); game.score += 10; continue; } if (enemyIndex >= 0) { game.enemies.splice(enemyIndex, 1); game.lasers.splice(index, 1); game.score += 50; } }
+  if (game.asteroids.some(asteroid => rocketDistance(conveyorRocket, asteroid) < asteroid.radius + 1.8) || game.enemies.some(enemy => rocketDistance(conveyorRocket, enemy) < 3)) hitRocket();
+  game.enemyLasers.forEach(laser => { if (rocketDistance(conveyorRocket, laser) < 1.7) hitRocket(); });
+  game.layer.innerHTML = `${game.asteroids.map(asteroid => `<i class="rocket-game-asteroid" style="--x:${asteroid.x}%;--y:${asteroid.y}%;--size:${asteroid.radius * 10}px;--spin:${asteroid.rotation}deg"></i>`).join('')}${game.enemies.map(enemy => `<i class="rocket-game-enemy" style="--x:${enemy.x}%;--y:${enemy.y}%;--rotation:${enemy.rotation}deg"></i>`).join('')}${game.lasers.map(laser => `<i class="rocket-game-laser" style="--x:${laser.x}%;--y:${laser.y}%;--rotation:${laser.rotation}deg"></i>`).join('')}${game.enemyLasers.map(laser => `<i class="rocket-game-enemy-laser" style="--x:${laser.x}%;--y:${laser.y}%;--rotation:${laser.rotation}deg"></i>`).join('')}`;
+  if (game.hud) game.hud.innerHTML = `<b>STAR RUN</b><span>SCORE ${String(game.score).padStart(6, '0')}</span><small>HULL ${'●'.repeat(game.hull)}${'○'.repeat(3 - game.hull)}</small><em>[ / ] TURN · = BOOST · \` LASER</em>`;
+}
 function stopConveyorRocket() {
   if (conveyorRocket.frame) cancelAnimationFrame(conveyorRocket.frame);
   conveyorRocket.frame = 0;
   conveyorRocket.keys.clear();
   conveyorRocket.node = null;
+  conveyorRocketGame.layer = null; conveyorRocketGame.hud = null;
   pauseRocketBoost();
 }
 function flyConveyorRocket() {
@@ -382,11 +424,11 @@ function flyConveyorRocket() {
   if (rocket.keys.has('BracketLeft')) rocket.angle -= 2.25;
   if (rocket.keys.has('BracketRight')) rocket.angle += 2.25;
   const radians = rocket.angle * Math.PI / 180;
-  const thrust = rocket.keys.has('Equal') ? .028 : .0024;
+  const thrust = rocket.keys.has('Equal') ? .014 : .0009;
   rocket.vx = (rocket.vx + Math.sin(radians) * thrust) * .985;
   rocket.vy = (rocket.vy - Math.cos(radians) * thrust) * .985;
   const speed = Math.hypot(rocket.vx, rocket.vy);
-  if (speed > .56) { rocket.vx = rocket.vx / speed * .56; rocket.vy = rocket.vy / speed * .56; }
+  if (speed > .27) { rocket.vx = rocket.vx / speed * .27; rocket.vy = rocket.vy / speed * .27; }
   rocket.x = (rocket.x + rocket.vx + 100) % 100;
   rocket.y = (rocket.y + rocket.vy + 100) % 100;
   rocket.node.style.setProperty('--rocket-x', `${rocket.x}%`);
@@ -394,16 +436,18 @@ function flyConveyorRocket() {
   rocket.node.style.setProperty('--rocket-tilt', `${rocket.angle}deg`);
   rocket.node.classList.add('is-cruising');
   rocket.node.classList.toggle('is-thrusting', rocket.keys.has('Equal'));
+  updateRocketGame();
   rocket.frame = requestAnimationFrame(flyConveyorRocket);
 }
 function startConveyorRocket(node) {
   if (!node) return stopConveyorRocket();
-  if (conveyorRocket.node !== node) { stopConveyorRocket(); conveyorRocket.node = node; }
+  if (conveyorRocket.node !== node) { stopConveyorRocket(); conveyorRocket.node = node; startRocketGame(node); }
   if (!conveyorRocket.frame) conveyorRocket.frame = requestAnimationFrame(flyConveyorRocket);
 }
 document.addEventListener('keydown', event => {
   if (!rocketControlCodes.has(event.code) || !document.body.classList.contains('browse-conveyor') || !canUseAutoScroll(event.target)) return;
   event.preventDefault();
+  if (event.code === 'Backquote') { fireRocketLaser(); return; }
   const isNewBoost = event.code === 'Equal' && !conveyorRocket.keys.has('Equal');
   conveyorRocket.keys.add(event.code);
   if (isNewBoost) playRocketBoost();
@@ -420,7 +464,7 @@ function syncBrowseModeUi() {
   if (conveyor && !smog) { smog = document.createElement('div'); smog.className = 'conveyor-smog-layer'; smog.setAttribute('aria-hidden', 'true'); smog.innerHTML = '<span></span><span></span><span></span><span></span><span></span>'; document.body.append(smog); }
   if (!conveyor) smog?.remove();
   let orbit = document.querySelector('.conveyor-orbit-layer');
-  if (conveyor && !orbit) { orbit = document.createElement('div'); orbit.className = 'conveyor-orbit-layer'; orbit.setAttribute('aria-hidden', 'true'); orbit.innerHTML = `<i></i><i></i><i></i><b class="conveyor-earth"><em></em><em></em></b><div class="conveyor-rocket"><span class="rocket-window"></span><span class="rocket-fin rocket-fin-left"></span><span class="rocket-fin rocket-fin-right"></span><span class="rocket-flame"></span></div><svg class="conveyor-constellation constellation-a" viewBox="0 0 240 150"><polyline points="18,104 63,64 112,82 155,34 211,57"/><circle cx="18" cy="104" r="3"/><circle cx="63" cy="64" r="3"/><circle cx="112" cy="82" r="3"/><circle cx="155" cy="34" r="3"/><circle cx="211" cy="57" r="3"/></svg><svg class="conveyor-constellation constellation-b" viewBox="0 0 220 150"><polyline points="20,43 67,80 114,34 160,91 204,56"/><circle cx="20" cy="43" r="3"/><circle cx="67" cy="80" r="3"/><circle cx="114" cy="34" r="3"/><circle cx="160" cy="91" r="3"/><circle cx="204" cy="56" r="3"/></svg>${zodiacSkyMarkup()}`; document.querySelector('.app-shell')?.prepend(orbit); }
+  if (conveyor && !orbit) { orbit = document.createElement('div'); orbit.className = 'conveyor-orbit-layer'; orbit.setAttribute('aria-hidden', 'true'); orbit.innerHTML = `<i></i><i></i><i></i><b class="conveyor-earth"><em></em><em></em></b><div class="rocket-game-layer"></div><aside class="rocket-game-hud"></aside><div class="conveyor-rocket"><span class="rocket-window"></span><span class="rocket-fin rocket-fin-left"></span><span class="rocket-fin rocket-fin-right"></span><span class="rocket-flame"></span></div><svg class="conveyor-constellation constellation-a" viewBox="0 0 240 150"><polyline points="18,104 63,64 112,82 155,34 211,57"/><circle cx="18" cy="104" r="3"/><circle cx="63" cy="64" r="3"/><circle cx="112" cy="82" r="3"/><circle cx="155" cy="34" r="3"/><circle cx="211" cy="57" r="3"/></svg><svg class="conveyor-constellation constellation-b" viewBox="0 0 220 150"><polyline points="20,43 67,80 114,34 160,91 204,56"/><circle cx="20" cy="43" r="3"/><circle cx="67" cy="80" r="3"/><circle cx="114" cy="34" r="3"/><circle cx="160" cy="91" r="3"/><circle cx="204" cy="56" r="3"/></svg>${zodiacSkyMarkup()}`; document.querySelector('.app-shell')?.prepend(orbit); }
   if (conveyor) startConveyorRocket(orbit?.querySelector('.conveyor-rocket')); else { orbit?.remove(); stopConveyorRocket(); }
   const button = document.querySelector('[data-browse-mode]');
   if (button) { button.disabled = searchScope !== 'listings' || auctionActive; button.firstChild.textContent = browseMode === 'conveyor' ? 'Conveyor ' : 'Doomscroll '; button.setAttribute('aria-label', `Browsing mode: ${browseMode}. Press Q to switch.`); button.setAttribute('aria-pressed', String(browseMode === 'conveyor')); }
