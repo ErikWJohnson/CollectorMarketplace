@@ -386,7 +386,7 @@ function startRocketGame(node) {
 }
 function renderRocketGameHud() {
   const game = conveyorRocketGame; if (!game.hud) return;
-  if (!game.started) { game.hud.innerHTML = `<b>STAR RUN</b><span>READY TO LAUNCH</span><span>HIGH ${String(game.highScore).padStart(6, '0')}</span><button type="button" data-star-run-play>▶ PLAY</button><em>PRESS PLAY TO START &nbsp;·&nbsp; [ / ] TURN &nbsp;·&nbsp; = BOOST &nbsp;·&nbsp; \` LASER</em>`; return; }
+  if (!game.started) { game.hud.innerHTML = `<button type="button" data-star-run-play>▶ STAR RUN · PLAY</button><span>READY TO LAUNCH</span><span>HIGH ${String(game.highScore).padStart(6, '0')}</span><em>PRESS PLAY TO START &nbsp;·&nbsp; [ / ] TURN &nbsp;·&nbsp; = BOOST &nbsp;·&nbsp; \` LASER</em>`; return; }
   game.hud.innerHTML = `<b>STAR RUN</b><span>SCORE ${String(game.score).padStart(6, '0')}</span><span>HIGH ${String(game.highScore).padStart(6, '0')}</span><small>HULL ${'●'.repeat(game.hull)}${'○'.repeat(3 - game.hull)}</small><em><strong>[</strong> / <strong>]</strong> TURN &nbsp;·&nbsp; <strong>=</strong> BOOST &nbsp;·&nbsp; <strong>\`</strong> LASER</em>`;
 }
 function launchStarRun() {
@@ -449,7 +449,9 @@ function flyConveyorRocket() {
   const speed = Math.hypot(rocket.vx, rocket.vy);
   if (speed > .27) { rocket.vx = rocket.vx / speed * .27; rocket.vy = rocket.vy / speed * .27; }
   rocket.x = (rocket.x + rocket.vx + 100) % 100;
-  rocket.y = (rocket.y + rocket.vy + 100) % 100;
+  rocket.y += rocket.vy;
+  if (rocket.y < 5) rocket.y = 91;
+  if (rocket.y > 91) rocket.y = 5;
   rocket.node.style.setProperty('--rocket-x', `${rocket.x}%`);
   rocket.node.style.setProperty('--rocket-y', `${rocket.y}%`);
   rocket.node.style.setProperty('--rocket-tilt', `${rocket.angle}deg`);
@@ -489,7 +491,7 @@ function syncBrowseModeUi() {
   let playfield = document.querySelector('.rocket-game-playfield');
   if (conveyor && !playfield) { playfield = document.createElement('div'); playfield.className = 'rocket-game-playfield'; playfield.setAttribute('aria-hidden', 'true'); playfield.innerHTML = '<div class="rocket-game-layer"></div><div class="conveyor-rocket"><span class="rocket-window"></span><span class="rocket-fin rocket-fin-left"></span><span class="rocket-fin rocket-fin-right"></span><span class="rocket-flame"></span></div>'; document.querySelector('.app-shell')?.append(playfield); }
   let gameHud = document.querySelector('.rocket-game-hud');
-  if (conveyor && !gameHud) { gameHud = document.createElement('aside'); gameHud.className = 'rocket-game-hud'; gameHud.setAttribute('aria-live', 'off'); const tagControls = document.querySelector('.tag-search-layout'); tagControls?.parentElement?.insertBefore(gameHud, tagControls); }
+  if (conveyor && !gameHud) { gameHud = document.createElement('aside'); gameHud.className = 'rocket-game-hud'; gameHud.setAttribute('aria-live', 'off'); document.querySelector('.tag-search-layout')?.append(gameHud); }
   if (conveyor) startConveyorRocket(playfield?.querySelector('.conveyor-rocket')); else { orbit?.remove(); playfield?.remove(); gameHud?.remove(); stopConveyorRocket(); }
   const button = document.querySelector('[data-browse-mode]');
   if (button) { button.disabled = searchScope !== 'listings' || auctionActive; button.firstChild.textContent = browseMode === 'conveyor' ? 'Conveyor ' : 'Doomscroll '; button.setAttribute('aria-label', `Browsing mode: ${browseMode}. Press Q to switch.`); button.setAttribute('aria-pressed', String(browseMode === 'conveyor')); }
