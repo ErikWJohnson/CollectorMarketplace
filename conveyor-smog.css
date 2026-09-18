@@ -291,6 +291,16 @@ html body.browse-doomscroll .search-scope button.active,
 html body.browse-doomscroll .browse-mode-toggle[aria-pressed="true"] { color: #452438 !important; background: linear-gradient(135deg,#ffd36f,#eea06d) !important; border-color: #a94b61 !important; }
 html body.browse-doomscroll .listing-actions .action-buy,
 html body.browse-doomscroll .listing-actions .action-buy:hover { color: #fffdf8 !important; background: linear-gradient(135deg,#2f7455,#4a9c6c) !important; border-color: #22563d !important; }
+
+/* Explicit active-state styling for the current Doomscroll browse mode and
+   the selected Search/Tags tab. These controls are created/toggled at runtime. */
+html body.browse-doomscroll .browse-mode-toggle { color: #4a2739 !important; background: linear-gradient(135deg,#ffd36f,#eea06d) !important; border-color: #a94b61 !important; box-shadow: 0 4px 12px #9f40584d; }
+html body.browse-doomscroll .mode-tabs button.is-active { color: #482439 !important; background: linear-gradient(135deg,#ffdc8d,#f3aa78) !important; border-color: #ad5161 !important; box-shadow: inset 0 -3px #c96d68; }
+html body.browse-doomscroll .mode-tabs button:not(.is-active) { color: #845f66 !important; background: #ffe8d3c9 !important; }
+html body.browse-doomscroll .search:focus-within,
+html body.browse-doomscroll .tag-search:focus-within { border-color: #a94b61 !important; box-shadow: 0 0 0 3px #e9856c50 !important; }
+html body.browse-doomscroll .bottom-nav button.active { color: #54273d !important; background: linear-gradient(180deg,#ffe1a1a8,#f6b17c70) !important; }
+html body.browse-doomscroll .bottom-nav button.active b { color: #b04f59 !important; filter: drop-shadow(0 0 6px #f18f70a8); }
 .puppy-game-playfield { position: fixed; z-index: 3; inset: 58px 0 86px; overflow: hidden; pointer-events: none; }
 .puppy-game-layer { position: absolute; inset: 0; overflow: hidden; }
 .puppy-game-pup { --puppy-x:50%; --puppy-y:82%; position: absolute; top:var(--puppy-y); left:var(--puppy-x); z-index:2; width:76px; height:76px; transform:translate(-50%,-82%); transition:filter .12s ease; }
