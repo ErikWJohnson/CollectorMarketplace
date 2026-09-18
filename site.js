@@ -481,14 +481,14 @@ document.addEventListener('click', event => { if (event.target.closest('[data-st
 // Puppy Jump is a light Doodle-Jump-style counterpoint to the space game.
 // It only exists while collectors are browsing in Doomscroll mode.
 const puppyJump = { node: null, frame: 0, x: 50, y: 82, vx: 0, vy: 0, keys: new Set() };
-const puppyJumpGame = { layer: null, hud: null, started: false, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-puppy-jump-high-score') || 0), platforms: [], lastHud: 0 };
-const puppyControlCodes = new Set(['ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD', 'Space']);
+const puppyJumpGame = { layer: null, hud: null, started: false, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-puppy-jump-high-score') || 0), platforms: [], lastHud: 0, lastBark: 0 };
+const puppyControlCodes = new Set(['BracketLeft', 'BracketRight', 'Equal', 'Backquote']);
 const puppyRandom = (min, max) => min + Math.random() * (max - min);
 function puppyStartingPlatforms() {
   return [
-    { x: 50, y: 92, width: 23 }, { x: 28, y: 79, width: 18 },
-    { x: 67, y: 65, width: 20 }, { x: 36, y: 51, width: 17 },
-    { x: 72, y: 37, width: 19 }, { x: 45, y: 23, width: 18 }, { x: 76, y: 9, width: 17 }
+    { x: 50, y: 92, width: 23, vx: .055 }, { x: 28, y: 79, width: 18, vx: -.04 },
+    { x: 67, y: 65, width: 20, vx: .065 }, { x: 36, y: 51, width: 17, vx: -.055 },
+    { x: 72, y: 37, width: 19, vx: .045 }, { x: 45, y: 23, width: 18, vx: -.065 }, { x: 76, y: 9, width: 17, vx: .05 }
   ];
 }
 function renderPuppyJumpHud() {
@@ -497,12 +497,12 @@ function renderPuppyJumpHud() {
     game.hud.innerHTML = `<button type="button" data-puppy-jump-play title="Start Puppy Jump">🐾 PUPPY JUMP · PLAY</button><small>HIGH ${String(game.highScore).padStart(6, '0')}</small>`;
     return;
   }
-  game.hud.innerHTML = `<b>PUPPY JUMP</b><span>SCORE ${String(game.score).padStart(6, '0')} · HIGH ${String(game.highScore).padStart(6, '0')}</span><small>☁ KEEP CLIMBING</small><em><strong>←</strong> <strong>→</strong> or <strong>A</strong> <strong>D</strong> MOVE · <strong>SPACE</strong> HOP</em>`;
+  game.hud.innerHTML = `<b>PUPPY JUMP</b><span>SCORE ${String(game.score).padStart(6, '0')} · HIGH ${String(game.highScore).padStart(6, '0')}</span><small>☁ CLOUD CLIMBER</small><em><strong>[</strong> <strong>]</strong> MOVE · <strong>=</strong> JUMP · <strong>\`</strong> BARK BOOST</em>`;
 }
 function resetPuppyJump() {
   const game = puppyJumpGame;
   puppyJump.x = 50; puppyJump.y = 82; puppyJump.vx = 0; puppyJump.vy = -1.07;
-  game.score = 0; game.platforms = puppyStartingPlatforms(); game.lastHud = 0;
+  game.score = 0; game.platforms = puppyStartingPlatforms(); game.lastHud = 0; game.lastBark = 0;
 }
 function startPuppyJump(node) {
   if (!node) return stopPuppyJump();
@@ -529,13 +529,15 @@ function finishPuppyJump() {
 function updatePuppyJump() {
   const game = puppyJumpGame; if (!game.layer) return;
   const priorY = puppyJump.y;
-  if (puppyJump.keys.has('ArrowLeft') || puppyJump.keys.has('KeyA')) puppyJump.vx -= .028;
-  if (puppyJump.keys.has('ArrowRight') || puppyJump.keys.has('KeyD')) puppyJump.vx += .028;
+  if (puppyJump.keys.has('BracketLeft')) puppyJump.vx -= .028;
+  if (puppyJump.keys.has('BracketRight')) puppyJump.vx += .028;
   puppyJump.vx *= .91; puppyJump.vx = Math.max(-.44, Math.min(.44, puppyJump.vx));
   puppyJump.vy += .047;
-  if (puppyJump.keys.has('Space') && puppyJump.vy > -.16) puppyJump.vy = -.93;
+  if (puppyJump.keys.has('Equal') && puppyJump.vy > -.16) puppyJump.vy = -.93;
+  if (puppyJump.keys.has('Backquote') && Date.now() - game.lastBark > 350) { puppyJump.vy = Math.min(puppyJump.vy, -.42); game.score += 3; game.lastBark = Date.now(); }
   puppyJump.x = (puppyJump.x + puppyJump.vx + 100) % 100;
   puppyJump.y += puppyJump.vy;
+  game.platforms.forEach(platform => { platform.x += platform.vx; if (platform.x < platform.width / 2 + 3 || platform.x > 97 - platform.width / 2) platform.vx *= -1; });
   if (puppyJump.vy > 0) {
     const landing = game.platforms.find(platform => priorY <= platform.y && puppyJump.y >= platform.y && Math.abs(puppyJump.x - platform.x) < platform.width / 2 + 2.5);
     if (landing) { puppyJump.y = landing.y; puppyJump.vy = -1.08; game.score += 8; }
@@ -549,13 +551,13 @@ function updatePuppyJump() {
   game.platforms = game.platforms.filter(platform => platform.y < 106);
   while (game.platforms.length < 7) {
     const nextY = Math.min(...game.platforms.map(platform => platform.y)) - puppyRandom(11.5, 15.5);
-    game.platforms.push({ x: puppyRandom(12, 88), y: nextY, width: puppyRandom(15, 23) });
+    game.platforms.push({ x: puppyRandom(12, 88), y: nextY, width: puppyRandom(15, 23), vx: puppyRandom(-.075, .075) || .045 });
   }
   if (puppyJump.y > 105) finishPuppyJump();
   puppyJump.node.style.setProperty('--puppy-x', `${puppyJump.x}%`);
   puppyJump.node.style.setProperty('--puppy-y', `${puppyJump.y}%`);
   puppyJump.node.classList.toggle('is-hopping', puppyJump.vy < -.15);
-  game.layer.innerHTML = game.platforms.map(platform => `<i class="puppy-game-platform" style="--x:${platform.x}%;--y:${platform.y}%;--width:${platform.width}%"></i>`).join('');
+  game.layer.innerHTML = game.platforms.map(platform => `<i class="puppy-game-cloud" style="--x:${platform.x}%;--y:${platform.y}%;--width:${platform.width}%"></i>`).join('');
   if (game.score > game.highScore) { game.highScore = game.score; localStorage.setItem('collector-marketplace-puppy-jump-high-score', String(game.highScore)); }
   if (Date.now() - game.lastHud > 140) { renderPuppyJumpHud(); game.lastHud = Date.now(); }
 }

@@ -137,9 +137,10 @@
   overflow: hidden;
   pointer-events: none;
   background:
-    radial-gradient(ellipse at 22% 14%, #fffcebb3 0 3%, transparent 18%),
-    radial-gradient(ellipse at 78% 30%, #d8f1ff85 0 4%, transparent 21%),
-    linear-gradient(180deg, #4384b4 0%, #78b8da 43%, #b9dcea 100%);
+    radial-gradient(circle at 17% 19%, #fff0bbcc 0 2%, transparent 14%),
+    radial-gradient(circle at 77% 28%, #ffd09280 0 3%, transparent 18%),
+    radial-gradient(ellipse at 50% 92%, #341130c4 0 14%, transparent 54%),
+    linear-gradient(180deg, #281045 0%, #7b2855 26%, #db6157 56%, #f6a95f 78%, #ffd895 100%);
 }
 .puppy-cloud-layer::before,
 .puppy-cloud-layer::after,
@@ -152,11 +153,11 @@
   border-radius: 50%;
   opacity: .72;
   background:
-    radial-gradient(ellipse at 16% 68%, #fff 0 16%, transparent 17%),
-    radial-gradient(ellipse at 36% 44%, #fff 0 25%, transparent 26%),
-    radial-gradient(ellipse at 61% 58%, #f8fdff 0 29%, transparent 30%),
-    radial-gradient(ellipse at 84% 72%, #e6f5fc 0 18%, transparent 19%);
-  filter: blur(2px) drop-shadow(0 12px 18px #326f9933);
+    radial-gradient(ellipse at 16% 68%, #fff0d9 0 16%, transparent 17%),
+    radial-gradient(ellipse at 36% 44%, #ffefd4 0 25%, transparent 26%),
+    radial-gradient(ellipse at 61% 58%, #ffe2c5 0 29%, transparent 30%),
+    radial-gradient(ellipse at 84% 72%, #f7b98d 0 18%, transparent 19%);
+  filter: blur(2px) drop-shadow(0 12px 18px #4d153555);
   animation: puppy-cloud-drift 24s linear infinite;
 }
 .puppy-cloud-layer::before { top: 6%; left: -32vw; width: 62vw; height: 23vh; animation-duration: 34s; }
@@ -180,10 +181,12 @@
 .puppy-game-pup { --puppy-x:50%; --puppy-y:82%; position: absolute; top:var(--puppy-y); left:var(--puppy-x); z-index:2; width:76px; height:76px; transform:translate(-50%,-82%); transition:filter .12s ease; }
 .puppy-game-pup img { display:block; width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 7px 6px #163a5580); }
 .puppy-game-pup.is-hopping img { animation: puppy-pup-bob .23s ease-in-out infinite alternate; }
-.puppy-game-platform { position:absolute; top:var(--y); left:var(--x); width:var(--width); height:13px; transform:translate(-50%,-50%); border:2px solid #f6fbff; border-radius:999px; background:linear-gradient(#75c95c,#367d3b); box-shadow:inset 0 2px #e1ffd5a8,0 5px 0 #245238a8,0 8px 12px #23526a66; }
+.puppy-game-cloud { position:absolute; top:var(--y); left:var(--x); width:var(--width); height:21px; transform:translate(-50%,-50%); border:1px solid #fff2dc; border-radius:999px; background:linear-gradient(180deg,#fff9ed,#ffd9bd 68%,#d98687); box-shadow:0 5px 0 #9d4f6999,0 10px 18px #57203c88,inset 0 4px #ffffffc7; }
+.puppy-game-cloud::before,.puppy-game-cloud::after { position:absolute; bottom:5px; content:""; border-radius:50%; background:inherit; box-shadow:inset 0 4px #ffffffa8; }
+.puppy-game-cloud::before { left:15%; width:30%; height:26px; }.puppy-game-cloud::after { right:13%; width:37%; height:31px; }
 .puppy-game-playfield:not(.is-running) .puppy-game-pup,.puppy-game-playfield:not(.is-running) .puppy-game-layer { display:none; }
-.puppy-game-hud { position:absolute; z-index:4; top:0; left:0; display:grid; grid-template-columns:1fr; width:156px; min-height:46px; gap:4px; margin:0; padding:7px 8px; border:1px solid #cceeffa8; border-radius:7px; background:linear-gradient(135deg,#123b59ed,#235b79e8); box-shadow:0 8px 20px #102f468c,inset 0 1px #ffffff4d; color:#edfaff; font:700 8px "DM Mono",monospace; letter-spacing:.04em; pointer-events:auto; }
-.puppy-game-hud b { color:#fff3a4; font-size:10px; }.puppy-game-hud span { color:#f5fcff; line-height:1.35; }.puppy-game-hud small { color:#d5f6ff; font:inherit; }.puppy-game-hud em { padding-top:4px; border-top:1px solid #e8f9ff46; color:#d3eefa; font:7px/1.35 "DM Mono",monospace; font-style:normal; letter-spacing:0; }.puppy-game-hud em strong { color:#fff5a8; }.puppy-game-hud button { min-height:31px; border:1px solid #fff0a3; border-radius:4px; background:linear-gradient(135deg,#fff1a3,#d6a94d); color:#16344a; font:800 8px "DM Mono",monospace; letter-spacing:.04em; cursor:pointer; }.puppy-game-hud button:hover,.puppy-game-hud button:focus-visible { filter:brightness(1.08); outline:0; }
+.puppy-game-hud { position:absolute; z-index:4; top:0; left:0; display:grid; grid-template-columns:1fr; width:156px; min-height:46px; gap:4px; margin:0; padding:7px 8px; border:1px solid #f2cf659a; border-radius:7px; background:linear-gradient(135deg,#281333f2,#5a2444ec); box-shadow:0 8px 20px #170b1d99,inset 0 1px #ffffff26; color:#ffeef0; font:700 8px "DM Mono",monospace; letter-spacing:.04em; pointer-events:auto; }
+.puppy-game-hud b { color:#f1cc62; font-size:10px; }.puppy-game-hud span { color:#fff0e8; line-height:1.35; }.puppy-game-hud small { color:#ffb7a9; font:inherit; }.puppy-game-hud em { padding-top:4px; border-top:1px solid #ffd7c436; color:#f1d0d3; font:7px/1.35 "DM Mono",monospace; font-style:normal; letter-spacing:0; }.puppy-game-hud em strong { color:#f2cf65; }.puppy-game-hud button { min-height:31px; border:1px solid #f2cf65; border-radius:4px; background:linear-gradient(135deg,#f2cf65,#bb6b4d); color:#22121a; font:800 8px "DM Mono",monospace; letter-spacing:.04em; cursor:pointer; }.puppy-game-hud button:hover,.puppy-game-hud button:focus-visible { filter:brightness(1.1); outline:0; }
 
 .rocket-game-playfield { position: fixed; z-index: 4; top: 58px; right: 0; bottom: 86px; left: 0; overflow: hidden; pointer-events: none; opacity: .9; mix-blend-mode: screen; }
 .rocket-game-layer { position: absolute; inset: 0; z-index: 2; overflow: hidden; }
