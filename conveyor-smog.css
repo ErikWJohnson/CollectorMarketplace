@@ -301,7 +301,7 @@ html body.browse-doomscroll .search:focus-within,
 html body.browse-doomscroll .tag-search:focus-within { border-color: #a94b61 !important; box-shadow: 0 0 0 3px #e9856c50 !important; }
 html body.browse-doomscroll .bottom-nav button.active { color: #54273d !important; background: linear-gradient(180deg,#ffe1a1a8,#f6b17c70) !important; }
 html body.browse-doomscroll .bottom-nav button.active b { color: #b04f59 !important; filter: drop-shadow(0 0 6px #f18f70a8); }
-.puppy-game-playfield { position: fixed; z-index: 3; inset: 58px 0 86px; overflow: hidden; pointer-events: none; }
+.puppy-game-playfield { position: fixed; z-index: 3; top: clamp(148px,20vh,214px); right:0; bottom:86px; left:0; overflow: hidden; pointer-events: none; }
 .puppy-game-layer { position: absolute; inset: 0; overflow: hidden; }
 .puppy-game-pup { --puppy-x:50%; --puppy-y:82%; position: absolute; top:var(--puppy-y); left:var(--puppy-x); z-index:2; width:76px; height:76px; transform:translate(-50%,-82%); transition:filter .12s ease; }
 .puppy-game-pup img { display:block; width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 7px 6px #163a5580); }
@@ -529,7 +529,8 @@ html body.browse-doomscroll .bottom-nav button.active b { color: #b04f59 !import
 @media (max-width: 680px) {
   .conveyor-smog-layer { top: 88px; bottom: 77px; }
   .conveyor-smog-layer span { width: 120vw; height: 35vh; }
-  .puppy-cloud-layer,.puppy-game-playfield { top: 58px; bottom: 77px; }
+  .puppy-cloud-layer { top: 58px; bottom: 77px; }
+  .puppy-game-playfield { top: 136px; bottom: 77px; }
   .puppy-cloud-layer::before,.puppy-cloud-layer::after,.puppy-cloud-layer i { width:84vw; }
   .puppy-game-pup { width:62px; height:62px; }
   .puppy-game-hud { width:100%; }

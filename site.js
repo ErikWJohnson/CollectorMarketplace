@@ -481,7 +481,7 @@ document.addEventListener('click', event => { if (event.target.closest('[data-st
 // Puppy Jump is a light Doodle-Jump-style counterpoint to the space game.
 // It only exists while collectors are browsing in Doomscroll mode.
 const puppyJump = { node: null, frame: 0, x: 50, y: 82, vx: 0, vy: 0, keys: new Set() };
-const puppyJumpGame = { layer: null, hud: null, started: false, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-puppy-jump-high-score') || 0), platforms: [], airships: [], lasers: [], lastHud: 0, lastAirship: 0, lastShot: 0 };
+const puppyJumpGame = { layer: null, hud: null, started: false, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-puppy-jump-high-score') || 0), platforms: [], airships: [], lasers: [], jumps: 2, lastHud: 0, lastAirship: 0, lastShot: 0 };
 const puppyControlCodes = new Set(['BracketLeft', 'BracketRight', 'Equal', 'Backquote']);
 const puppyRandom = (min, max) => min + Math.random() * (max - min);
 function puppyStartingPlatforms() {
@@ -497,12 +497,12 @@ function renderPuppyJumpHud() {
     game.hud.innerHTML = `<button type="button" data-puppy-jump-play title="Start Puppy Jump">🐾 PUPPY JUMP · PLAY</button><small>HIGH ${String(game.highScore).padStart(6, '0')}</small>`;
     return;
   }
-  game.hud.innerHTML = `<b>PUPPY JUMP</b><span>SCORE ${String(game.score).padStart(6, '0')} · HIGH ${String(game.highScore).padStart(6, '0')}</span><small>☁ CLOUD CLIMBER</small><em><strong>[</strong> <strong>]</strong> MOVE · <strong>=</strong> JUMP · <strong>\`</strong> LASER</em>`;
+  game.hud.innerHTML = `<b>PUPPY JUMP</b><span>SCORE ${String(game.score).padStart(6, '0')} · HIGH ${String(game.highScore).padStart(6, '0')}</span><small>☁ ${game.jumps}/2 JUMPS · CLOUD CLIMBER</small><em><strong>[</strong> <strong>]</strong> MOVE · <strong>=</strong> DOUBLE JUMP · <strong>\`</strong> LASER</em>`;
 }
 function resetPuppyJump() {
   const game = puppyJumpGame;
-  puppyJump.x = 50; puppyJump.y = 82; puppyJump.vx = 0; puppyJump.vy = -1.07;
-  game.score = 0; game.platforms = puppyStartingPlatforms(); game.airships = []; game.lasers = []; game.lastHud = 0; game.lastAirship = 0; game.lastShot = 0;
+  puppyJump.x = 50; puppyJump.y = 82; puppyJump.vx = 0; puppyJump.vy = 0;
+  game.score = 0; game.platforms = puppyStartingPlatforms(); game.airships = []; game.lasers = []; game.jumps = 2; game.lastHud = 0; game.lastAirship = 0; game.lastShot = 0;
 }
 function startPuppyJump(node) {
   if (!node) return stopPuppyJump();
@@ -536,6 +536,13 @@ function firePuppyLaser() {
   playGameEffect(gameLaserAudio, .28);
   game.lasers.push({ x: puppyJump.x, y: puppyJump.y - 5, vy: -1.18 });
 }
+function jumpPuppy() {
+  const game = puppyJumpGame;
+  if (!game.started || game.jumps <= 0) return;
+  game.jumps -= 1;
+  puppyJump.vy = game.jumps === 1 ? -1.08 : -.98;
+  renderPuppyJumpHud();
+}
 function updatePuppyJump() {
   const game = puppyJumpGame; if (!game.layer) return;
   const priorY = puppyJump.y;
@@ -543,14 +550,13 @@ function updatePuppyJump() {
   if (puppyJump.keys.has('BracketRight')) puppyJump.vx += .028;
   puppyJump.vx *= .91; puppyJump.vx = Math.max(-.44, Math.min(.44, puppyJump.vx));
   puppyJump.vy += .047;
-  if (puppyJump.keys.has('Equal') && puppyJump.vy > -.16) puppyJump.vy = -.93;
   puppyJump.x = (puppyJump.x + puppyJump.vx + 100) % 100;
   puppyJump.y += puppyJump.vy;
   const cloudFall = .055 + Math.min(.08, game.score / 85000);
   game.platforms.forEach(platform => { platform.x += platform.vx; platform.y += cloudFall; if (platform.x < platform.width / 2 + 3 || platform.x > 97 - platform.width / 2) platform.vx *= -1; });
   if (puppyJump.vy > 0) {
     const landing = game.platforms.find(platform => priorY <= platform.y && puppyJump.y >= platform.y && Math.abs(puppyJump.x - platform.x) < platform.width / 2 + 2.5);
-    if (landing) { puppyJump.y = landing.y; puppyJump.vy = -1.08; game.score += 8; }
+    if (landing) { puppyJump.y = landing.y; puppyJump.vy = 0; game.jumps = 2; game.score += 8; }
   }
   if (puppyJump.y < 40 && puppyJump.vy < 0) {
     const rise = Math.min(.42, 40 - puppyJump.y);
@@ -589,7 +595,10 @@ function flyPuppyJump() {
 }
 document.addEventListener('keydown', event => {
   if (!puppyControlCodes.has(event.code) || !puppyJumpGame.started || !document.body.classList.contains('browse-doomscroll') || !canUseAutoScroll(event.target)) return;
-  event.preventDefault(); if (event.code === 'Backquote') { firePuppyLaser(); return; } puppyJump.keys.add(event.code);
+  event.preventDefault();
+  if (event.code === 'Backquote') { firePuppyLaser(); return; }
+  if (event.code === 'Equal') { if (!event.repeat) jumpPuppy(); return; }
+  puppyJump.keys.add(event.code);
 });
 document.addEventListener('keyup', event => { if (puppyControlCodes.has(event.code)) puppyJump.keys.delete(event.code); });
 window.addEventListener('blur', () => puppyJump.keys.clear());
