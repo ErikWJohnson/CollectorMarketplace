@@ -478,11 +478,107 @@ document.addEventListener('keyup', event => { if (!rocketControlCodes.has(event.
 window.addEventListener('blur', () => { conveyorRocket.keys.clear(); pauseRocketBoost(); });
 document.addEventListener('click', event => { if (event.target.closest('[data-star-run-play]')) launchStarRun(); });
 
+// Puppy Jump is a light Doodle-Jump-style counterpoint to the space game.
+// It only exists while collectors are browsing in Doomscroll mode.
+const puppyJump = { node: null, frame: 0, x: 50, y: 82, vx: 0, vy: 0, keys: new Set() };
+const puppyJumpGame = { layer: null, hud: null, started: false, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-puppy-jump-high-score') || 0), platforms: [], lastHud: 0 };
+const puppyControlCodes = new Set(['ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD', 'Space']);
+const puppyRandom = (min, max) => min + Math.random() * (max - min);
+function puppyStartingPlatforms() {
+  return [
+    { x: 50, y: 92, width: 23 }, { x: 28, y: 79, width: 18 },
+    { x: 67, y: 65, width: 20 }, { x: 36, y: 51, width: 17 },
+    { x: 72, y: 37, width: 19 }, { x: 45, y: 23, width: 18 }, { x: 76, y: 9, width: 17 }
+  ];
+}
+function renderPuppyJumpHud() {
+  const game = puppyJumpGame; if (!game.hud) return;
+  if (!game.started) {
+    game.hud.innerHTML = `<button type="button" data-puppy-jump-play title="Start Puppy Jump">🐾 PUPPY JUMP · PLAY</button><small>HIGH ${String(game.highScore).padStart(6, '0')}</small>`;
+    return;
+  }
+  game.hud.innerHTML = `<b>PUPPY JUMP</b><span>SCORE ${String(game.score).padStart(6, '0')} · HIGH ${String(game.highScore).padStart(6, '0')}</span><small>☁ KEEP CLIMBING</small><em><strong>←</strong> <strong>→</strong> or <strong>A</strong> <strong>D</strong> MOVE · <strong>SPACE</strong> HOP</em>`;
+}
+function resetPuppyJump() {
+  const game = puppyJumpGame;
+  puppyJump.x = 50; puppyJump.y = 82; puppyJump.vx = 0; puppyJump.vy = -1.07;
+  game.score = 0; game.platforms = puppyStartingPlatforms(); game.lastHud = 0;
+}
+function startPuppyJump(node) {
+  if (!node) return stopPuppyJump();
+  if (puppyJump.node !== node) {
+    stopPuppyJump(); puppyJump.node = node; puppyJumpGame.layer = node.parentElement?.querySelector('.puppy-game-layer') || null; puppyJumpGame.hud = document.querySelector('.puppy-game-hud'); puppyJumpGame.started = false; resetPuppyJump(); renderPuppyJumpHud();
+  }
+  if (!puppyJump.frame) puppyJump.frame = requestAnimationFrame(flyPuppyJump);
+}
+function launchPuppyJump() {
+  const game = puppyJumpGame; if (!game.layer || game.started) return;
+  game.started = true; resetPuppyJump(); puppyJump.node?.parentElement?.classList.add('is-running'); renderPuppyJumpHud();
+}
+function stopPuppyJump() {
+  if (puppyJump.frame) cancelAnimationFrame(puppyJump.frame);
+  puppyJump.frame = 0; puppyJump.keys.clear(); puppyJump.node = null;
+  puppyJumpGame.layer = null; puppyJumpGame.hud = null; puppyJumpGame.started = false;
+}
+function finishPuppyJump() {
+  const game = puppyJumpGame;
+  game.highScore = Math.max(game.highScore, game.score);
+  localStorage.setItem('collector-marketplace-puppy-jump-high-score', String(game.highScore));
+  game.started = false; puppyJump.node?.parentElement?.classList.remove('is-running'); renderPuppyJumpHud();
+}
+function updatePuppyJump() {
+  const game = puppyJumpGame; if (!game.layer) return;
+  const priorY = puppyJump.y;
+  if (puppyJump.keys.has('ArrowLeft') || puppyJump.keys.has('KeyA')) puppyJump.vx -= .028;
+  if (puppyJump.keys.has('ArrowRight') || puppyJump.keys.has('KeyD')) puppyJump.vx += .028;
+  puppyJump.vx *= .91; puppyJump.vx = Math.max(-.44, Math.min(.44, puppyJump.vx));
+  puppyJump.vy += .047;
+  if (puppyJump.keys.has('Space') && puppyJump.vy > -.16) puppyJump.vy = -.93;
+  puppyJump.x = (puppyJump.x + puppyJump.vx + 100) % 100;
+  puppyJump.y += puppyJump.vy;
+  if (puppyJump.vy > 0) {
+    const landing = game.platforms.find(platform => priorY <= platform.y && puppyJump.y >= platform.y && Math.abs(puppyJump.x - platform.x) < platform.width / 2 + 2.5);
+    if (landing) { puppyJump.y = landing.y; puppyJump.vy = -1.08; game.score += 8; }
+  }
+  if (puppyJump.y < 40 && puppyJump.vy < 0) {
+    const rise = Math.min(.42, 40 - puppyJump.y);
+    puppyJump.y += rise;
+    game.platforms.forEach(platform => { platform.y += rise; });
+    game.score += Math.max(1, Math.round(rise * 3));
+  }
+  game.platforms = game.platforms.filter(platform => platform.y < 106);
+  while (game.platforms.length < 7) {
+    const nextY = Math.min(...game.platforms.map(platform => platform.y)) - puppyRandom(11.5, 15.5);
+    game.platforms.push({ x: puppyRandom(12, 88), y: nextY, width: puppyRandom(15, 23) });
+  }
+  if (puppyJump.y > 105) finishPuppyJump();
+  puppyJump.node.style.setProperty('--puppy-x', `${puppyJump.x}%`);
+  puppyJump.node.style.setProperty('--puppy-y', `${puppyJump.y}%`);
+  puppyJump.node.classList.toggle('is-hopping', puppyJump.vy < -.15);
+  game.layer.innerHTML = game.platforms.map(platform => `<i class="puppy-game-platform" style="--x:${platform.x}%;--y:${platform.y}%;--width:${platform.width}%"></i>`).join('');
+  if (game.score > game.highScore) { game.highScore = game.score; localStorage.setItem('collector-marketplace-puppy-jump-high-score', String(game.highScore)); }
+  if (Date.now() - game.lastHud > 140) { renderPuppyJumpHud(); game.lastHud = Date.now(); }
+}
+function flyPuppyJump() {
+  if (!puppyJump.node?.isConnected) return stopPuppyJump();
+  if (puppyJumpGame.started) updatePuppyJump();
+  puppyJump.frame = requestAnimationFrame(flyPuppyJump);
+}
+document.addEventListener('keydown', event => {
+  if (!puppyControlCodes.has(event.code) || !puppyJumpGame.started || !document.body.classList.contains('browse-doomscroll') || !canUseAutoScroll(event.target)) return;
+  event.preventDefault(); puppyJump.keys.add(event.code);
+});
+document.addEventListener('keyup', event => { if (puppyControlCodes.has(event.code)) puppyJump.keys.delete(event.code); });
+window.addEventListener('blur', () => puppyJump.keys.clear());
+document.addEventListener('click', event => { if (event.target.closest('[data-puppy-jump-play]')) launchPuppyJump(); });
+
 function syncBrowseModeUi() {
   const auctionActive = document.body.classList.contains('auction-mode');
   const browseSurface = !document.body.classList.contains('app-section-mode') && !modal.open;
   const conveyor = browseMode === 'conveyor' && searchScope === 'listings' && browseSurface && !auctionActive;
+  const doomscroll = browseMode === 'doomscroll' && searchScope === 'listings' && browseSurface && !auctionActive;
   document.body.classList.toggle('browse-conveyor', conveyor);
+  document.body.classList.toggle('browse-doomscroll', doomscroll);
   let smog = document.querySelector('.conveyor-smog-layer');
   if (conveyor && !smog) { smog = document.createElement('div'); smog.className = 'conveyor-smog-layer'; smog.setAttribute('aria-hidden', 'true'); smog.innerHTML = '<span></span><span></span><span></span><span></span><span></span>'; document.body.append(smog); }
   if (!conveyor) smog?.remove();
@@ -493,6 +589,14 @@ function syncBrowseModeUi() {
   let gameHud = document.querySelector('.rocket-game-hud');
   if (conveyor && !gameHud) { gameHud = document.createElement('aside'); gameHud.className = 'rocket-game-hud'; gameHud.setAttribute('aria-live', 'off'); document.querySelector('.tag-search-layout')?.append(gameHud); }
   if (conveyor) startConveyorRocket(playfield?.querySelector('.conveyor-rocket')); else { orbit?.remove(); playfield?.remove(); gameHud?.remove(); stopConveyorRocket(); }
+  let cloudLayer = document.querySelector('.puppy-cloud-layer');
+  if (doomscroll && !cloudLayer) { cloudLayer = document.createElement('div'); cloudLayer.className = 'puppy-cloud-layer'; cloudLayer.setAttribute('aria-hidden', 'true'); cloudLayer.innerHTML = '<i></i><i></i><i></i><i></i><i></i>'; document.body.append(cloudLayer); }
+  if (!doomscroll) cloudLayer?.remove();
+  let puppyField = document.querySelector('.puppy-game-playfield');
+  if (doomscroll && !puppyField) { puppyField = document.createElement('div'); puppyField.className = 'puppy-game-playfield'; puppyField.setAttribute('aria-hidden', 'true'); puppyField.innerHTML = '<div class="puppy-game-layer"></div><div class="puppy-game-pup"><img src="/public/puppy-jump.png" alt=""></div>'; document.querySelector('.app-shell')?.append(puppyField); }
+  let puppyHud = document.querySelector('.puppy-game-hud');
+  if (doomscroll && !puppyHud) { puppyHud = document.createElement('aside'); puppyHud.className = 'puppy-game-hud'; puppyHud.setAttribute('aria-live', 'off'); document.querySelector('.tag-search-layout')?.append(puppyHud); }
+  if (doomscroll) startPuppyJump(puppyField?.querySelector('.puppy-game-pup')); else { puppyField?.remove(); puppyHud?.remove(); stopPuppyJump(); }
   const button = document.querySelector('[data-browse-mode]');
   if (button) { button.disabled = searchScope !== 'listings' || auctionActive; button.firstChild.textContent = browseMode === 'conveyor' ? 'Conveyor ' : 'Doomscroll '; button.setAttribute('aria-label', `Browsing mode: ${browseMode}. Press Q to switch.`); button.setAttribute('aria-pressed', String(browseMode === 'conveyor')); }
   if (conveyor) startConveyor(); else stopConveyor();
@@ -504,6 +608,7 @@ function toggleBrowseMode() {
 }
 document.addEventListener('keydown', event => { if (event.key.toLowerCase() === 'q' && searchScope === 'listings' && !document.body.classList.contains('auction-mode') && !event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey && canUseAutoScroll(event.target)) { event.preventDefault(); toggleBrowseMode(); } });
 document.addEventListener('keydown', event => {
+  if (event.defaultPrevented) return;
   if (event.key === 'Alt' && !event.ctrlKey && !event.metaKey && canUseAutoScroll(event.target)) {
     event.preventDefault();
     stopAutoScroll();

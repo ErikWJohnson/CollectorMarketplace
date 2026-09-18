@@ -129,6 +129,62 @@
 .conveyor-rocket.is-thrusting img { filter: brightness(1.12); }
 .conveyor-rocket.is-hit { animation: conveyor-rocket-hit .42s steps(2); }
 
+/* Puppy Jump — the brighter Doomscroll counterpart to Star Run. */
+.puppy-cloud-layer {
+  position: fixed;
+  z-index: 0;
+  inset: 58px 0 86px;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 22% 14%, #fffcebb3 0 3%, transparent 18%),
+    radial-gradient(ellipse at 78% 30%, #d8f1ff85 0 4%, transparent 21%),
+    linear-gradient(180deg, #4384b4 0%, #78b8da 43%, #b9dcea 100%);
+}
+.puppy-cloud-layer::before,
+.puppy-cloud-layer::after,
+.puppy-cloud-layer i {
+  position: absolute;
+  display: block;
+  width: 46vw;
+  height: 19vh;
+  content: "";
+  border-radius: 50%;
+  opacity: .72;
+  background:
+    radial-gradient(ellipse at 16% 68%, #fff 0 16%, transparent 17%),
+    radial-gradient(ellipse at 36% 44%, #fff 0 25%, transparent 26%),
+    radial-gradient(ellipse at 61% 58%, #f8fdff 0 29%, transparent 30%),
+    radial-gradient(ellipse at 84% 72%, #e6f5fc 0 18%, transparent 19%);
+  filter: blur(2px) drop-shadow(0 12px 18px #326f9933);
+  animation: puppy-cloud-drift 24s linear infinite;
+}
+.puppy-cloud-layer::before { top: 6%; left: -32vw; width: 62vw; height: 23vh; animation-duration: 34s; }
+.puppy-cloud-layer::after { right: -25vw; bottom: 5%; width: 58vw; height: 23vh; opacity: .58; animation-duration: 40s; animation-direction: reverse; }
+.puppy-cloud-layer i:nth-child(1) { top: 18%; left: -42vw; animation-delay: -9s; }
+.puppy-cloud-layer i:nth-child(2) { top: 43%; left: 17vw; width: 38vw; height: 15vh; opacity: .52; animation-duration: 30s; animation-delay: -21s; }
+.puppy-cloud-layer i:nth-child(3) { top: 68%; left: -17vw; width: 55vw; height: 21vh; opacity: .66; animation-duration: 38s; animation-delay: -16s; }
+.puppy-cloud-layer i:nth-child(4) { top: 30%; right: -36vw; width: 48vw; height: 18vh; opacity: .5; animation-duration: 32s; animation-delay: -28s; }
+.puppy-cloud-layer i:nth-child(5) { top: 78%; right: -44vw; width: 62vw; height: 22vh; opacity: .6; animation-duration: 44s; animation-delay: -7s; }
+
+.browse-doomscroll .app-shell { position: relative; z-index: 1; background: transparent !important; }
+.browse-doomscroll .app-shell > :not(.puppy-game-playfield):not(.puppy-game-hud) { position: relative; z-index: 1; }
+.browse-doomscroll .mode-tabs,
+.browse-doomscroll .discovery,
+.browse-doomscroll .market-stage,
+.browse-doomscroll .listing-stream,
+.browse-doomscroll .market-head,
+.browse-doomscroll .ad { background: transparent !important; }
+.puppy-game-playfield { position: fixed; z-index: 3; inset: 58px 0 86px; overflow: hidden; pointer-events: none; }
+.puppy-game-layer { position: absolute; inset: 0; overflow: hidden; }
+.puppy-game-pup { --puppy-x:50%; --puppy-y:82%; position: absolute; top:var(--puppy-y); left:var(--puppy-x); z-index:2; width:76px; height:76px; transform:translate(-50%,-82%); transition:filter .12s ease; }
+.puppy-game-pup img { display:block; width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 7px 6px #163a5580); }
+.puppy-game-pup.is-hopping img { animation: puppy-pup-bob .23s ease-in-out infinite alternate; }
+.puppy-game-platform { position:absolute; top:var(--y); left:var(--x); width:var(--width); height:13px; transform:translate(-50%,-50%); border:2px solid #f6fbff; border-radius:999px; background:linear-gradient(#75c95c,#367d3b); box-shadow:inset 0 2px #e1ffd5a8,0 5px 0 #245238a8,0 8px 12px #23526a66; }
+.puppy-game-playfield:not(.is-running) .puppy-game-pup,.puppy-game-playfield:not(.is-running) .puppy-game-layer { display:none; }
+.puppy-game-hud { position:absolute; z-index:4; top:0; left:0; display:grid; grid-template-columns:1fr; width:156px; min-height:46px; gap:4px; margin:0; padding:7px 8px; border:1px solid #cceeffa8; border-radius:7px; background:linear-gradient(135deg,#123b59ed,#235b79e8); box-shadow:0 8px 20px #102f468c,inset 0 1px #ffffff4d; color:#edfaff; font:700 8px "DM Mono",monospace; letter-spacing:.04em; pointer-events:auto; }
+.puppy-game-hud b { color:#fff3a4; font-size:10px; }.puppy-game-hud span { color:#f5fcff; line-height:1.35; }.puppy-game-hud small { color:#d5f6ff; font:inherit; }.puppy-game-hud em { padding-top:4px; border-top:1px solid #e8f9ff46; color:#d3eefa; font:7px/1.35 "DM Mono",monospace; font-style:normal; letter-spacing:0; }.puppy-game-hud em strong { color:#fff5a8; }.puppy-game-hud button { min-height:31px; border:1px solid #fff0a3; border-radius:4px; background:linear-gradient(135deg,#fff1a3,#d6a94d); color:#16344a; font:800 8px "DM Mono",monospace; letter-spacing:.04em; cursor:pointer; }.puppy-game-hud button:hover,.puppy-game-hud button:focus-visible { filter:brightness(1.08); outline:0; }
+
 .rocket-game-playfield { position: fixed; z-index: 4; top: 58px; right: 0; bottom: 86px; left: 0; overflow: hidden; pointer-events: none; opacity: .9; mix-blend-mode: screen; }
 .rocket-game-layer { position: absolute; inset: 0; z-index: 2; overflow: hidden; }
 .rocket-game-layer i { position: absolute; top: var(--y); left: var(--x); display: block; transform: translate(-50%, -50%); }
@@ -186,6 +242,8 @@
 @keyframes conveyor-rocket-flame { 50% { transform: scaleY(.74) scaleX(.84); } }
 @keyframes conveyor-rocket-cruise { to { opacity: .96; transform: scaleY(.9) scaleX(.9); } }
 @keyframes conveyor-rocket-hit { 20%, 60% { filter: brightness(2.7) saturate(2); } 40%, 80% { transform: translate(-50%, -50%) rotate(var(--rocket-tilt)) scale(.78); } }
+@keyframes puppy-cloud-drift { from { transform:translate3d(-6vw,0,0) scale(1); } to { transform:translate3d(115vw,-2vh,0) scale(1.08); } }
+@keyframes puppy-pup-bob { from { transform:translateY(0) rotate(-2deg); } to { transform:translateY(-3px) rotate(2deg); } }
 @keyframes conveyor-asteroid {
   0%, 15% { opacity: 0; margin-left: -10vw; margin-top: -3vh; }
   18% { opacity: .72; }
@@ -326,6 +384,11 @@
   .conveyor-constellation,
   .conveyor-rocket,
   .conveyor-rocket .rocket-flame,
+  .puppy-cloud-layer,
+  .puppy-cloud-layer::before,
+  .puppy-cloud-layer::after,
+  .puppy-cloud-layer i,
+  .puppy-game-pup img,
   .conveyor-smog-layer span,
   .conveyor-smog-layer::before,
   .conveyor-smog-layer::after,
@@ -335,4 +398,9 @@
 @media (max-width: 680px) {
   .conveyor-smog-layer { top: 88px; bottom: 77px; }
   .conveyor-smog-layer span { width: 120vw; height: 35vh; }
+  .puppy-cloud-layer,.puppy-game-playfield { top: 58px; bottom: 77px; }
+  .puppy-cloud-layer::before,.puppy-cloud-layer::after,.puppy-cloud-layer i { width:84vw; }
+  .puppy-game-pup { width:62px; height:62px; }
+  .puppy-game-hud { width:100%; }
+  .puppy-game-hud em { display:none; }
 }
