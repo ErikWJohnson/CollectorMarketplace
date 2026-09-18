@@ -331,6 +331,98 @@ html body.browse-doomscroll .vip-savings,
 html body.browse-doomscroll .load-state,
 html body.browse-doomscroll .site-legal-links,
 html body.browse-doomscroll .site-legal-links a { color: #704554 !important; background-color: transparent !important; }
+
+/* Marketplace, People, Communities, and Services are one readable sunset
+   control bar in Doomscroll. This stays local to Doomscroll rather than
+   changing the compact dark navigation used elsewhere. */
+html body.browse-doomscroll .search-scope {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  width: min(100%, 980px) !important;
+  margin: 0 auto !important;
+  padding: 14px clamp(10px, 2vw, 22px) 10px !important;
+  overflow: visible !important;
+}
+html body.browse-doomscroll .search-scope > section {
+  min-width: 0;
+  border-color: #cb817d !important;
+  background: linear-gradient(135deg, #ffe8c6ed, #ffc5ace8) !important;
+}
+html body.browse-doomscroll .search-scope > section > span {
+  min-height: 34px !important;
+  padding: 8px 6px !important;
+  border-color: #cb817d !important;
+  background: linear-gradient(135deg, #f7ae82ed, #db7582ea) !important;
+  color: #54273d !important;
+  font-size: clamp(.63rem, 1.35vw, .76rem) !important;
+  font-weight: 800 !important;
+  letter-spacing: .07em !important;
+  line-height: 1.1 !important;
+  text-align: center !important;
+}
+html body.browse-doomscroll .search-scope > section > div {
+  display: flex !important;
+  min-width: 0;
+  min-height: 44px;
+  flex-wrap: wrap;
+  align-items: stretch;
+}
+html body.browse-doomscroll .search-scope button {
+  display: grid !important;
+  min-width: 0 !important;
+  min-height: 44px !important;
+  flex: 1 1 74px !important;
+  place-items: center;
+  padding: 8px 9px !important;
+  border-color: #d28c82 !important;
+  color: #513342 !important;
+  background: #fff1dae8 !important;
+  font-size: clamp(.65rem, 1.25vw, .77rem) !important;
+  font-weight: 800 !important;
+  letter-spacing: .025em !important;
+  line-height: 1.15 !important;
+  text-align: center !important;
+  text-wrap: balance;
+  white-space: normal !important;
+}
+html body.browse-doomscroll .search-scope button.active {
+  color: #482239 !important;
+  background: linear-gradient(135deg, #ffda79, #ed9c70) !important;
+  border-color: #a94b61 !important;
+  box-shadow: inset 0 -3px #bd6670 !important;
+}
+
+/* Directory cards shown after choosing People, Communities, or Services. */
+html body.browse-doomscroll .social-directory-card,
+html body.browse-doomscroll .search-directory-card {
+  border-color: #c77c79 !important;
+  background: linear-gradient(145deg, #fff0d3f2, #ffc8b0ed) !important;
+  box-shadow: 0 14px 30px #74314742 !important;
+}
+html body.browse-doomscroll .social-directory-card header span,
+html body.browse-doomscroll .social-directory-card header b,
+html body.browse-doomscroll .search-directory-card b { color: #54253d !important; }
+html body.browse-doomscroll .social-directory-card > p,
+html body.browse-doomscroll .search-directory-card span { color: #553b47 !important; }
+html body.browse-doomscroll .social-directory-card > small,
+html body.browse-doomscroll .search-directory-card small { color: #75505b !important; }
+html body.browse-doomscroll .directory-tags button,
+html body.browse-doomscroll .directory-actions button {
+  color: #563244 !important;
+  background: #ffe9cae8 !important;
+  border-color: #cf8a80 !important;
+  font-size: .71rem !important;
+}
+html body.browse-doomscroll .directory-actions .directory-primary {
+  color: #fffaf2 !important;
+  background: linear-gradient(135deg, #a54c62, #d86f70) !important;
+  border-color: #8f3e54 !important;
+}
+@media (max-width: 700px) {
+  html body.browse-doomscroll .search-scope { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  html body.browse-doomscroll .search-scope > section > span { font-size: .68rem !important; }
+  html body.browse-doomscroll .search-scope button { min-height: 42px !important; font-size: .7rem !important; }
+}
 .puppy-game-playfield { position: fixed; z-index: 3; top: clamp(148px,20vh,214px); right:0; bottom:86px; left:0; overflow: hidden; pointer-events: none; }
 .puppy-game-layer { position: absolute; inset: 0; overflow: hidden; }
 .puppy-game-pup { --puppy-x:50%; --puppy-y:82%; position: absolute; top:var(--puppy-y); left:var(--puppy-x); z-index:2; width:76px; height:76px; transform:translate(-50%,-82%); transition:filter .12s ease; }
