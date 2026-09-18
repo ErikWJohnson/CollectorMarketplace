@@ -13,9 +13,22 @@ const modalContent = document.querySelector('#modal-content');
 let listings = [], auctions = [], accounts = [], collectives = [], brands = [], couriers = [], chatrooms = [], deliveries = [], uploadedListingImages = [], uploadedListingVideos = [], activeCategory = 'All', activeQuery = '', activeTags = [], searchScope = 'listings', sortMode = 'popular', page = 1, observer, searchRenderTimer, auctionClock;
 const siteThemeAudio = document.querySelector('#site-theme-audio');
 const siteThemeControl = document.querySelector('[data-site-theme-toggle]');
+const siteThemePlaylist = [
+  { name: 'TeknoAXE', src: '/public/teknoaxe-site-theme.mp3' },
+  { name: 'Johnny Five', src: '/public/johnny-five-industrial.mp3' }
+];
 function initializeSiteTheme() {
   if (!siteThemeAudio || !siteThemeControl) return;
-  const status = siteThemeControl.querySelector('[data-site-theme-status]'); const action = siteThemeControl.querySelector('[data-site-theme-action]');
+  const status = siteThemeControl.querySelector('[data-site-theme-status]'); const action = siteThemeControl.querySelector('[data-site-theme-action]'); const name = siteThemeControl.querySelector('[data-site-theme-name]');
+  let activeTrack = Math.floor(Math.random() * siteThemePlaylist.length);
+  const setTrack = (index) => {
+    activeTrack = index;
+    const track = siteThemePlaylist[activeTrack];
+    siteThemeAudio.src = track.src;
+    if (name) name.textContent = track.name;
+    siteThemeAudio.load();
+  };
+  setTrack(activeTrack);
   siteThemeAudio.muted = localStorage.getItem('collector-marketplace-theme-muted') === 'true';
   const render = () => {
     const paused = siteThemeAudio.paused; const muted = siteThemeAudio.muted;
@@ -27,6 +40,11 @@ function initializeSiteTheme() {
   };
   const start = () => siteThemeAudio.play().then(render).catch(render);
   siteThemeAudio.addEventListener('play', render); siteThemeAudio.addEventListener('pause', render); siteThemeAudio.addEventListener('volumechange', render);
+  siteThemeAudio.addEventListener('ended', () => {
+    const choices = siteThemePlaylist.map((_, index) => index).filter(index => index !== activeTrack);
+    setTrack(choices[Math.floor(Math.random() * choices.length)] ?? activeTrack);
+    start();
+  });
   siteThemeControl.addEventListener('click', () => {
     if (siteThemeAudio.paused) { siteThemeAudio.muted = false; localStorage.setItem('collector-marketplace-theme-muted', 'false'); start(); return; }
     siteThemeAudio.muted = !siteThemeAudio.muted; localStorage.setItem('collector-marketplace-theme-muted', String(siteThemeAudio.muted)); render();
