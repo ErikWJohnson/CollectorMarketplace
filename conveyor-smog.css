@@ -149,14 +149,9 @@
   width: 46vw;
   height: 19vh;
   content: "";
-  border-radius: 50%;
   opacity: .72;
-  background:
-    radial-gradient(ellipse at 16% 68%, #fff0d9 0 16%, transparent 17%),
-    radial-gradient(ellipse at 36% 44%, #ffefd4 0 25%, transparent 26%),
-    radial-gradient(ellipse at 61% 58%, #ffe2c5 0 29%, transparent 30%),
-    radial-gradient(ellipse at 84% 72%, #f7b98d 0 18%, transparent 19%);
-  filter: blur(2px) drop-shadow(0 12px 18px #4d153555);
+  background: url("/public/puppy-jump-cloud.png") center / contain no-repeat;
+  filter: drop-shadow(0 12px 18px #4d153555);
   animation: puppy-cloud-drift 24s linear infinite;
 }
 .puppy-cloud-layer::before { top: 6%; left: -32vw; width: 62vw; height: 23vh; animation-duration: 34s; }
@@ -189,9 +184,7 @@ html body.browse-doomscroll .listing-copy p { background: #08090a !important; }
 .puppy-game-pup { --puppy-x:50%; --puppy-y:82%; position: absolute; top:var(--puppy-y); left:var(--puppy-x); z-index:2; width:76px; height:76px; transform:translate(-50%,-82%); transition:filter .12s ease; }
 .puppy-game-pup img { display:block; width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 7px 6px #163a5580); }
 .puppy-game-pup.is-hopping img { animation: puppy-pup-bob .23s ease-in-out infinite alternate; }
-.puppy-game-cloud { position:absolute; top:var(--y); left:var(--x); width:var(--width); height:21px; transform:translate(-50%,-50%); border:1px solid #fff2dc; border-radius:999px; background:linear-gradient(180deg,#fff9ed,#ffd9bd 68%,#d98687); box-shadow:0 5px 0 #9d4f6999,0 10px 18px #57203c88,inset 0 4px #ffffffc7; }
-.puppy-game-cloud::before,.puppy-game-cloud::after { position:absolute; bottom:5px; content:""; border-radius:50%; background:inherit; box-shadow:inset 0 4px #ffffffa8; }
-.puppy-game-cloud::before { left:15%; width:30%; height:26px; }.puppy-game-cloud::after { right:13%; width:37%; height:31px; }
+.puppy-game-cloud { position:absolute; top:var(--y); left:var(--x); width:var(--width); aspect-ratio:3 / 1; transform:translate(-50%,-50%); background:url("/public/puppy-jump-cloud.png") center / contain no-repeat; filter:drop-shadow(0 7px 9px #57203c75); }
 .puppy-game-airship { position:absolute; top:var(--y); left:var(--x); width:58px; height:24px; transform:translate(-50%,-50%); border:2px solid #542442; border-radius:48% 48% 40% 40%; background:linear-gradient(180deg,#e6a661 0 20%,#9d3151 22% 58%,#4a2044 60%); box-shadow:inset 0 3px #ffe5ad9e,0 8px 14px #4b173a92; }
 .puppy-game-airship::before { position:absolute; bottom:18px; left:9px; width:36px; height:27px; content:""; border:2px solid #542442; border-radius:50% 50% 42% 42%; background:radial-gradient(circle at 38% 31%,#e9f5ff 0 13%,#76a6d1 15% 33%,#315170 35% 100%); box-shadow:inset 0 2px #ffffff9c; }
 .puppy-game-airship::after { position:absolute; top:7px; right:-10px; width:16px; height:7px; content:""; border:2px solid #542442; border-left:0; border-radius:0 8px 8px 0; background:#cf6e55; }
