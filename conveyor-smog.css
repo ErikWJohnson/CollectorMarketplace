@@ -337,6 +337,16 @@ html body.browse-doomscroll .vip-savings,
 html body.browse-doomscroll .load-state,
 html body.browse-doomscroll .site-legal-links,
 html body.browse-doomscroll .site-legal-links a { color: #704554 !important; background-color: transparent !important; }
+html body.browse-doomscroll .site-legal-links {
+  border-top-color: #c97073 !important;
+  background: linear-gradient(100deg, #ffe4b9f2, #ffc9afea 55%, #df8a91ed) !important;
+  box-shadow: inset 0 1px #fff4e099 !important;
+}
+html body.browse-doomscroll .site-legal-links a {
+  color: #54273d !important;
+  font-weight: 800;
+  text-decoration-color: #b35c68 !important;
+}
 
 /* Marketplace, People, Communities, and Services are one readable sunset
    control bar in Doomscroll. This stays local to Doomscroll rather than
