@@ -311,9 +311,26 @@ html body.browse-doomscroll .listing-stream { overflow-x: clip !important; overf
 html body.browse-doomscroll .listing-stream::-webkit-scrollbar { display: none; }
 html body.browse-doomscroll #sentinel { position: static !important; }
 
-/* Keep navigation available in Doomscroll; only the old horizontal rail is
-   removed. The warmer dock remains part of the light sunset interface. */
-html body.browse-doomscroll .bottom-nav { display: grid !important; }
+/* Persistent dock uses flex for its five navigation buttons; grid inherited
+   an older four-column layout and made the bar collapse in Doomscroll. */
+html body.browse-doomscroll .bottom-nav { display: flex !important; align-items: stretch; background: linear-gradient(100deg,#ffe4b9f2,#ffc9afea 55%,#df8a91ed) !important; border-top-color: #c97073 !important; }
+html body.browse-doomscroll .bottom-nav button { flex: 1 1 20% !important; width: 20% !important; color: #6b4655 !important; background: transparent !important; border-right-color: #ce8e8c !important; }
+html body.browse-doomscroll .bottom-nav button.active { color: #54273d !important; background: linear-gradient(180deg,#ffe1a1b5,#f6b17c8c) !important; }
+
+/* Remaining listing overlays and utility strips inherit the sunset palette
+   instead of the dark marketplace defaults. */
+html body.browse-doomscroll .media .grade,
+html body.browse-doomscroll .media .image-count { color: #542b40 !important; background: #ffe5bddd !important; border-color: #c87070 !important; box-shadow: 0 3px 10px #8643584d !important; }
+html body.browse-doomscroll .listing-copy .listing-location,
+html body.browse-doomscroll .listing-proximity span,
+html body.browse-doomscroll .listing-proximity strong { color: #5a3a47 !important; background: #ffe4c9e8 !important; border-color: #d48a7d !important; }
+html body.browse-doomscroll .listing-proximity strong { color: #24563f !important; border-color: #559b72 !important; background: #d7f0d7e8 !important; }
+html body.browse-doomscroll .collector-head>b { color: #a24f5c !important; background: #ffe5bde8 !important; border-color: #cf857c !important; }
+html body.browse-doomscroll .collector-head em { color: #57293e !important; background: #ffd27fe8 !important; border-color: #c6706d !important; }
+html body.browse-doomscroll .vip-savings,
+html body.browse-doomscroll .load-state,
+html body.browse-doomscroll .site-legal-links,
+html body.browse-doomscroll .site-legal-links a { color: #704554 !important; background-color: transparent !important; }
 .puppy-game-playfield { position: fixed; z-index: 3; top: clamp(148px,20vh,214px); right:0; bottom:86px; left:0; overflow: hidden; pointer-events: none; }
 .puppy-game-layer { position: absolute; inset: 0; overflow: hidden; }
 .puppy-game-pup { --puppy-x:50%; --puppy-y:82%; position: absolute; top:var(--puppy-y); left:var(--puppy-x); z-index:2; width:76px; height:76px; transform:translate(-50%,-82%); transition:filter .12s ease; }
