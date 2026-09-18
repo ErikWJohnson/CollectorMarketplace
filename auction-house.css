@@ -13,7 +13,10 @@ body.auction-mode{background:#090a0b}.auction-mode .app-shell{width:100%;max-wid
 
 /* A cinematic waterfall carries through the empty Auction House backdrop,
    while each bidding surface retains enough dark glass for legible pricing. */
-body.auction-mode { background: #071216; }
+body.auction-mode {
+  background: linear-gradient(#041014a8, #041014a8), url("/public/auction-waterfall.png") center 35% / cover fixed no-repeat #071216;
+  animation: auction-waterfall-page-flow 10s ease-in-out infinite alternate;
+}
 .auction-mode .app-shell,
 .auction-mode .market-stage,
 .auction-mode .listing-stream { background: transparent; }
@@ -21,7 +24,7 @@ body.auction-mode { background: #071216; }
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  background: #071216;
+  background: transparent;
 }
 .auction-house::before,
 .auction-house::after {
@@ -36,7 +39,7 @@ body.auction-mode { background: #071216; }
   opacity: .78;
   background: url("/public/auction-waterfall.png") center 32% / cover no-repeat;
   filter: saturate(.78) contrast(1.08) brightness(.68);
-  animation: auction-waterfall-flow 18s ease-in-out infinite alternate;
+  animation: auction-waterfall-flow 9s ease-in-out infinite alternate;
 }
 .auction-house::after {
   background: linear-gradient(90deg, #041014c9, #06171a66 35%, #07171b73 68%, #02090ccf), linear-gradient(180deg, #02090cbe, transparent 28%, #041013ac 100%);
@@ -51,4 +54,8 @@ body.auction-mode { background: #071216; }
   from { transform: scale(1.04) translate3d(0, -1.6%, 0); background-position: center 26%; }
   to { transform: scale(1.1) translate3d(0, 2.4%, 0); background-position: center 52%; }
 }
-@media (prefers-reduced-motion: reduce) { .auction-house::before { animation: none; } }
+@keyframes auction-waterfall-page-flow {
+  from { background-position: center 30%; }
+  to { background-position: center 58%; }
+}
+@media (prefers-reduced-motion: reduce) { body.auction-mode, .auction-house::before { animation: none; } }

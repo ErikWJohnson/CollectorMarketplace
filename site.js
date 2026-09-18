@@ -12,12 +12,24 @@ const modal = document.querySelector('#modal');
 const modalContent = document.querySelector('#modal-content');
 let listings = [], auctions = [], accounts = [], collectives = [], brands = [], couriers = [], chatrooms = [], deliveries = [], uploadedListingImages = [], uploadedListingVideos = [], activeCategory = 'All', activeQuery = '', activeTags = [], searchScope = 'listings', sortMode = 'popular', page = 1, observer, searchRenderTimer, auctionClock;
 const siteThemeAudio = document.querySelector('#site-theme-audio');
+const auctionWaterfallAudio = document.querySelector('#auction-waterfall-audio');
 const rocketBoostAudio = document.querySelector('#rocket-boost-audio');
 const gameLaserAudio = document.querySelector('#game-laser-audio');
 const gameAsteroidAudio = document.querySelector('#game-asteroid-audio');
 const gameSpaceshipExplosionAudio = document.querySelector('#game-spaceship-explosion-audio');
 const puppyJumpAudio = document.querySelector('#puppy-jump-audio');
 const puppyAngerAudio = document.querySelector('#puppy-anger-audio');
+const startAuctionWaterfall = () => {
+  if (!auctionWaterfallAudio) return;
+  auctionWaterfallAudio.loop = true;
+  auctionWaterfallAudio.volume = 0.28;
+  auctionWaterfallAudio.play().catch(() => {});
+};
+const stopAuctionWaterfall = () => {
+  if (!auctionWaterfallAudio) return;
+  auctionWaterfallAudio.pause();
+  auctionWaterfallAudio.currentTime = 0;
+};
 const siteThemeControl = document.querySelector('[data-site-theme-toggle]');
 const siteThemePlaylist = [
   { name: 'Finding the Old Docks', src: '/public/finding-the-old-docks.mp3' },
@@ -631,6 +643,7 @@ document.addEventListener('click', event => { if (event.target.closest('[data-pu
 
 function syncBrowseModeUi() {
   const auctionActive = document.body.classList.contains('auction-mode');
+  if (!auctionActive) stopAuctionWaterfall();
   const browseSurface = !document.body.classList.contains('app-section-mode') && !modal.open;
   const conveyor = browseMode === 'conveyor' && searchScope === 'listings' && browseSurface && !auctionActive;
   const doomscroll = browseMode === 'doomscroll' && searchScope === 'listings' && browseSurface && !auctionActive;
@@ -1058,7 +1071,7 @@ function renderFeed(reset = true) {
   document.querySelector('#result-count').textContent = `${rows.length} listed`; sentinel.textContent = browseMode === 'conveyor' ? 'Conveyor mode · looping continuously' : page * 4 < rows.length ? 'Scroll for more finds ↓' : 'You are all caught up.'; syncBrowseModeUi(); renderVisibleCheckoutEstimates();
 }
 function openAppSection(kind, title, copy, content = '') {
-  if (modal.open) modal.close(); stopAutoScroll(); stopConveyor(); clearInterval(auctionClock); clearInterval(auctionFeedClock);
+  if (modal.open) modal.close(); stopAutoScroll(); stopConveyor(); stopAuctionWaterfall(); clearInterval(auctionClock); clearInterval(auctionFeedClock);
   document.querySelector('.conveyor-smog-layer')?.remove();
   document.querySelector('.conveyor-orbit-layer')?.remove();
   document.body.classList.remove('auction-mode', 'browse-conveyor', 'chat-open', 'account-open', 'purchase-open', 'comments-open', 'app-section-chat', 'app-section-account');
@@ -1331,7 +1344,7 @@ function renderAuctionHouse() {
   stream.innerHTML = `<section class="auction-house"><header class="auction-head"><div><p><i></i> Live bidding floor</p><h1>Auction House</h1></div><div class="auction-head-meta"><strong>${auctions.length}</strong><span>Lots open now</span></div></header><div class="auction-ticker"><span>LIVE</span><div>${auctions.map(item => `<button type="button" data-auction-select="${item.id}">${safe(item.title)} <b>${money(item.currentBid)}</b></button>`).join('')}</div></div><main class="auction-stage"><section class="auction-showcase"><div class="auction-art"><img src="${safe(lot.image)}" alt="${safe(lot.title)}"><span class="auction-lot-number">LOT ${String(auctions.indexOf(lot) + 1).padStart(2, '0')}</span><div class="auction-countdown"><small>Closing in</small><strong data-auction-clock="${lot.id}">${auctionTime(lot)}</strong></div></div><div class="auction-details"><p class="auction-category">${safe(lot.category)} · Live lot</p><h2>${safe(lot.title)}</h2><p class="auction-description">A featured collector lot, presented live. Review the current bid, join the room, and place your bid before the floor closes.</p><div class="auction-price"><span>Current bid</span><strong>${money(lot.currentBid)}</strong><small>${lot.bids} bids placed</small></div><form class="auction-bid-panel" data-auction-bid-form="${lot.id}"><label>Your maximum bid<input name="amount" required type="number" inputmode="decimal" min="${minimum}" step="1" value="${minimum}" aria-label="Your maximum bid"></label><div class="auction-quick-bids"><button type="button" data-bid-add="10">+ $10</button><button type="button" data-bid-add="25">+ $25</button><button type="button" data-bid-add="50">+ $50</button></div><button class="auction-bid" type="submit">Place live bid <span>→</span></button><small>By placing a bid, you agree to the auction terms.</small></form><button type="button" class="voice-start auction-voice" data-voice-room="auction:${lot.id}" data-voice-label="Auction voice · ${safe(lot.title)}">Join the live voice room</button></div></section><aside class="auction-live-panel"><header><span><i></i> Floor activity</span><small>Updates live</small></header><div class="auction-activity" aria-live="polite">${activity.length ? activity.map(row => `<article><b>${safe(row.initials)}</b><p><strong>${safe(row.name)}</strong> placed a bid <em>${money(row.amount)}</em><small>${safe(row.time)}</small></p></article>`).join('') : `<div class="auction-awaiting"><i>◇</i><strong>The floor is open</strong><span>New bids will appear here in real time.</span></div>`}</div><div class="auction-confidence"><span>Buyer protection</span><p>Verified accounts, binding bids, and protected checkout after the auction closes.</p></div></aside></main><section class="auction-lot-rail"><header><div><p>Tonight's catalogue</p><h2>Explore live lots</h2></div><span>Choose a lot to enter its bidding floor</span></header><div class="auction-grid">${auctions.map((item, index) => `<button type="button" class="auction-card ${item.id === lot.id ? 'is-active' : ''}" data-auction-select="${item.id}"><span class="auction-card-image"><img src="${safe(item.image)}" alt=""><i>LOT ${String(index + 1).padStart(2, '0')}</i></span><span class="auction-info"><small>${safe(item.category)}</small><strong>${safe(item.title)}</strong><span><b>${money(item.currentBid)}</b><em data-auction-clock="${item.id}">${auctionTime(item)}</em></span></span></button>`).join('')}</div></section></section>`;
   updateAuctionClocks();
 }
-function showAuctionHouse() { if (observer) observer.disconnect(); clearInterval(auctionClock); sentinel.hidden = true; document.body.classList.remove('app-section-mode', 'app-section-chat', 'app-section-account'); document.body.classList.add('auction-mode'); syncBrowseModeUi(); if (!activeAuctionId) activeAuctionId = auctions[0]?.id; renderAuctionHouse(); auctionClock = setInterval(updateAuctionClocks, 1000); startAuctionFeed(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+function showAuctionHouse() { if (observer) observer.disconnect(); clearInterval(auctionClock); sentinel.hidden = true; document.body.classList.remove('app-section-mode', 'app-section-chat', 'app-section-account'); document.body.classList.add('auction-mode'); startAuctionWaterfall(); syncBrowseModeUi(); if (!activeAuctionId) activeAuctionId = auctions[0]?.id; renderAuctionHouse(); auctionClock = setInterval(updateAuctionClocks, 1000); startAuctionFeed(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
 document.addEventListener('click', event => {
   if (event.target.closest('.delivery-update-form, .delivery-message-form, .trade-message-form')) return;
@@ -1401,7 +1414,7 @@ document.addEventListener('click', event => {
   if (action?.matches('[data-policy]')) { setWorkspaceHash('fees'); openModal('Marketplace fees', 'Standard purchase fees are 4% per side. Curator members pay 1% on their own side for $150/month. Buyers pay taxes and delivery; courier pay is the greater of $8 or $0.10 per mile, plus packaging. Transaction and delivery terms are policy drafts pending legal review.'); }
   if (action?.matches('[data-auction]')) { setWorkspaceHash('auction-house'); activateNav('auction'); showAuctionHouse(); }
   if (event.target.closest('.like')) { const like = event.target.closest('.like'); like.textContent = like.textContent === '♡' ? '♥' : '♡'; like.classList.toggle('liked'); }
-  if (action?.matches('[data-market],[data-home]')) { setWorkspaceHash('browse'); document.body.classList.remove('auction-mode', 'app-section-mode', 'app-section-chat', 'app-section-account'); clearInterval(auctionClock); clearInterval(auctionFeedClock); activateNav(action.matches('[data-market]') ? 'market' : 'home'); sentinel.hidden = false; activeCategory = 'All'; setQuery(''); setDiscoveryMode(activeTags.length || lockedTags.length || voidTags.length ? 'tags' : 'search'); renderTags(); renderCategories(); renderFeed(); if (observer) observer.observe(sentinel); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  if (action?.matches('[data-market],[data-home]')) { setWorkspaceHash('browse'); stopAuctionWaterfall(); document.body.classList.remove('auction-mode', 'app-section-mode', 'app-section-chat', 'app-section-account'); clearInterval(auctionClock); clearInterval(auctionFeedClock); activateNav(action.matches('[data-market]') ? 'market' : 'home'); sentinel.hidden = false; activeCategory = 'All'; setQuery(''); setDiscoveryMode(activeTags.length || lockedTags.length || voidTags.length ? 'tags' : 'search'); renderTags(); renderCategories(); renderFeed(); if (observer) observer.observe(sentinel); window.scrollTo({ top: 0, behavior: 'smooth' }); }
   if (event.target.matches('.close')) modal.close();
 });
 search.addEventListener('input', event => { setDiscoveryMode('search'); clearTimeout(searchRenderTimer); const value = event.target.value; searchRenderTimer = setTimeout(() => setQuery(value), 140); });
@@ -1508,7 +1521,7 @@ document.addEventListener('click', event => { const toggle = event.target.closes
 document.addEventListener('paste', async event => { const form = event.target.closest?.('.listing-form'); if (!form) return; const images = [...(event.clipboardData?.files || [])].filter(file => file.type.startsWith('image/')); if (!images.length) return; event.preventDefault(); try { await prepareListingFiles(images, true); } catch (error) { showError(error); } });
 document.addEventListener('paste', async event => { const form = event.target.closest?.('.profile-form'); if (!form) return; const song = [...(event.clipboardData?.files || [])].find(file => file.type === 'audio/mpeg' || file.type === 'audio/mp3' || /\.mp3$/i.test(file.name)); if (!song) return; event.preventDefault(); try { const input = form.querySelector('[name="lobbySong"]'); const status = form.querySelector('[data-lobby-song-status]'); if (input) input.value = await readLobbySong(song); if (status) status.textContent = `${song.name || 'MP3'} ready to save.`; } catch (error) { showError(error); } });
 document.addEventListener('click', async event => { const link = event.target.closest('[data-copy-url]'); if (!link) return; event.preventDefault(); const url = link.dataset.copyUrl; try { await navigator.clipboard.writeText(url); const original = link.textContent; link.textContent = 'URL copied'; link.setAttribute('aria-label', 'URL copied to clipboard'); setTimeout(() => { link.textContent = original; link.setAttribute('aria-label', 'Copy CollectorMarketplace.net URL'); }, 1400); } catch { link.title = `Copy this URL: ${url}`; } });
-window.addEventListener('pagehide', () => voiceChat.leave());
+window.addEventListener('pagehide', () => { voiceChat.leave(); stopAuctionWaterfall(); });
 
 const auctionLotTags = lot => [lot.category, ...(Array.isArray(lot.tags) ? lot.tags : [])].filter(Boolean).map(tag => tag.toLowerCase());
 const filteredAuctions = () => auctions.filter(lot => {
@@ -1535,7 +1548,7 @@ const renderFilteredAuctionHouse = () => {
   renderAuctionHouse();
   auctions = allLots;
 };
-showAuctionHouse = () => { auctionTagView = true; if (observer) observer.disconnect(); clearInterval(auctionClock); sentinel.hidden = true; document.body.classList.remove('app-section-mode', 'app-section-chat', 'app-section-account'); document.body.classList.add('auction-mode'); syncBrowseModeUi(); renderFilteredAuctionHouse(); auctionClock = setInterval(updateAuctionClocks, 1000); startAuctionFeed(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+showAuctionHouse = () => { auctionTagView = true; if (observer) observer.disconnect(); clearInterval(auctionClock); sentinel.hidden = true; document.body.classList.remove('app-section-mode', 'app-section-chat', 'app-section-account'); document.body.classList.add('auction-mode'); startAuctionWaterfall(); syncBrowseModeUi(); renderFilteredAuctionHouse(); auctionClock = setInterval(updateAuctionClocks, 1000); startAuctionFeed(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 const refreshTaggedAuction = () => { if (auctionTagView) renderFilteredAuctionHouse(); };
 document.addEventListener('click', event => {
   if (event.target.closest('[data-home], [data-market]')) auctionTagView = false;
