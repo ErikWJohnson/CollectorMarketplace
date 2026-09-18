@@ -14,9 +14,6 @@ let listings = [], auctions = [], accounts = [], collectives = [], brands = [], 
 const siteThemeAudio = document.querySelector('#site-theme-audio');
 const siteThemeControl = document.querySelector('[data-site-theme-toggle]');
 const siteThemePlaylist = [
-  { name: 'TeknoAXE', src: '/public/teknoaxe-site-theme.mp3' },
-  { name: 'Johnny Five', src: '/public/johnny-five-industrial.mp3' },
-  { name: 'Zebra Freak', src: '/public/zebra-freak-industrial.mp3' },
   { name: 'Finding the Old Docks', src: '/public/finding-the-old-docks.mp3' }
 ];
 function initializeSiteTheme() {
@@ -48,8 +45,7 @@ function initializeSiteTheme() {
   };
   siteThemeAudio.addEventListener('play', render); siteThemeAudio.addEventListener('pause', render); siteThemeAudio.addEventListener('volumechange', render);
   siteThemeAudio.addEventListener('ended', advanceTrack);
-  siteThemeControl.addEventListener('click', event => {
-    if (event.target.closest('[data-site-theme-skip]')) { advanceTrack(); return; }
+  siteThemeControl.addEventListener('click', () => {
     if (siteThemeAudio.paused) { siteThemeAudio.muted = false; localStorage.setItem('collector-marketplace-theme-muted', 'false'); start(); return; }
     siteThemeAudio.muted = !siteThemeAudio.muted; localStorage.setItem('collector-marketplace-theme-muted', String(siteThemeAudio.muted)); render();
   });
