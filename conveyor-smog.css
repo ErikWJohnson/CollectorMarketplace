@@ -188,6 +188,10 @@ html body.browse-doomscroll .listing-copy p { background: #08090a !important; }
 /* Doomscroll gets a sunrise-friendly light interface only while its cloud
    scene is active. Other browsing modes and all app workspaces remain dark. */
 html body.browse-doomscroll { color: #1d2933; --cream: #1d2933; --blue: #466f89; --line: #bb9f93; background: radial-gradient(ellipse at 50% 0,#f5a2ae 0,#c85987 44%,#813566 100%) !important; }
+/* The page layer behind transparent cloud pixels must match the UI itself,
+   not the older magenta sky that preceded the Doomscroll palette. */
+html:has(body.browse-doomscroll),
+html body.browse-doomscroll { background: #ffc9af !important; }
 html body.browse-doomscroll .masthead { background: #fff8f0ed !important; border-bottom-color: #d79c82 !important; }
 html body.browse-doomscroll .mast-word a,
 html body.browse-doomscroll .header-nav button,
