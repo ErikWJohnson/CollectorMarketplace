@@ -338,6 +338,28 @@ function startConveyor() {
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden && browseMode === 'conveyor' && searchScope === 'listings' && !modal.open && !document.body.classList.contains('auction-mode')) startConveyor();
 });
+const zodiacConstellations = [
+  ['Aries', '18,94 58,62 98,78 138,34', 5, 22, 31, 2],
+  ['Taurus', '22,35 62,72 105,42 148,83 190,51', 24, 69, 36, 8],
+  ['Gemini', '20,28 59,66 58,119 101,42 102,104 147,72', 48, 78, 33, 13],
+  ['Cancer', '20,48 61,28 99,54 139,84 181,63', 72, 65, 41, 6],
+  ['Leo', '20,82 52,43 89,64 119,27 157,69 193,46', 78, 17, 38, 16],
+  ['Virgo', '18,54 52,22 88,67 128,38 165,88 202,59', 53, 41, 44, 10],
+  ['Libra', '20,83 61,44 102,78 144,40 185,71', 8, 48, 35, 19],
+  ['Scorpio', '18,29 56,69 91,38 128,82 166,54 202,99', 37, 7, 40, 4],
+  ['Sagittarius', '20,101 55,63 95,87 132,32 172,59 204,23', 62, 50, 42, 14],
+  ['Capricorn', '20,39 60,77 100,44 140,91 181,55', 14, 81, 39, 11],
+  ['Aquarius', '20,42 54,83 91,46 127,78 165,39 201,74', 83, 45, 37, 7],
+  ['Pisces', '20,76 58,40 99,69 139,31 181,64 205,23', 38, 26, 45, 18]
+];
+
+function zodiacSkyMarkup() {
+  return zodiacConstellations.map(([sign, points, top, left, duration, delay]) => {
+    const stars = points.split(' ').map(pair => { const [cx, cy] = pair.split(','); return `<circle cx="${cx}" cy="${cy}" r="2.7"/>`; }).join('');
+    return `<svg class="conveyor-constellation zodiac-constellation" style="--z-top:${top}%;--z-left:${left}%;--z-duration:${duration}s;--z-delay:-${delay}s" viewBox="0 0 225 130"><text x="10" y="124">${sign}</text><polyline points="${points}"/>${stars}</svg>`;
+  }).join('');
+}
+
 function syncBrowseModeUi() {
   const auctionActive = document.body.classList.contains('auction-mode');
   const browseSurface = !document.body.classList.contains('app-section-mode') && !modal.open;
@@ -347,7 +369,7 @@ function syncBrowseModeUi() {
   if (conveyor && !smog) { smog = document.createElement('div'); smog.className = 'conveyor-smog-layer'; smog.setAttribute('aria-hidden', 'true'); smog.innerHTML = '<span></span><span></span><span></span><span></span><span></span>'; document.body.append(smog); }
   if (!conveyor) smog?.remove();
   let orbit = document.querySelector('.conveyor-orbit-layer');
-  if (conveyor && !orbit) { orbit = document.createElement('div'); orbit.className = 'conveyor-orbit-layer'; orbit.setAttribute('aria-hidden', 'true'); orbit.innerHTML = '<i></i><i></i><i></i><b class="conveyor-earth"><em></em><em></em></b><svg class="conveyor-constellation constellation-a" viewBox="0 0 240 150"><polyline points="18,104 63,64 112,82 155,34 211,57"/><circle cx="18" cy="104" r="3"/><circle cx="63" cy="64" r="3"/><circle cx="112" cy="82" r="3"/><circle cx="155" cy="34" r="3"/><circle cx="211" cy="57" r="3"/></svg><svg class="conveyor-constellation constellation-b" viewBox="0 0 220 150"><polyline points="20,43 67,80 114,34 160,91 204,56"/><circle cx="20" cy="43" r="3"/><circle cx="67" cy="80" r="3"/><circle cx="114" cy="34" r="3"/><circle cx="160" cy="91" r="3"/><circle cx="204" cy="56" r="3"/></svg>'; document.querySelector('.app-shell')?.prepend(orbit); }
+  if (conveyor && !orbit) { orbit = document.createElement('div'); orbit.className = 'conveyor-orbit-layer'; orbit.setAttribute('aria-hidden', 'true'); orbit.innerHTML = `<i></i><i></i><i></i><b class="conveyor-earth"><em></em><em></em></b><svg class="conveyor-constellation constellation-a" viewBox="0 0 240 150"><polyline points="18,104 63,64 112,82 155,34 211,57"/><circle cx="18" cy="104" r="3"/><circle cx="63" cy="64" r="3"/><circle cx="112" cy="82" r="3"/><circle cx="155" cy="34" r="3"/><circle cx="211" cy="57" r="3"/></svg><svg class="conveyor-constellation constellation-b" viewBox="0 0 220 150"><polyline points="20,43 67,80 114,34 160,91 204,56"/><circle cx="20" cy="43" r="3"/><circle cx="67" cy="80" r="3"/><circle cx="114" cy="34" r="3"/><circle cx="160" cy="91" r="3"/><circle cx="204" cy="56" r="3"/></svg>${zodiacSkyMarkup()}`; document.querySelector('.app-shell')?.prepend(orbit); }
   if (!conveyor) orbit?.remove();
   const button = document.querySelector('[data-browse-mode]');
   if (button) { button.disabled = searchScope !== 'listings' || auctionActive; button.firstChild.textContent = browseMode === 'conveyor' ? 'Conveyor ' : 'Doomscroll '; button.setAttribute('aria-label', `Browsing mode: ${browseMode}. Press Q to switch.`); button.setAttribute('aria-pressed', String(browseMode === 'conveyor')); }

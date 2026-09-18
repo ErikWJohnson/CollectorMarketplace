@@ -126,6 +126,9 @@
 
 .constellation-a { top: 15%; left: 9%; }
 .constellation-b { right: 13%; bottom: 17%; width: min(23vw, 230px); fill: #f4dc97; stroke: #e5bd5b9b; filter: drop-shadow(0 0 5px #e0b75c8a); animation-duration: 36s; animation-direction: reverse; }
+.zodiac-constellation { top: var(--z-top); left: var(--z-left); width: min(13vw, 146px); fill: #dcecff; stroke: #9cc8eea8; opacity: .46; animation-duration: var(--z-duration); animation-delay: var(--z-delay); }
+.zodiac-constellation:nth-of-type(2n) { fill: #f7df9c; stroke: #efd082a8; filter: drop-shadow(0 0 5px #e6bf6094); }
+.zodiac-constellation text { fill: #d9e9fb; stroke: none; font: 700 8px "DM Mono", monospace; letter-spacing: .1em; opacity: .82; text-transform: uppercase; }
 
 @keyframes conveyor-constellation-orbit {
   0% { transform: translate3d(-5vw, 4vh, 0) rotate(-12deg); opacity: .32; }
