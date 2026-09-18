@@ -339,24 +339,28 @@ document.addEventListener('visibilitychange', () => {
   if (!document.hidden && browseMode === 'conveyor' && searchScope === 'listings' && !modal.open && !document.body.classList.contains('auction-mode')) startConveyor();
 });
 const zodiacConstellations = [
-  ['Aries', '18,94 58,62 98,78 138,34', 5, 22, 31, 2],
-  ['Taurus', '22,35 62,72 105,42 148,83 190,51', 24, 69, 36, 8],
-  ['Gemini', '20,28 59,66 58,119 101,42 102,104 147,72', 48, 78, 33, 13],
-  ['Cancer', '20,48 61,28 99,54 139,84 181,63', 72, 65, 41, 6],
-  ['Leo', '20,82 52,43 89,64 119,27 157,69 193,46', 78, 17, 38, 16],
-  ['Virgo', '18,54 52,22 88,67 128,38 165,88 202,59', 53, 41, 44, 10],
-  ['Libra', '20,83 61,44 102,78 144,40 185,71', 8, 48, 35, 19],
-  ['Scorpio', '18,29 56,69 91,38 128,82 166,54 202,99', 37, 7, 40, 4],
-  ['Sagittarius', '20,101 55,63 95,87 132,32 172,59 204,23', 62, 50, 42, 14],
-  ['Capricorn', '20,39 60,77 100,44 140,91 181,55', 14, 81, 39, 11],
-  ['Aquarius', '20,42 54,83 91,46 127,78 165,39 201,74', 83, 45, 37, 7],
-  ['Pisces', '20,76 58,40 99,69 139,31 181,64 205,23', 38, 26, 45, 18]
+  // Distinct traditional sky-pattern silhouettes: ram, bull horns, twins,
+  // crab, lion sickle, maiden, scales, scorpion hook, teapot, sea-goat,
+  // water waves, and the two fish joined by a cord.
+  ['Aries', ['24,94 66,55 110,72 156,30'], 5, 22, 31, 2],
+  ['Taurus', ['30,90 84,48 138,74 188,50', '84,48 65,20', '84,48 122,18'], 24, 69, 36, 8],
+  ['Gemini', ['35,22 64,50 50,94 30,116', '128,22 156,51 147,94 177,116', '64,50 156,51'], 48, 78, 33, 13],
+  ['Cancer', ['22,88 61,51 102,72 143,34 193,61'], 72, 65, 41, 6],
+  ['Leo', ['20,95 51,61 88,72 112,40 135,66 116,98 154,110 200,76'], 78, 17, 38, 16],
+  ['Virgo', ['22,38 57,64 86,30 116,72 151,46 180,95', '116,72 92,112'], 53, 41, 44, 10],
+  ['Libra', ['32,37 90,30 152,59 99,101 32,37', '99,101 176,103'], 8, 48, 35, 19],
+  ['Scorpio', ['20,28 52,56 86,43 117,76 148,65 179,104 205,95'], 37, 7, 40, 4],
+  ['Sagittarius', ['42,85 72,44 129,43 159,84 42,85', '72,44 53,20', '129,43 155,20', '159,84 199,99'], 62, 50, 42, 14],
+  ['Capricorn', ['22,42 61,74 101,38 140,90 180,56', '61,74 83,111 140,90'], 14, 81, 39, 11],
+  ['Aquarius', ['20,39 51,63 82,42 113,67 145,46 177,70', '20,78 51,102 82,81 113,106 145,85 177,109'], 83, 45, 37, 7],
+  ['Pisces', ['20,52 46,26 75,51 49,79 20,52', '133,53 162,23 195,51 163,81 133,53', '75,51 133,53'], 38, 26, 45, 18]
 ];
 
 function zodiacSkyMarkup() {
-  return zodiacConstellations.map(([sign, points, top, left, duration, delay]) => {
-    const stars = points.split(' ').map(pair => { const [cx, cy] = pair.split(','); return `<circle cx="${cx}" cy="${cy}" r="2.7"/>`; }).join('');
-    return `<svg class="conveyor-constellation zodiac-constellation" style="--z-top:${top}%;--z-left:${left}%;--z-duration:${duration}s;--z-delay:-${delay}s" viewBox="0 0 225 130"><text x="10" y="124">${sign}</text><polyline points="${points}"/>${stars}</svg>`;
+  return zodiacConstellations.map(([sign, lines, top, left, duration, delay]) => {
+    const stars = [...new Set(lines.flatMap(points => points.split(' ')))].map(pair => { const [cx, cy] = pair.split(','); return `<circle cx="${cx}" cy="${cy}" r="2.7"/>`; }).join('');
+    const paths = lines.map(points => `<polyline points="${points}"/>`).join('');
+    return `<svg class="conveyor-constellation zodiac-constellation zodiac-${sign.toLowerCase()}" aria-label="${sign} constellation" style="--z-top:${top}%;--z-left:${left}%;--z-duration:${duration}s;--z-delay:-${delay}s" viewBox="0 0 225 130">${paths}${stars}</svg>`;
   }).join('');
 }
 
