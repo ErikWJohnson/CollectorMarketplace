@@ -225,6 +225,39 @@ html body.browse-doomscroll .puppy-game-hud b { color: #9c4e54; }
 html body.browse-doomscroll .puppy-game-hud span,
 html body.browse-doomscroll .puppy-game-hud small,
 html body.browse-doomscroll .puppy-game-hud em { color: #624751; border-color: #e8c6ab; }
+
+/* Catch every remaining browse control, including the controls rendered by
+   JavaScript after the page loads. More specific action colors follow below. */
+html body.browse-doomscroll button,
+html body.browse-doomscroll select,
+html body.browse-doomscroll input,
+html body.browse-doomscroll textarea { color: #283741; background-color: #fffaf3e8; border-color: #d7ad99; }
+html body.browse-doomscroll button:hover,
+html body.browse-doomscroll button:focus-visible,
+html body.browse-doomscroll select:focus,
+html body.browse-doomscroll input:focus { color: #3d2835; border-color: #b76e68; background-color: #fff1df; outline-color: #b76e68; }
+html body.browse-doomscroll .search-mode-bar,
+html body.browse-doomscroll .search-scope,
+html body.browse-doomscroll .search-scope section,
+html body.browse-doomscroll .listing-filter-controls,
+html body.browse-doomscroll .tag-group,
+html body.browse-doomscroll .category-row { color: #384753; background: #fff7eed9 !important; border-color: #ddb39d !important; }
+html body.browse-doomscroll input::placeholder,
+html body.browse-doomscroll textarea::placeholder { color: #8a7776 !important; }
+html body.browse-doomscroll .search-scope button.active,
+html body.browse-doomscroll .browse-mode-toggle[aria-pressed="true"],
+html body.browse-doomscroll .checkout-preference[aria-pressed="true"] { color: #3d2535 !important; background: #ffd18f !important; border-color: #b76e68 !important; }
+html body.browse-doomscroll .listing-actions .listing-action,
+html body.browse-doomscroll .vote-control,
+html body.browse-doomscroll .vote-control output,
+html body.browse-doomscroll .favorite-button,
+html body.browse-doomscroll .comment-button { color: #354651 !important; background: #fffaf2ed !important; border-color: #d8ad98 !important; }
+html body.browse-doomscroll .listing-actions .listing-action:hover,
+html body.browse-doomscroll .favorite-button.selected,
+html body.browse-doomscroll .vote.selected { color: #7f3048 !important; background: #ffe0bc !important; border-color: #bd776f !important; }
+html body.browse-doomscroll .listing-actions .action-buy,
+html body.browse-doomscroll .listing-actions .action-buy:hover { color: #fffdf8 !important; background: #387e59 !important; border-color: #25603f !important; }
+html body.browse-doomscroll .listing-actions .trade { color: #314e67 !important; }
 .puppy-game-playfield { position: fixed; z-index: 3; inset: 58px 0 86px; overflow: hidden; pointer-events: none; }
 .puppy-game-layer { position: absolute; inset: 0; overflow: hidden; }
 .puppy-game-pup { --puppy-x:50%; --puppy-y:82%; position: absolute; top:var(--puppy-y); left:var(--puppy-x); z-index:2; width:76px; height:76px; transform:translate(-50%,-82%); transition:filter .12s ease; }
