@@ -445,9 +445,8 @@ html body.browse-doomscroll .directory-actions .directory-primary {
 .puppy-game-pup img { display:block; width:132%; height:132%; margin:-16%; object-fit:contain; filter:drop-shadow(0 7px 6px #163a5580); }
 .puppy-game-pup.is-hopping img { animation: puppy-pup-bob .23s ease-in-out infinite alternate; }
 .puppy-game-cloud { position:absolute; top:var(--y); left:var(--x); width:var(--width); aspect-ratio:3 / 1; transform:translate(-50%,-50%); background:url("/public/puppy-jump-cloud.png") center / contain no-repeat; filter:drop-shadow(0 7px 9px #57203c75); }
-.puppy-game-airship { position:absolute; top:var(--y); left:var(--x); width:58px; height:24px; transform:translate(-50%,-50%); border:2px solid #542442; border-radius:48% 48% 40% 40%; background:linear-gradient(180deg,#e6a661 0 20%,#9d3151 22% 58%,#4a2044 60%); box-shadow:inset 0 3px #ffe5ad9e,0 8px 14px #4b173a92; }
-.puppy-game-airship::before { position:absolute; bottom:18px; left:9px; width:36px; height:27px; content:""; border:2px solid #542442; border-radius:50% 50% 42% 42%; background:radial-gradient(circle at 38% 31%,#e9f5ff 0 13%,#76a6d1 15% 33%,#315170 35% 100%); box-shadow:inset 0 2px #ffffff9c; }
-.puppy-game-airship::after { position:absolute; top:7px; right:-10px; width:16px; height:7px; content:""; border:2px solid #542442; border-left:0; border-radius:0 8px 8px 0; background:#cf6e55; }
+.puppy-game-anger { position:absolute; top:var(--y); left:var(--x); width:46px; height:46px; transform:translate(-50%,-50%); filter:drop-shadow(0 7px 8px #54203d8a); animation:puppy-anger-float 1.25s ease-in-out infinite alternate; }
+.puppy-game-anger::before { display:grid; width:100%; height:100%; place-items:center; content:"😡"; font:38px/1 system-ui,"Apple Color Emoji","Segoe UI Emoji",sans-serif; text-shadow:0 2px 0 #7e3047,0 0 10px #ffcc6c8a; }
 .puppy-game-laser { position:absolute; top:var(--y); left:var(--x); width:3px; height:22px; transform:translate(-50%,-100%); border-radius:999px; background:linear-gradient(#fff,#f9f091 32%,#ff8c49 72%,transparent); box-shadow:0 0 6px 2px #ffd26b,0 0 14px 4px #ff7e5066; }
 .puppy-game-playfield:not(.is-running) .puppy-game-pup,.puppy-game-playfield:not(.is-running) .puppy-game-layer { display:none; }
 .puppy-game-hud { position:absolute; z-index:4; top:0; left:0; display:grid; grid-template-columns:1fr; width:156px; min-height:46px; gap:4px; margin:0; padding:7px 8px; border:1px solid #f2cf659a; border-radius:7px; background:linear-gradient(135deg,#281333f2,#5a2444ec); box-shadow:0 8px 20px #170b1d99,inset 0 1px #ffffff26; color:#ffeef0; font:700 8px "DM Mono",monospace; letter-spacing:.04em; pointer-events:auto; }
@@ -512,6 +511,7 @@ html body.browse-doomscroll .directory-actions .directory-primary {
 @keyframes conveyor-rocket-hit { 20%, 60% { filter: brightness(2.7) saturate(2); } 40%, 80% { transform: translate(-50%, -50%) rotate(var(--rocket-tilt)) scale(.78); } }
 @keyframes puppy-cloud-drift { from { transform:translate3d(-6vw,0,0) scale(1); } to { transform:translate3d(115vw,-2vh,0) scale(1.08); } }
 @keyframes puppy-pup-bob { from { transform:translateY(0) rotate(-2deg); } to { transform:translateY(-3px) rotate(2deg); } }
+@keyframes puppy-anger-float { from { transform:translate(-50%,-50%) rotate(-5deg) scale(.94); } to { transform:translate(-50%,calc(-50% - 5px)) rotate(5deg) scale(1.06); } }
 @keyframes puppy-sky-drift { from { background-position:center, 46% 48%; } to { background-position:center, 56% 53%; } }
 @keyframes conveyor-asteroid {
   0%, 15% { opacity: 0; margin-left: -10vw; margin-top: -3vh; }
