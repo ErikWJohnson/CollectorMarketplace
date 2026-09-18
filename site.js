@@ -501,7 +501,9 @@ function renderPuppyJumpHud() {
 }
 function resetPuppyJump() {
   const game = puppyJumpGame;
-  puppyJump.x = 50; puppyJump.y = 82; puppyJump.vx = 0; puppyJump.vy = 0;
+  // Start just above the first cloud so Play immediately gives the puppy a
+  // stable landing instead of dropping the player into an empty lane.
+  puppyJump.x = 50; puppyJump.y = 84; puppyJump.vx = 0; puppyJump.vy = .08;
   game.score = 0; game.platforms = puppyStartingPlatforms(); game.airships = []; game.lasers = []; game.jumps = 2; game.lastHud = 0; game.lastAirship = 0; game.lastShot = 0;
 }
 function startPuppyJump(node) {
@@ -549,14 +551,14 @@ function updatePuppyJump() {
   if (puppyJump.keys.has('BracketLeft')) puppyJump.vx -= .028;
   if (puppyJump.keys.has('BracketRight')) puppyJump.vx += .028;
   puppyJump.vx *= .91; puppyJump.vx = Math.max(-.44, Math.min(.44, puppyJump.vx));
-  puppyJump.vy += .047;
+  puppyJump.vy += .043;
   puppyJump.x = (puppyJump.x + puppyJump.vx + 100) % 100;
   puppyJump.y += puppyJump.vy;
-  const cloudFall = .055 + Math.min(.08, game.score / 85000);
+  const cloudFall = .038 + Math.min(.055, game.score / 100000);
   game.platforms.forEach(platform => { platform.x += platform.vx; platform.y += cloudFall; if (platform.x < platform.width / 2 + 3 || platform.x > 97 - platform.width / 2) platform.vx *= -1; });
   if (puppyJump.vy > 0) {
     const landing = game.platforms.find(platform => priorY <= platform.y && puppyJump.y >= platform.y && Math.abs(puppyJump.x - platform.x) < platform.width / 2 + 2.5);
-    if (landing) { puppyJump.y = landing.y; puppyJump.vy = 0; game.jumps = 2; game.score += 8; }
+    if (landing) { puppyJump.y = landing.y - .6; puppyJump.vy = 0; game.jumps = 2; game.score += 8; }
   }
   if (puppyJump.y < 40 && puppyJump.vy < 0) {
     const rise = Math.min(.42, 40 - puppyJump.y);
