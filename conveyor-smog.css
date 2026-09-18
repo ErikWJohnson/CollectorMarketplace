@@ -301,6 +301,13 @@ html body.browse-doomscroll .search:focus-within,
 html body.browse-doomscroll .tag-search:focus-within { border-color: #a94b61 !important; box-shadow: 0 0 0 3px #e9856c50 !important; }
 html body.browse-doomscroll .bottom-nav button.active { color: #54273d !important; background: linear-gradient(180deg,#ffe1a1a8,#f6b17c70) !important; }
 html body.browse-doomscroll .bottom-nav button.active b { color: #b04f59 !important; filter: drop-shadow(0 0 6px #f18f70a8); }
+
+/* Doomscroll is a vertical feed: never retain the Conveyor rail or its
+   follow-along dock. Listing details remain opt-in through the media button. */
+html body.browse-doomscroll .listing-stream { overflow-x: clip !important; overflow-y: visible !important; scrollbar-width: none; }
+html body.browse-doomscroll .listing-stream::-webkit-scrollbar { display: none; }
+html body.browse-doomscroll .bottom-nav { display: none !important; }
+html body.browse-doomscroll #sentinel { position: static !important; }
 .puppy-game-playfield { position: fixed; z-index: 3; top: clamp(148px,20vh,214px); right:0; bottom:86px; left:0; overflow: hidden; pointer-events: none; }
 .puppy-game-layer { position: absolute; inset: 0; overflow: hidden; }
 .puppy-game-pup { --puppy-x:50%; --puppy-y:82%; position: absolute; top:var(--puppy-y); left:var(--puppy-x); z-index:2; width:76px; height:76px; transform:translate(-50%,-82%); transition:filter .12s ease; }
