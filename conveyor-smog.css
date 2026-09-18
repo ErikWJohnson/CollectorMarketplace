@@ -168,14 +168,23 @@
 .puppy-cloud-layer i:nth-child(4) { top: 30%; right: -36vw; width: 48vw; height: 18vh; opacity: .5; animation-duration: 32s; animation-delay: -28s; }
 .puppy-cloud-layer i:nth-child(5) { top: 78%; right: -44vw; width: 62vw; height: 22vh; opacity: .6; animation-duration: 44s; animation-delay: -7s; }
 
-.browse-doomscroll .app-shell { position: relative; z-index: 1; background: transparent !important; }
+html body.browse-doomscroll .app-shell { position: relative; z-index: 1; background: transparent !important; }
 .browse-doomscroll .app-shell > :not(.puppy-game-playfield):not(.puppy-game-hud) { position: relative; z-index: 1; }
-.browse-doomscroll .mode-tabs,
-.browse-doomscroll .discovery,
-.browse-doomscroll .market-stage,
-.browse-doomscroll .listing-stream,
-.browse-doomscroll .market-head,
-.browse-doomscroll .ad { background: transparent !important; }
+html body.browse-doomscroll .mode-tabs,
+html body.browse-doomscroll .discovery,
+html body.browse-doomscroll .market-stage,
+html body.browse-doomscroll .listing-stream,
+html body.browse-doomscroll .market-head,
+html body.browse-doomscroll .ad { background: transparent !important; }
+/* Match Conveyor's open media treatment: the sunset remains visible in every
+   unused card area, while the information and controls retain their dark
+   surfaces for contrast. The html/body selector wins over older theme rules. */
+html body.browse-doomscroll .listing,
+html body.browse-doomscroll .media,
+html body.browse-doomscroll .listing .media img { background: transparent !important; }
+html body.browse-doomscroll .listing-copy { background: #0d0e10 !important; }
+html body.browse-doomscroll .listing footer { background: #0a0b0d !important; }
+html body.browse-doomscroll .listing-copy p { background: #08090a !important; }
 .puppy-game-playfield { position: fixed; z-index: 3; inset: 58px 0 86px; overflow: hidden; pointer-events: none; }
 .puppy-game-layer { position: absolute; inset: 0; overflow: hidden; }
 .puppy-game-pup { --puppy-x:50%; --puppy-y:82%; position: absolute; top:var(--puppy-y); left:var(--puppy-x); z-index:2; width:76px; height:76px; transform:translate(-50%,-82%); transition:filter .12s ease; }
