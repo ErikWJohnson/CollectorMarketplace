@@ -369,7 +369,7 @@ function zodiacSkyMarkup() {
 }
 
 const conveyorRocket = { node: null, frame: 0, x: 50, y: 76, vx: .055, vy: -.025, angle: 0, keys: new Set() };
-const conveyorRocketGame = { layer: null, hud: null, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-star-run-high-score') || 0), hull: 3, asteroids: [], enemies: [], lasers: [], enemyLasers: [], lastAsteroid: 0, lastEnemy: 0, lastScore: 0, lastShot: 0, lastHit: 0 };
+const conveyorRocketGame = { layer: null, hud: null, started: false, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-star-run-high-score') || 0), hull: 3, asteroids: [], enemies: [], lasers: [], enemyLasers: [], lastAsteroid: 0, lastEnemy: 0, lastScore: 0, lastShot: 0, lastHit: 0 };
 const rocketControlCodes = new Set(['Equal', 'BracketLeft', 'BracketRight', 'ArrowLeft', 'ArrowRight', 'Backquote']);
 const pauseRocketBoost = () => { if (!rocketBoostAudio) return; rocketBoostAudio.pause(); rocketBoostAudio.currentTime = 0; };
 const playRocketBoost = () => { if (!rocketBoostAudio || !rocketBoostAudio.paused) return; rocketBoostAudio.volume = .46; rocketBoostAudio.play().catch(() => {}); };
@@ -380,8 +380,20 @@ function startRocketGame(node) {
   const game = conveyorRocketGame;
   game.layer = node.parentElement?.querySelector('.rocket-game-layer') || null;
   game.hud = document.querySelector('.rocket-game-hud');
-  game.score = 0; game.hull = 3; game.asteroids = []; game.enemies = []; game.lasers = []; game.enemyLasers = [];
+  game.started = false; game.score = 0; game.hull = 3; game.asteroids = []; game.enemies = []; game.lasers = []; game.enemyLasers = [];
   game.lastAsteroid = 0; game.lastEnemy = 0; game.lastScore = Date.now(); game.lastShot = 0; game.lastHit = 0;
+  renderRocketGameHud();
+}
+function renderRocketGameHud() {
+  const game = conveyorRocketGame; if (!game.hud) return;
+  if (!game.started) { game.hud.innerHTML = `<b>STAR RUN</b><span>READY TO LAUNCH</span><span>HIGH ${String(game.highScore).padStart(6, '0')}</span><button type="button" data-star-run-play>▶ PLAY</button><em>PRESS PLAY TO START &nbsp;·&nbsp; [ / ] TURN &nbsp;·&nbsp; = BOOST &nbsp;·&nbsp; \` LASER</em>`; return; }
+  game.hud.innerHTML = `<b>STAR RUN</b><span>SCORE ${String(game.score).padStart(6, '0')}</span><span>HIGH ${String(game.highScore).padStart(6, '0')}</span><small>HULL ${'●'.repeat(game.hull)}${'○'.repeat(3 - game.hull)}</small><em><strong>[</strong> / <strong>]</strong> TURN &nbsp;·&nbsp; <strong>=</strong> BOOST &nbsp;·&nbsp; <strong>\`</strong> LASER</em>`;
+}
+function launchStarRun() {
+  const game = conveyorRocketGame; if (!game.layer || game.started) return;
+  game.started = true; game.score = 0; game.hull = 3; game.asteroids = []; game.enemies = []; game.lasers = []; game.enemyLasers = [];
+  game.lastAsteroid = 0; game.lastEnemy = 0; game.lastScore = Date.now(); game.lastShot = 0; game.lastHit = 0;
+  renderRocketGameHud();
 }
 function spawnRocketAsteroid() { const radius = rocketRandom(1.3, 2.8); conveyorRocketGame.asteroids.push({ x: rocketRandom(2, 98), y: -radius * 2, vx: rocketRandom(-.055, .055), vy: rocketRandom(.045, .11), radius, spin: rocketRandom(-4, 4), rotation: rocketRandom(0, 360) }); }
 function spawnRocketEnemy() { const fromLeft = Math.random() > .5; conveyorRocketGame.enemies.push({ x: fromLeft ? -4 : 104, y: rocketRandom(9, 78), vx: fromLeft ? rocketRandom(.055, .09) : rocketRandom(-.09, -.055), vy: rocketRandom(-.025, .025), rotation: 0, nextShot: Date.now() + rocketRandom(2200, 4800) }); }
@@ -393,7 +405,7 @@ function hitRocket() {
   conveyorRocket.x = 50; conveyorRocket.y = 76; conveyorRocket.vx = .055; conveyorRocket.vy = -.025;
 }
 function fireRocketLaser() {
-  const game = conveyorRocketGame; const now = Date.now(); if (!game.layer || now - game.lastShot < 180) return;
+  const game = conveyorRocketGame; const now = Date.now(); if (!game.started || !game.layer || now - game.lastShot < 180) return;
   game.lastShot = now; playGameEffect(gameLaserAudio, .32); const radians = conveyorRocket.angle * Math.PI / 180;
   game.lasers.push({ x: conveyorRocket.x + Math.sin(radians) * 3, y: conveyorRocket.y - Math.cos(radians) * 3, vx: Math.sin(radians) * .92 + conveyorRocket.vx, vy: -Math.cos(radians) * .92 + conveyorRocket.vy, rotation: conveyorRocket.angle });
 }
@@ -413,7 +425,7 @@ function updateRocketGame() {
   game.enemyLasers.forEach(laser => { if (rocketDistance(conveyorRocket, laser) < 1.7) hitRocket(); });
   game.layer.innerHTML = `${game.asteroids.map(asteroid => `<i class="rocket-game-asteroid" style="--x:${asteroid.x}%;--y:${asteroid.y}%;--size:${asteroid.radius * 10}px;--spin:${asteroid.rotation}deg"></i>`).join('')}${game.enemies.map(enemy => `<i class="rocket-game-enemy" style="--x:${enemy.x}%;--y:${enemy.y}%;--rotation:${enemy.rotation}deg"></i>`).join('')}${game.lasers.map(laser => `<i class="rocket-game-laser" style="--x:${laser.x}%;--y:${laser.y}%;--rotation:${laser.rotation}deg"></i>`).join('')}${game.enemyLasers.map(laser => `<i class="rocket-game-enemy-laser" style="--x:${laser.x}%;--y:${laser.y}%;--rotation:${laser.rotation}deg"></i>`).join('')}`;
   if (game.score > game.highScore) { game.highScore = game.score; localStorage.setItem('collector-marketplace-star-run-high-score', String(game.highScore)); }
-  if (game.hud) game.hud.innerHTML = `<b>STAR RUN</b><span>SCORE ${String(game.score).padStart(6, '0')}</span><span>HIGH ${String(game.highScore).padStart(6, '0')}</span><small>HULL ${'●'.repeat(game.hull)}${'○'.repeat(3 - game.hull)}</small><em><strong>[</strong> / <strong>]</strong> TURN &nbsp;·&nbsp; <strong>=</strong> BOOST &nbsp;·&nbsp; <strong>\`</strong> LASER</em>`;
+  renderRocketGameHud();
 }
 function stopConveyorRocket() {
   if (conveyorRocket.frame) cancelAnimationFrame(conveyorRocket.frame);
@@ -426,6 +438,7 @@ function stopConveyorRocket() {
 function flyConveyorRocket() {
   const rocket = conveyorRocket;
   if (!rocket.node?.isConnected) return stopConveyorRocket();
+  if (!conveyorRocketGame.started) { rocket.node.classList.remove('is-thrusting'); rocket.node.style.setProperty('--rocket-x', `${rocket.x}%`); rocket.node.style.setProperty('--rocket-y', `${rocket.y}%`); rocket.node.style.setProperty('--rocket-tilt', `${rocket.angle}deg`); rocket.frame = requestAnimationFrame(flyConveyorRocket); return; }
   if (rocket.keys.has('BracketLeft') || rocket.keys.has('ArrowLeft')) rocket.angle -= 4.25;
   if (rocket.keys.has('BracketRight') || rocket.keys.has('ArrowRight')) rocket.angle += 4.25;
   rocket.angle = (rocket.angle + 360) % 360;
@@ -452,7 +465,7 @@ function startConveyorRocket(node) {
 }
 document.addEventListener('keydown', event => {
   const laserKey = event.code === 'Backquote' || event.key === '`';
-  if ((!rocketControlCodes.has(event.code) && !laserKey) || !document.body.classList.contains('browse-conveyor') || !canUseAutoScroll(event.target)) return;
+  if ((!rocketControlCodes.has(event.code) && !laserKey) || !conveyorRocketGame.started || !document.body.classList.contains('browse-conveyor') || !canUseAutoScroll(event.target)) return;
   event.preventDefault();
   if (laserKey) { fireRocketLaser(); return; }
   const isNewBoost = event.code === 'Equal' && !conveyorRocket.keys.has('Equal');
@@ -461,6 +474,7 @@ document.addEventListener('keydown', event => {
 });
 document.addEventListener('keyup', event => { if (!rocketControlCodes.has(event.code) && event.key !== '`') return; conveyorRocket.keys.delete(event.code); if (event.code === 'Equal') pauseRocketBoost(); });
 window.addEventListener('blur', () => { conveyorRocket.keys.clear(); pauseRocketBoost(); });
+document.addEventListener('click', event => { if (event.target.closest('[data-star-run-play]')) launchStarRun(); });
 
 function syncBrowseModeUi() {
   const auctionActive = document.body.classList.contains('auction-mode');
@@ -475,7 +489,7 @@ function syncBrowseModeUi() {
   let playfield = document.querySelector('.rocket-game-playfield');
   if (conveyor && !playfield) { playfield = document.createElement('div'); playfield.className = 'rocket-game-playfield'; playfield.setAttribute('aria-hidden', 'true'); playfield.innerHTML = '<div class="rocket-game-layer"></div><div class="conveyor-rocket"><span class="rocket-window"></span><span class="rocket-fin rocket-fin-left"></span><span class="rocket-fin rocket-fin-right"></span><span class="rocket-flame"></span></div>'; document.querySelector('.app-shell')?.append(playfield); }
   let gameHud = document.querySelector('.rocket-game-hud');
-  if (conveyor && !gameHud) { gameHud = document.createElement('aside'); gameHud.className = 'rocket-game-hud'; gameHud.setAttribute('aria-live', 'polite'); document.querySelector('.app-shell')?.append(gameHud); }
+  if (conveyor && !gameHud) { gameHud = document.createElement('aside'); gameHud.className = 'rocket-game-hud'; gameHud.setAttribute('aria-live', 'off'); const tagControls = document.querySelector('.tag-search-layout'); tagControls?.parentElement?.insertBefore(gameHud, tagControls); }
   if (conveyor) startConveyorRocket(playfield?.querySelector('.conveyor-rocket')); else { orbit?.remove(); playfield?.remove(); gameHud?.remove(); stopConveyorRocket(); }
   const button = document.querySelector('[data-browse-mode]');
   if (button) { button.disabled = searchScope !== 'listings' || auctionActive; button.firstChild.textContent = browseMode === 'conveyor' ? 'Conveyor ' : 'Doomscroll '; button.setAttribute('aria-label', `Browsing mode: ${browseMode}. Press Q to switch.`); button.setAttribute('aria-pressed', String(browseMode === 'conveyor')); }
