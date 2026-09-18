@@ -224,6 +224,14 @@ html body.browse-doomscroll .listing {
   box-shadow: none !important;
   border-radius: 0 !important;
 }
+html body.browse-doomscroll .listing:hover,
+html body.browse-doomscroll .listing:focus-within,
+html body.browse-doomscroll .listing-main:hover,
+html body.browse-doomscroll .media:hover {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
 html body.browse-doomscroll .collector-head,
 html body.browse-doomscroll .listing-copy,
 html body.browse-doomscroll .listing footer { color: #26333d !important; background: #fffaf2ed !important; border-color: #d8ae9c !important; }
