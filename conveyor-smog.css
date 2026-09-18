@@ -137,8 +137,11 @@
   overflow: hidden;
   pointer-events: none;
   background:
-    linear-gradient(180deg, #2e12377d, #e7745970 52%, #f6b26a66),
+    radial-gradient(ellipse at 18% 7%, #ffd2c4a6 0 13%, transparent 41%),
+    radial-gradient(ellipse at 88% 90%, #8f326f80 0 12%, transparent 46%),
+    linear-gradient(160deg, #9a3a7598 0%, #df719080 44%, #ffb67b65 100%),
     url("/public/puppy-jump-sunset-clouds.png") center / cover no-repeat;
+  background-color: #c85f87;
   animation: puppy-sky-drift 32s ease-in-out infinite alternate;
 }
 .puppy-cloud-layer::before,
@@ -182,7 +185,7 @@ html body.browse-doomscroll .listing-copy p { background: #08090a !important; }
 
 /* Doomscroll gets a sunrise-friendly light interface only while its cloud
    scene is active. Other browsing modes and all app workspaces remain dark. */
-html body.browse-doomscroll { color: #1d2933; --cream: #1d2933; --blue: #466f89; --line: #bb9f93; }
+html body.browse-doomscroll { color: #1d2933; --cream: #1d2933; --blue: #466f89; --line: #bb9f93; background: radial-gradient(ellipse at 50% 0,#f5a2ae 0,#c85987 44%,#813566 100%) !important; }
 html body.browse-doomscroll .masthead { background: #fff8f0ed !important; border-bottom-color: #d79c82 !important; }
 html body.browse-doomscroll .mast-word a,
 html body.browse-doomscroll .header-nav button,
