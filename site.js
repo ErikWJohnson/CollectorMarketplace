@@ -40,13 +40,15 @@ function initializeSiteTheme() {
     siteThemeControl.setAttribute('aria-pressed', String(!paused && !muted));
   };
   const start = () => siteThemeAudio.play().then(render).catch(render);
-  siteThemeAudio.addEventListener('play', render); siteThemeAudio.addEventListener('pause', render); siteThemeAudio.addEventListener('volumechange', render);
-  siteThemeAudio.addEventListener('ended', () => {
+  const advanceTrack = () => {
     const choices = siteThemePlaylist.map((_, index) => index).filter(index => index !== activeTrack);
     setTrack(choices[Math.floor(Math.random() * choices.length)] ?? activeTrack);
     start();
-  });
-  siteThemeControl.addEventListener('click', () => {
+  };
+  siteThemeAudio.addEventListener('play', render); siteThemeAudio.addEventListener('pause', render); siteThemeAudio.addEventListener('volumechange', render);
+  siteThemeAudio.addEventListener('ended', advanceTrack);
+  siteThemeControl.addEventListener('click', event => {
+    if (event.target.closest('[data-site-theme-skip]')) { advanceTrack(); return; }
     if (siteThemeAudio.paused) { siteThemeAudio.muted = false; localStorage.setItem('collector-marketplace-theme-muted', 'false'); start(); return; }
     siteThemeAudio.muted = !siteThemeAudio.muted; localStorage.setItem('collector-marketplace-theme-muted', String(siteThemeAudio.muted)); render();
   });
