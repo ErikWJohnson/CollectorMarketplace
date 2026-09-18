@@ -14,7 +14,7 @@ body.auction-mode{background:#090a0b}.auction-mode .app-shell{width:100%;max-wid
 /* A cinematic waterfall carries through the empty Auction House backdrop,
    while each bidding surface retains enough dark glass for legible pricing. */
 body.auction-mode {
-  background: linear-gradient(#041014a8, #041014a8), url("/public/auction-waterfall.png") center 35% / cover fixed no-repeat #071216;
+  background: linear-gradient(#04101486, #04101486), url("/public/auction-waterfall-wall.png") center 35% / cover fixed no-repeat #071216;
   animation: auction-waterfall-page-flow 10s ease-in-out infinite alternate;
 }
 .auction-mode .app-shell,
@@ -37,7 +37,7 @@ body.auction-mode {
 .auction-house::before {
   inset: -18% -7%;
   opacity: .88;
-  background: url("/public/auction-waterfall.png") center 0 / 116% auto repeat-y;
+  background: url("/public/auction-waterfall-wall.png") center 0 / 116% auto repeat-y;
   filter: saturate(.9) contrast(1.14) brightness(.76);
   will-change: transform, background-position;
   animation: auction-waterfall-flow 5.8s linear infinite;
