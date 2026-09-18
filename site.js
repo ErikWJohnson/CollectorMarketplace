@@ -16,7 +16,8 @@ const siteThemeControl = document.querySelector('[data-site-theme-toggle]');
 const siteThemePlaylist = [
   { name: 'TeknoAXE', src: '/public/teknoaxe-site-theme.mp3' },
   { name: 'Johnny Five', src: '/public/johnny-five-industrial.mp3' },
-  { name: 'Zebra Freak', src: '/public/zebra-freak-industrial.mp3' }
+  { name: 'Zebra Freak', src: '/public/zebra-freak-industrial.mp3' },
+  { name: 'Finding the Old Docks', src: '/public/finding-the-old-docks.mp3' }
 ];
 function initializeSiteTheme() {
   if (!siteThemeAudio || !siteThemeControl) return;
