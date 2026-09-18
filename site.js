@@ -23,13 +23,29 @@ const startAuctionWaterfall = () => {
   if (!auctionWaterfallAudio) return;
   auctionWaterfallAudio.loop = true;
   auctionWaterfallAudio.volume = 0.28;
-  auctionWaterfallAudio.play().catch(() => {});
+  auctionWaterfallAudio.play().then(syncAuctionWaterfallControl).catch(syncAuctionWaterfallControl);
 };
 const stopAuctionWaterfall = () => {
   if (!auctionWaterfallAudio) return;
   auctionWaterfallAudio.pause();
   auctionWaterfallAudio.currentTime = 0;
+  syncAuctionWaterfallControl();
 };
+function syncAuctionWaterfallControl() {
+  const head = stream?.querySelector('.auction-head');
+  if (!head || !auctionWaterfallAudio) return;
+  let control = head.querySelector('[data-auction-waterfall-sound]');
+  if (!control) {
+    control = document.createElement('button');
+    control.type = 'button';
+    control.className = 'auction-sound-control';
+    control.dataset.auctionWaterfallSound = '';
+    head.append(control);
+  }
+  const playing = !auctionWaterfallAudio.paused;
+  control.textContent = playing ? 'Waterfall sound · On' : 'Waterfall sound · Play';
+  control.setAttribute('aria-pressed', String(playing));
+}
 const siteThemeControl = document.querySelector('[data-site-theme-toggle]');
 const siteThemePlaylist = [
   { name: 'Finding the Old Docks', src: '/public/finding-the-old-docks.mp3' },
@@ -1342,8 +1358,14 @@ function renderAuctionHouse() {
   activeAuctionId = lot.id; const minimum = Number(lot.currentBid) + 5;
   const activity = auctionActivity.filter(row => row.lotId === lot.id).slice(0, 5);
   stream.innerHTML = `<section class="auction-house"><header class="auction-head"><div><p><i></i> Live bidding floor</p><h1>Auction House</h1></div><div class="auction-head-meta"><strong>${auctions.length}</strong><span>Lots open now</span></div></header><div class="auction-ticker"><span>LIVE</span><div>${auctions.map(item => `<button type="button" data-auction-select="${item.id}">${safe(item.title)} <b>${money(item.currentBid)}</b></button>`).join('')}</div></div><main class="auction-stage"><section class="auction-showcase"><div class="auction-art"><img src="${safe(lot.image)}" alt="${safe(lot.title)}"><span class="auction-lot-number">LOT ${String(auctions.indexOf(lot) + 1).padStart(2, '0')}</span><div class="auction-countdown"><small>Closing in</small><strong data-auction-clock="${lot.id}">${auctionTime(lot)}</strong></div></div><div class="auction-details"><p class="auction-category">${safe(lot.category)} · Live lot</p><h2>${safe(lot.title)}</h2><p class="auction-description">A featured collector lot, presented live. Review the current bid, join the room, and place your bid before the floor closes.</p><div class="auction-price"><span>Current bid</span><strong>${money(lot.currentBid)}</strong><small>${lot.bids} bids placed</small></div><form class="auction-bid-panel" data-auction-bid-form="${lot.id}"><label>Your maximum bid<input name="amount" required type="number" inputmode="decimal" min="${minimum}" step="1" value="${minimum}" aria-label="Your maximum bid"></label><div class="auction-quick-bids"><button type="button" data-bid-add="10">+ $10</button><button type="button" data-bid-add="25">+ $25</button><button type="button" data-bid-add="50">+ $50</button></div><button class="auction-bid" type="submit">Place live bid <span>→</span></button><small>By placing a bid, you agree to the auction terms.</small></form><button type="button" class="voice-start auction-voice" data-voice-room="auction:${lot.id}" data-voice-label="Auction voice · ${safe(lot.title)}">Join the live voice room</button></div></section><aside class="auction-live-panel"><header><span><i></i> Floor activity</span><small>Updates live</small></header><div class="auction-activity" aria-live="polite">${activity.length ? activity.map(row => `<article><b>${safe(row.initials)}</b><p><strong>${safe(row.name)}</strong> placed a bid <em>${money(row.amount)}</em><small>${safe(row.time)}</small></p></article>`).join('') : `<div class="auction-awaiting"><i>◇</i><strong>The floor is open</strong><span>New bids will appear here in real time.</span></div>`}</div><div class="auction-confidence"><span>Buyer protection</span><p>Verified accounts, binding bids, and protected checkout after the auction closes.</p></div></aside></main><section class="auction-lot-rail"><header><div><p>Tonight's catalogue</p><h2>Explore live lots</h2></div><span>Choose a lot to enter its bidding floor</span></header><div class="auction-grid">${auctions.map((item, index) => `<button type="button" class="auction-card ${item.id === lot.id ? 'is-active' : ''}" data-auction-select="${item.id}"><span class="auction-card-image"><img src="${safe(item.image)}" alt=""><i>LOT ${String(index + 1).padStart(2, '0')}</i></span><span class="auction-info"><small>${safe(item.category)}</small><strong>${safe(item.title)}</strong><span><b>${money(item.currentBid)}</b><em data-auction-clock="${item.id}">${auctionTime(item)}</em></span></span></button>`).join('')}</div></section></section>`;
+  syncAuctionWaterfallControl();
   updateAuctionClocks();
 }
+document.addEventListener('click', event => {
+  if (!event.target.closest('[data-auction-waterfall-sound]') || !auctionWaterfallAudio) return;
+  if (auctionWaterfallAudio.paused) startAuctionWaterfall();
+  else { auctionWaterfallAudio.pause(); syncAuctionWaterfallControl(); }
+});
 function showAuctionHouse() { if (observer) observer.disconnect(); clearInterval(auctionClock); sentinel.hidden = true; document.body.classList.remove('app-section-mode', 'app-section-chat', 'app-section-account'); document.body.classList.add('auction-mode'); startAuctionWaterfall(); syncBrowseModeUi(); if (!activeAuctionId) activeAuctionId = auctions[0]?.id; renderAuctionHouse(); auctionClock = setInterval(updateAuctionClocks, 1000); startAuctionFeed(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
 document.addEventListener('click', event => {
@@ -1536,6 +1558,7 @@ const renderTaggedAuctionHouse = () => {
   sentinel.hidden = true;
   const lots = filteredAuctions();
   stream.innerHTML = `<section class="auction-house"><header class="auction-head"><div><p>Live bidding</p><h1>Auction House</h1></div><p>${lots.length} matching lot${lots.length === 1 ? '' : 's'} open now</p></header>${lots.length ? `<div class="auction-grid">${lots.map(lot => `<article class="auction-card"><img src="${safe(lot.image)}" alt="${safe(lot.title)}"><div class="auction-info"><h2>${safe(lot.title)}</h2><p>${safe(lot.category)}</p><div class="auction-stats"><div>Current bid<strong>${money(lot.currentBid)}</strong></div><div>Ends in<strong>${safe(lot.ends)}</strong></div><div>${lot.bids} bids</div></div><button class="auction-bid" data-bid="${lot.id}">Place bid</button></div></article>`).join('')}</div>` : '<p class="load-state">No active auction lots match those tags. Try removing a tag or choose ANY matching.</p>'}</section>`;
+  syncAuctionWaterfallControl();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 let auctionTagView = false;
