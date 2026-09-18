@@ -179,6 +179,52 @@ html body.browse-doomscroll .listing .media img { background: transparent !impor
 html body.browse-doomscroll .listing-copy { background: #0d0e10 !important; }
 html body.browse-doomscroll .listing footer { background: #0a0b0d !important; }
 html body.browse-doomscroll .listing-copy p { background: #08090a !important; }
+
+/* Doomscroll gets a sunrise-friendly light interface only while its cloud
+   scene is active. Other browsing modes and all app workspaces remain dark. */
+html body.browse-doomscroll { color: #1d2933; --cream: #1d2933; --blue: #466f89; --line: #bb9f93; }
+html body.browse-doomscroll .masthead { background: #fff8f0ed !important; border-bottom-color: #d79c82 !important; }
+html body.browse-doomscroll .mast-word a,
+html body.browse-doomscroll .header-nav button,
+html body.browse-doomscroll .header-sell { color: #273541 !important; }
+html body.browse-doomscroll .header-nav button:not(.curator-cta),
+html body.browse-doomscroll .header-sell { border-color: #d2ad9b !important; background: #fffdf9df !important; }
+html body.browse-doomscroll .mode-tabs,
+html body.browse-doomscroll .discovery { color: #25333d; background: #fff8efdc !important; border-color: #d7ae9a !important; }
+html body.browse-doomscroll .mode-tabs button { color: #786461; }
+html body.browse-doomscroll .mode-tabs button.is-active { color: #492d3a; background: #ffd6a7a8; }
+html body.browse-doomscroll .search,
+html body.browse-doomscroll .tag-search,
+html body.browse-doomscroll .search input,
+html body.browse-doomscroll .tag-search input { color: #283741 !important; background: #fffefad9 !important; border-color: #d7ac98 !important; }
+html body.browse-doomscroll .tag-row button,
+html body.browse-doomscroll .category-row button,
+html body.browse-doomscroll .tag-remove,
+html body.browse-doomscroll .audience-quick-tags,
+html body.browse-doomscroll .audience-quick-tags button { color: #394955 !important; background: #fffaf3db !important; border-color: #d9b19e !important; }
+html body.browse-doomscroll .tag-row button.active,
+html body.browse-doomscroll .category-row button.active,
+html body.browse-doomscroll .audience-quick-tags button.active { color: #3c2433 !important; background: #ffd496 !important; border-color: #c8776d !important; }
+html body.browse-doomscroll .market-head { color: #493a42; }
+html body.browse-doomscroll .listing { border-color: #fef4e7b8 !important; box-shadow: 0 14px 34px #6f2b4366 !important; }
+html body.browse-doomscroll .collector-head,
+html body.browse-doomscroll .listing-copy,
+html body.browse-doomscroll .listing footer { color: #26333d !important; background: #fffaf2ed !important; border-color: #d8ae9c !important; }
+html body.browse-doomscroll .collector-head strong,
+html body.browse-doomscroll .listing h2,
+html body.browse-doomscroll .listing-copy p,
+html body.browse-doomscroll .listing-action { color: #25333d !important; }
+html body.browse-doomscroll .listing-copy p { background: #ffecd8dc !important; border-color: #deb39d !important; }
+html body.browse-doomscroll .listing-action.action-buy { color: #fffdf8 !important; background: #387e59 !important; border-color: #25603f !important; }
+html body.browse-doomscroll .bottom-nav { color: #384753; background: #fff9f0ed !important; border-color: #d8ad98 !important; box-shadow: 0 -10px 30px #6d263544 !important; }
+html body.browse-doomscroll .bottom-nav button,
+html body.browse-doomscroll .bottom-nav button.active,
+html body.browse-doomscroll .bottom-nav b { color: #34434f !important; }
+html body.browse-doomscroll .puppy-game-hud { color: #3a2b35; border-color: #f4e0a3; background: #fff6e8ed; box-shadow: 0 8px 20px #6e293c55, inset 0 1px #fff; }
+html body.browse-doomscroll .puppy-game-hud b { color: #9c4e54; }
+html body.browse-doomscroll .puppy-game-hud span,
+html body.browse-doomscroll .puppy-game-hud small,
+html body.browse-doomscroll .puppy-game-hud em { color: #624751; border-color: #e8c6ab; }
 .puppy-game-playfield { position: fixed; z-index: 3; inset: 58px 0 86px; overflow: hidden; pointer-events: none; }
 .puppy-game-layer { position: absolute; inset: 0; overflow: hidden; }
 .puppy-game-pup { --puppy-x:50%; --puppy-y:82%; position: absolute; top:var(--puppy-y); left:var(--puppy-x); z-index:2; width:76px; height:76px; transform:translate(-50%,-82%); transition:filter .12s ease; }
