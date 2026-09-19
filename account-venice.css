@@ -7,8 +7,8 @@ body.account-open {
     url("/public/account-venice-dock.png") center top / cover fixed no-repeat #120b09 !important;
 }
 
-/* Moving bands of reflected sunset light stay in the water portion of the
-   scene. They are purely visual and sit behind every account control. */
+/* Broken pools of warm light glide across the lower water, with overlapping
+   soft ripple bands rather than obvious straight stripes. */
 body.app-section-account::before {
   position: fixed;
   z-index: 0;
@@ -18,22 +18,24 @@ body.app-section-account::before {
   height: 58vh;
   content: "";
   pointer-events: none;
-  opacity: .46;
+  opacity: .52;
   background:
-    repeating-linear-gradient(176deg, transparent 0 18px, #ffd38a14 20px 23px, transparent 27px 43px),
-    repeating-linear-gradient(4deg, transparent 0 27px, #76c8d11a 30px 33px, transparent 36px 56px),
+    repeating-radial-gradient(ellipse 86% 14% at 44% 108%, transparent 0 12px, #ffd59218 14px 18px, transparent 22px 36px),
+    repeating-radial-gradient(ellipse 74% 12% at 58% 104%, transparent 0 17px, #8cd4dd18 19px 23px, transparent 27px 48px),
+    radial-gradient(ellipse at 52% 84%, #ffc87732, transparent 42%),
     linear-gradient(180deg, transparent, #0b2b3455 26%, #06151c88);
-  background-size: 160% 260%, 190% 290%, 100% 100%;
-  background-position: 0 0, 100% 0, center;
+  background-size: 155% 182%, 188% 212%, 100% 100%, 100% 100%;
+  background-position: 10% 0, 92% 0, center, center;
   mix-blend-mode: screen;
-  animation: venice-water-reflections 5.4s ease-in-out infinite alternate;
+  filter: blur(1.3px) saturate(1.08);
+  animation: venice-water-reflections 7.2s cubic-bezier(.42,.02,.56,.98) infinite alternate;
 }
 
 body.app-section-account .app-shell { position: relative; z-index: 1; }
 
 @keyframes venice-water-reflections {
-  from { background-position: 0 0, 100% 0, center; transform: translate3d(0, 0, 0) scaleX(1.02); }
-  to { background-position: 13% 18%, 83% 27%, center; transform: translate3d(0, 5px, 0) scaleX(1.08); }
+  from { background-position: 10% 0, 92% 0, center, center; transform: translate3d(-1%, 0, 0) scaleX(1.015); }
+  to { background-position: 26% 30%, 70% 37%, 51% 6%, center; transform: translate3d(1%, 5px, 0) scaleX(1.065); }
 }
 
 @media (prefers-reduced-motion: reduce) { body.app-section-account::before { animation: none; } }
@@ -185,6 +187,8 @@ body.app-section-account .profile-hero > div > span,
 body.account-open .profile-hero > div > span { color:#f0d6bb !important; }
 body.app-section-account .profile-hero > button,
 body.account-open .profile-hero > button { border-color:#ffd27d !important; border-radius:999px; background:#180e0bb8 !important; color:#ffe5ae !important; box-shadow:0 10px 30px #0008; }
+body.app-section-account .profile-hero .account-venice-sound-control { margin-left:auto; border:1px solid #f3bd72a8; border-radius:999px; padding:9px 12px; background:#100d0db8; color:#ffe2ae; font:800 .62rem/1 "DM Mono",monospace; letter-spacing:.05em; text-transform:uppercase; box-shadow:0 9px 24px #0008; }
+body.app-section-account .profile-hero .account-venice-sound-control:hover { border-color:#ffe0a4; background:#382011d9; }
 body.app-section-account .profile-summary,
 body.app-section-account .profile-listings,
 body.app-section-account .profile-account-tools,

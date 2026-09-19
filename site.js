@@ -58,6 +58,21 @@ const stopAccountVeniceAmbience = () => {
   accountVeniceAudio.pause();
   accountVeniceAudio.currentTime = 0;
 };
+function syncAccountVeniceControl() {
+  const hero = stream?.querySelector('.profile-hero');
+  if (!hero || !accountVeniceAudio) return;
+  let control = hero.querySelector('[data-account-venice-sound]');
+  if (!control) {
+    control = document.createElement('button');
+    control.type = 'button';
+    control.className = 'account-venice-sound-control';
+    control.dataset.accountVeniceSound = '';
+    hero.append(control);
+  }
+  const playing = !accountVeniceAudio.paused;
+  control.textContent = playing ? 'Dock ambience · On' : 'Dock ambience · Play';
+  control.setAttribute('aria-pressed', String(playing));
+}
 function syncAuctionWaterfallControl() {
   const head = stream?.querySelector('.auction-head');
   if (!head || !auctionWaterfallAudio) return;
@@ -1245,6 +1260,7 @@ function openAppSection(kind, title, copy, content = '') {
   document.body.classList.add('app-section-mode', `app-section-${kind}`); syncBrowseModeUi(); if (kind === 'chat') startJungleChatAmbience(); if (kind === 'account') startAccountVeniceAmbience(); if (observer) observer.disconnect(); sentinel.hidden = true;
   const workspaceLabel = kind === 'account' ? 'Collector workspace' : kind === 'membership' ? 'Membership' : 'Social workspace';
   stream.innerHTML = `<section class="app-section-page"><header class="app-section-intro"><span>${workspaceLabel}</span><h1>${title}</h1><p>${copy || ''}</p></header><div class="app-section-content">${content}</div></section>`;
+  if (kind === 'account') syncAccountVeniceControl();
   queueMicrotask(() => { modal.className = ''; document.body.classList.remove('chat-open', 'account-open'); });
   requestAnimationFrame(() => { if (kind === 'chat') mountJungleChatGame(); window.scrollTo({ top: 0, behavior: 'smooth' }); const thread = stream.querySelector('.collector-thread'); if (thread) thread.scrollTop = thread.scrollHeight; stream.querySelector('.collector-message-form textarea')?.focus({ preventScroll: true }); });
 }
@@ -1310,7 +1326,7 @@ function mountLobbySong(profile, root = modalContent) {
   const sync = () => { const playing = !audio.paused; button.textContent = playing ? '❚❚ Pause song' : '▶ Play song'; button.setAttribute('aria-pressed', String(playing)); };
   audio.addEventListener('play', sync); audio.addEventListener('pause', sync); audio.play().catch(sync);
 }
-async function openProfile(id) { if (!id) return; if (session?.user?.id === id) return openAccountPanel(); const profile = await api(`/user/${id}`); const following = Boolean(session?.user?.following?.includes(id)); openModal(`@${safe(profile.username)}`, `${safe(profile.bio || 'Collector profile')} · Reputation ${profile.reputation || 0}`, profileWorkspace(profile, { following })); if (modal.open) { modal.classList.add('profile-dialog'); document.body.classList.add('chat-open'); mountLobbySong(profile); } }
+async function openProfile(id) { if (!id) return; if (session?.user?.id === id) return openAccountPanel(); const profile = await api(`/user/${id}`); const following = Boolean(session?.user?.following?.includes(id)); openAppSection('account', `@${safe(profile.username)}`, `${safe(profile.bio || 'Collector profile')} · Reputation ${profile.reputation || 0}`, profileWorkspace(profile, { following })); mountLobbySong(profile); }
 async function openCommunity(type, entityId, label = 'Community') { const data = await api(`/community/${encodeURIComponent(type)}/${encodeURIComponent(entityId)}`); const renderReplies = post => (post.replies || []).length ? `<div class="community-replies">${post.replies.map(reply => `<p><b>@${safe(reply.author?.username || 'collector')}</b><span>${safe(reply.body)}</span></p>`).join('')}</div>` : ''; const threads = data.posts.length ? data.posts.map(post => `<article class="community-thread"><header><b>@${safe(post.author?.username || 'collector')}</b><time>${safe(formatListingDate(post.createdAt))}</time></header><h3>${safe(post.title)}</h3><p>${safe(post.body)}</p>${renderReplies(post)}${session ? `<form class="modal-form community-reply-form" data-community-type="${safe(type)}" data-community-id="${safe(entityId)}" data-community-post="${safe(post.id)}"><textarea required name="body" maxlength="2000" placeholder="Reply to this thread"></textarea><button>Reply</button></form>` : ''}</article>`).join('') : '<p class="modal-copy">No discussion threads yet. Start the conversation.</p>'; const composer = session ? `<form class="modal-form community-post-form" data-community-type="${safe(type)}" data-community-id="${safe(entityId)}"><input required name="title" maxlength="140" placeholder="Start a discussion"><textarea required name="body" maxlength="2000" placeholder="Share a question, find, or conversation starter"></textarea><button type="submit">Post discussion</button></form>` : '<p class="modal-copy">Sign in to start a thread or reply.</p>'; openModal(`${safe(label)} discussion`, 'Community conversations are public to collectors. Keep personal payment and delivery details inside private chats.', `<section class="community-workspace"><header><span>${safe(type)}</span><h3>${safe(data.entity.name || label)}</h3></header>${composer}<section class="community-thread-list">${threads}</section></section>`); modal.classList.add('chat-dialog', 'community-dialog'); document.body.classList.add('chat-open'); }
 async function openDirectoryPage(type, entityId) { if (type === 'accounts') return openProfile(entityId); const source = type === 'brands' ? brands : type === 'couriers' ? couriers : type === 'chatrooms' ? chatrooms : collectives; const entity = source.find(item => item.id === entityId); if (!entity) throw new Error('This directory page is unavailable.'); const name = entity.name; const tags = entity.tags || []; const stats = type === 'couriers' ? `${entity.category || 'Courier'} · ${entity.description || ''}` : `${Number(entity.members || 0).toLocaleString()} members${entity.postCount !== undefined ? ` · ${entity.postCount} matching posts` : ''}`; const discussion = type === 'couriers' ? '' : `<button type="button" class="entity-primary" data-community="${safe(type)}" data-community-id="${safe(entity.id)}" data-community-label="${safe(name)}">Open discussion</button>`; const voice = type === 'chatrooms' ? `<button type="button" class="entity-primary" data-chatroom="${safe(entity.id)}" data-chatroom-label="${safe(name)}">Join live voice room</button>` : ''; openModal(name, safe(entity.description || 'Collector marketplace directory page.'), `<section class="entity-workspace"><header><span>${safe(type.slice(0, -1))}</span><h3>${safe(name)}</h3><p>${safe(stats)}</p></header><section class="entity-tags"><h3>Discovery tags</h3>${tags.length ? tags.map(tag => `<button type="button" data-tag="${safe(tag)}">#${safe(tag)}</button>`).join('') : '<p>No tags have been added yet.</p>'}</section><footer>${discussion}${voice}</footer></section>`); modal.classList.add('chat-dialog', 'entity-dialog'); document.body.classList.add('chat-open'); }
 function imageUrls(value) { return value.split(/[\n,]+/).map(url => url.trim()).filter(url => /^https?:\/\//i.test(url)); }
@@ -1516,6 +1532,12 @@ document.addEventListener('click', event => {
   if (auctionWaterfallAudio.paused) startAuctionWaterfall();
   else { auctionWaterfallAudio.pause(); syncAuctionWaterfallControl(); }
 });
+document.addEventListener('click', event => {
+  if (!event.target.closest('[data-account-venice-sound]') || !accountVeniceAudio) return;
+  if (accountVeniceAudio.paused) startAccountVeniceAmbience();
+  else stopAccountVeniceAmbience();
+  syncAccountVeniceControl();
+});
 function showAuctionHouse() { if (observer) observer.disconnect(); clearInterval(auctionClock); sentinel.hidden = true; document.body.classList.remove('app-section-mode', 'app-section-chat', 'app-section-account'); document.body.classList.add('auction-mode'); startAuctionWaterfall(); syncBrowseModeUi(); if (!activeAuctionId) activeAuctionId = auctions[0]?.id; renderAuctionHouse(); auctionClock = setInterval(updateAuctionClocks, 1000); startAuctionFeed(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
 document.addEventListener('click', event => {
@@ -1581,7 +1603,7 @@ document.addEventListener('click', event => {
   const returnReceived = event.target.closest('[data-return-received]'); if (returnReceived) api(`/delivery/${returnReceived.dataset.returnReceived}/return-received`, { method: 'POST', body: '{}' }).then(() => openDelivery(returnReceived.dataset.returnReceived)).catch(error => openModal('Return error', error.message));
   if (action?.matches('[data-sell]')) { setWorkspaceHash('list-item'); activateNav('sell'); openListingForm(); }
   if (action?.matches('[data-chat]')) { setWorkspaceHash('chat'); activateNav('chat'); openChatCenter(); }
-  if (action?.matches('[data-account]')) { setWorkspaceHash('account'); activateNav('account'); openAccountPanel(); }
+  if (action?.matches('[data-account]')) { if (session) startAccountVeniceAmbience(); setWorkspaceHash('account'); activateNav('account'); openAccountPanel(); }
   if (action?.matches('[data-curator]')) { setWorkspaceHash('vip-curator'); openCuratorMembership().catch(showError); }
   if (action?.matches('[data-policy]')) { setWorkspaceHash('fees'); openModal('Marketplace fees', 'Standard purchase fees are 4% per side. Curator members pay 1% on their own side for $150/month. Buyers pay taxes and delivery; courier pay is the greater of $8 or $0.10 per mile, plus packaging. Transaction and delivery terms are policy drafts pending legal review.'); }
   if (action?.matches('[data-auction]')) { setWorkspaceHash('auction-house'); activateNav('auction'); showAuctionHouse(); }
