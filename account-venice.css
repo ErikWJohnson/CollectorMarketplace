@@ -53,17 +53,27 @@ body.app-section-account .app-section-page {
 }
 
 body.app-section-account .app-section-content {
-  padding: clamp(18px, 3vw, 44px) clamp(14px, 3vw, 46px) calc(150px + env(safe-area-inset-bottom)) !important;
+  width: 100vw !important;
+  max-width: none !important;
+  margin-left: calc(50% - 50vw) !important;
+  padding: 0 30px calc(150px + env(safe-area-inset-bottom)) !important;
 }
 
 body.app-section-account .profile-workspace,
 body.account-open .account-workspace {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
   overflow: hidden;
   border: 1px solid #e1ac6373 !important;
   border-radius: 18px;
   background: linear-gradient(135deg, #120d10ed, #071116e8 56%, #17100ce8) !important;
   box-shadow: 0 28px 90px #020304b5, inset 0 1px #ffe4ae25;
   backdrop-filter: blur(15px) saturate(1.15);
+}
+
+body.app-section-account .profile-workspace {
+  grid-template-columns: minmax(430px, .8fr) minmax(0, 1.2fr) !important;
 }
 
 body.app-section-account .account-hero,
@@ -221,7 +231,7 @@ body.account-open .profile-footer .entity-primary { border-color:#d49c56 !import
 @media (max-width: 700px) {
   body.app-section-account,
   body.account-open { background-position: 43% top !important; background-attachment: scroll !important; }
-  body.app-section-account .app-section-content { padding-right: 10px !important; padding-left: 10px !important; }
+  body.app-section-account .app-section-content { width:100% !important; margin-left:0 !important; padding-right:10px !important; padding-left:10px !important; }
   body.app-section-account .profile-workspace,
   body.account-open .account-workspace { border-radius: 12px; }
 }
