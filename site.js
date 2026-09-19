@@ -661,9 +661,13 @@ document.addEventListener('click', event => { if (event.target.closest('[data-pu
 // Auction Falls is a compact falling-block game that lives only on the
 // waterfall auction surface. It starts on demand so normal bidding controls
 // and keyboard shortcuts remain untouched until the collector presses Play.
-const auctionBlocks = { host: null, board: [], piece: null, x: 3, y: 0, timer: 0, started: false, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-auction-falls-high-score') || 0), gameOver: false };
+const auctionBlocks = { host: null, board: [], piece: null, x: 3, y: 0, timer: 0, started: false, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-auction-falls-high-score') || 0), bombs: 1, gameOver: false };
 const auctionBlockShapes = [
-  [[1, 1, 1, 1]], [[1, 1], [1, 1]], [[0, 1, 0], [1, 1, 1]], [[1, 0], [1, 0], [1, 1]], [[0, 1], [0, 1], [1, 1]], [[1, 1, 0], [0, 1, 1]], [[0, 1, 1], [1, 1, 0]]
+  [[1]],
+  [[1, 1]], [[1], [1]],
+  [[1, 1, 1]], [[1, 0], [1, 1]], [[1, 1], [1, 0]],
+  [[1, 1, 1, 1]], [[1, 1], [1, 1]], [[0, 1, 0], [1, 1, 1]], [[1, 1, 0], [0, 1, 1]],
+  [[1, 1, 1, 1, 1]], [[1, 0], [1, 0], [1, 1], [1, 0]], [[1, 1, 1], [0, 1, 0], [0, 1, 0]], [[1, 1, 0], [0, 1, 1], [0, 1, 0]]
 ];
 const emptyAuctionBoard = () => Array.from({ length: 16 }, () => Array(10).fill(0));
 const rotateAuctionPiece = piece => piece[0].map((_, index) => piece.map(row => row[index]).reverse());
@@ -674,8 +678,8 @@ function renderAuctionBlocks() {
   const game = auctionBlocks; if (!game.host?.isConnected) return;
   const display = game.board.map(row => [...row]);
   if (game.piece) game.piece.forEach((row, rowIndex) => row.forEach((filled, colIndex) => { const y = game.y + rowIndex; const x = game.x + colIndex; if (filled && y >= 0 && y < 16 && x >= 0 && x < 10) display[y][x] = 2; }));
-  const status = game.started ? 'Arrow keys move · ↑ rotates · Space drops' : game.gameOver ? 'Water swept the stack away · Play again' : 'Arrow keys move · ↑ rotates · Space drops';
-  game.host.innerHTML = `<section class="auction-block-game"><header><b>AUCTION FALLS</b><span>${String(game.score).padStart(4, '0')} · HI ${String(game.highScore).padStart(4, '0')}</span></header><div class="auction-block-grid" aria-label="Auction Falls game board">${display.flat().map(cell => `<i class="${cell === 2 ? 'is-falling' : cell ? 'is-set' : ''}"></i>`).join('')}</div><footer>${game.started ? '<button type="button" data-auction-blocks-pause>Pause</button>' : '<button type="button" data-auction-blocks-play>▶ Play</button>'}<small>${status}</small></footer></section>`;
+  const status = game.started ? '[ ] move · = rotate · Space drops · ` row bomb' : game.gameOver ? 'Water swept the stack away · Play again' : '[ ] move · = rotate · Space drops · ` row bomb';
+  game.host.innerHTML = `<section class="auction-block-game"><header><b>AUCTION FALLS</b><span>${String(game.score).padStart(4, '0')} · HI ${String(game.highScore).padStart(4, '0')}</span></header><div class="auction-block-grid" aria-label="Auction Falls game board">${display.flat().map(cell => `<i class="${cell === 2 ? 'is-falling' : cell ? 'is-set' : ''}"></i>`).join('')}</div><footer>${game.started ? '<button type="button" data-auction-blocks-pause>Pause</button>' : '<button type="button" data-auction-blocks-play>▶ Play</button>'}<small>ROW BOMBS ${'●'.repeat(game.bombs)}${'○'.repeat(Math.max(0, 3 - game.bombs))}</small><small>${status}</small></footer></section>`;
 }
 function spawnAuctionPiece() {
   auctionBlocks.piece = auctionBlockShapes[Math.floor(Math.random() * auctionBlockShapes.length)].map(row => [...row]);
@@ -687,12 +691,18 @@ function settleAuctionPiece() {
   game.piece.forEach((row, rowIndex) => row.forEach((filled, colIndex) => { const y = game.y + rowIndex; const x = game.x + colIndex; if (filled && y >= 0) game.board[y][x] = 1; }));
   const retained = game.board.filter(row => !row.every(Boolean)); const cleared = 16 - retained.length;
   while (retained.length < 16) retained.unshift(Array(10).fill(0));
-  game.board = retained; game.score += cleared ? cleared * cleared * 100 : 8; spawnAuctionPiece(); renderAuctionBlocks();
+  game.board = retained; game.score += cleared ? cleared * cleared * 100 : 8; game.bombs = Math.min(3, game.bombs + Math.floor(cleared / 2)); spawnAuctionPiece(); renderAuctionBlocks();
 }
 function tickAuctionBlocks() { const game = auctionBlocks; if (!game.started) return; if (!auctionBlocksCollide(game.piece, game.x, game.y + 1)) { game.y += 1; renderAuctionBlocks(); } else settleAuctionPiece(); }
 function launchAuctionBlocks() {
   const game = auctionBlocks; if (!game.host?.isConnected || game.started) return;
-  game.board = emptyAuctionBoard(); game.score = 0; game.gameOver = false; game.started = true; spawnAuctionPiece(); clearInterval(game.timer); game.timer = setInterval(tickAuctionBlocks, 560); renderAuctionBlocks();
+  game.board = emptyAuctionBoard(); game.score = 0; game.bombs = 1; game.gameOver = false; game.started = true; spawnAuctionPiece(); clearInterval(game.timer); game.timer = setInterval(tickAuctionBlocks, 560); renderAuctionBlocks();
+}
+function bombAuctionRow() {
+  const game = auctionBlocks; if (!game.started || game.bombs < 1) return;
+  const row = Math.max(0, Math.min(15, game.y + Math.floor(game.piece.length / 2)));
+  game.board[row] = Array(10).fill(0); game.bombs -= 1; game.score += 75;
+  renderAuctionBlocks();
 }
 function endAuctionBlocks() {
   const game = auctionBlocks; clearInterval(game.timer); game.timer = 0; game.started = false; game.gameOver = true; game.highScore = Math.max(game.highScore, game.score); localStorage.setItem('collector-marketplace-auction-falls-high-score', String(game.highScore)); renderAuctionBlocks();
@@ -713,12 +723,12 @@ document.addEventListener('click', event => {
 });
 document.addEventListener('keydown', event => {
   const game = auctionBlocks; if (!game.started || !document.body.classList.contains('auction-mode') || !canUseAutoScroll(event.target)) return;
-  if (!['ArrowLeft', 'ArrowRight', 'ArrowDown', 'ArrowUp', 'Space'].includes(event.code)) return;
+  if (!['BracketLeft', 'BracketRight', 'Equal', 'Backquote', 'Space'].includes(event.code)) return;
   event.preventDefault();
-  if (event.code === 'ArrowLeft' && !auctionBlocksCollide(game.piece, game.x - 1, game.y)) game.x -= 1;
-  if (event.code === 'ArrowRight' && !auctionBlocksCollide(game.piece, game.x + 1, game.y)) game.x += 1;
-  if (event.code === 'ArrowDown') tickAuctionBlocks();
-  if (event.code === 'ArrowUp') { const turned = rotateAuctionPiece(game.piece); if (!auctionBlocksCollide(turned)) game.piece = turned; }
+  if (event.code === 'BracketLeft' && !auctionBlocksCollide(game.piece, game.x - 1, game.y)) game.x -= 1;
+  if (event.code === 'BracketRight' && !auctionBlocksCollide(game.piece, game.x + 1, game.y)) game.x += 1;
+  if (event.code === 'Equal') { const turned = rotateAuctionPiece(game.piece); if (!auctionBlocksCollide(turned)) game.piece = turned; }
+  if (event.code === 'Backquote') { bombAuctionRow(); return; }
   if (event.code === 'Space') while (!auctionBlocksCollide(game.piece, game.x, game.y + 1)) game.y += 1;
   if (event.code === 'Space') settleAuctionPiece(); else renderAuctionBlocks();
 });
