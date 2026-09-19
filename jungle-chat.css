@@ -1,0 +1,51 @@
+/* Messages has its own rainforest identity, while keeping every conversation
+   and control high-contrast enough for long sessions. */
+body.app-section-chat { background: #061209; }
+body.app-section-chat .app-shell,
+body.app-section-chat .market-stage,
+body.app-section-chat .listing-stream { background: transparent; }
+body.app-section-chat .app-section-page { position: relative; isolation: isolate; min-height: calc(100vh - 82px); background: linear-gradient(90deg, #021008e8, #082415bf 43%, #031108e8), linear-gradient(180deg, #031108b8, #061a0bb3), url("/public/messages-jungle.png") center / cover fixed no-repeat; }
+body.app-section-chat .app-section-intro { position: relative; border-bottom-color: #5c9d5c80; background: linear-gradient(90deg, #062012ec, #123920cd); }
+body.app-section-chat .app-section-intro > span,
+body.app-section-chat .app-section-intro h1 { color: #d8ff9d; }
+body.app-section-chat .app-section-intro p { color: #bdd9b2; }
+body.app-section-chat .app-section-content { position: relative; }
+body.app-section-chat .social-chat,
+body.app-section-chat .conversation-workspace,
+body.app-section-chat .community-workspace,
+body.app-section-chat .entity-workspace { border-color: #72af7188; background: #06170ed9; box-shadow: 0 18px 42px #010905a8; backdrop-filter: blur(9px); }
+body.app-section-chat .chat-sidebar,
+body.app-section-chat .chat-secondary { border-color: #639c6277; background: linear-gradient(145deg, #092214e8, #04130bdb); }
+body.app-section-chat .chat-section-heading { border-bottom-color: #578d5e70; }
+body.app-section-chat .chat-section-heading h3,
+body.app-section-chat .chat-secondary h3,
+body.app-section-chat .chat-resource-section h4 { color: #e5ffad; }
+body.app-section-chat .chat-section-heading > span { border-color: #86c66f; background: #173e1f; color: #d8ff9d; }
+body.app-section-chat .chat-conversation-row,
+body.app-section-chat .suggestion-card,
+body.app-section-chat .delivery-row { border-color: #477a4f88; background: #071b0ec2; }
+body.app-section-chat .chat-conversation-row:hover,
+body.app-section-chat .suggestion-card:hover,
+body.app-section-chat .delivery-row:hover { border-color: #b7d969; background: #12351cbf; }
+body.app-section-chat .chat-avatar { border: 1px solid #b8e277; background: radial-gradient(circle at 30% 25%, #b4e86c, #265b2f 64%); color: #07150a; }
+body.app-section-chat .conversation-header { border-bottom-color: #5a8f5d88; background: #082211e8; }
+body.app-section-chat .conversation-header strong { color: #f1ffd1; }
+body.app-section-chat .conversation-header button,
+body.app-section-chat .conversation-header .voice-start { color: #d9ff8e; }
+body.app-section-chat .collector-thread { background: linear-gradient(#041309b8, #06180be2), url("/public/messages-jungle.png") center / cover fixed; }
+body.app-section-chat .collector-thread .post-comment { border-color: #5d995f; background: #0c2b17ef; color: #eef8d3; box-shadow: 0 5px 14px #010b0566; }
+body.app-section-chat .collector-thread .post-comment b { color: #e7ff8e; }
+body.app-section-chat .collector-thread .post-comment.is-own-message { border-color: #d6c75c; background: #3d4214ed; }
+body.app-section-chat .collector-message-form { border-top-color: #5e985f; background: #071b0fe8; }
+body.app-section-chat .collector-message-form textarea { border-color: #6da968; background: #031209; color: #f0ffd8; }
+body.app-section-chat .collector-message-form textarea:focus { border-color: #dfff7c; box-shadow: 0 0 0 3px #b4e86c2a; }
+body.app-section-chat .collector-message-form button,
+body.app-section-chat .suggestion-actions button,
+body.app-section-chat .entity-primary { border-color: #cce66e; background: #89ad3d; color: #061108; }
+body.app-section-chat .collector-message-form button:hover,
+body.app-section-chat .suggestion-actions button:hover,
+body.app-section-chat .entity-primary:hover { background: #dafa82; }
+body.app-section-chat .conversation-list,
+body.app-section-chat .suggestion-list,
+body.app-section-chat .chat-secondary { scrollbar-color: #81bb63 #07170d; }
+@media (max-width: 680px) { body.app-section-chat .app-section-page { background-attachment: scroll; } }
