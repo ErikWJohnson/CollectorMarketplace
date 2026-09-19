@@ -4,7 +4,7 @@ body.app-section-chat { background: #061209; }
 body.app-section-chat .app-shell,
 body.app-section-chat .market-stage,
 body.app-section-chat .listing-stream { background: transparent; }
-body.app-section-chat .app-section-page { position: relative; isolation: isolate; min-height: calc(100vh - 82px); background: linear-gradient(90deg, #021008e8, #082415bf 43%, #031108e8), linear-gradient(180deg, #031108b8, #061a0bb3), url("/public/messages-jungle.png") center / cover fixed no-repeat; }
+body.app-section-chat .app-section-page { position: relative; isolation: isolate; min-height: calc(100vh - 82px); background: linear-gradient(90deg, #021008b8, #08241570 43%, #031108b8), linear-gradient(180deg, #03110872, #061a0b86), url("/public/messages-jungle.png") center / cover fixed no-repeat; }
 body.app-section-chat .app-section-intro { position: relative; border-bottom-color: #5c9d5c80; background: linear-gradient(90deg, #062012ec, #123920cd); }
 body.app-section-chat .app-section-intro > span,
 body.app-section-chat .app-section-intro h1 { color: #d8ff9d; }
@@ -32,7 +32,7 @@ body.app-section-chat .conversation-header { border-bottom-color: #5a8f5d88; bac
 body.app-section-chat .conversation-header strong { color: #f1ffd1; }
 body.app-section-chat .conversation-header button,
 body.app-section-chat .conversation-header .voice-start { color: #d9ff8e; }
-body.app-section-chat .collector-thread { background: linear-gradient(#041309b8, #06180be2), url("/public/messages-jungle.png") center / cover fixed; }
+body.app-section-chat .collector-thread { background: linear-gradient(#0413097a, #06180b9c), url("/public/messages-jungle.png") center / cover fixed; }
 body.app-section-chat .collector-thread .post-comment { border-color: #5d995f; background: #0c2b17ef; color: #eef8d3; box-shadow: 0 5px 14px #010b0566; }
 body.app-section-chat .collector-thread .post-comment b { color: #e7ff8e; }
 body.app-section-chat .collector-thread .post-comment.is-own-message { border-color: #d6c75c; background: #3d4214ed; }
@@ -48,4 +48,11 @@ body.app-section-chat .entity-primary:hover { background: #dafa82; }
 body.app-section-chat .conversation-list,
 body.app-section-chat .suggestion-list,
 body.app-section-chat .chat-secondary { scrollbar-color: #81bb63 #07170d; }
+.jungle-chat-game-host { position: relative; z-index: 5; }
+.jungle-chat-game { position: fixed; z-index: 7; right: 18px; bottom: 92px; width: 212px; padding: 10px; border: 1px solid #b7db70a8; background: #06170ee8; box-shadow: 0 18px 44px #010805b8; backdrop-filter: blur(8px); color: #efffcf; }
+.jungle-chat-game header { display:flex; justify-content:space-between; gap:8px; margin-bottom:8px; font:800 9px "DM Mono",monospace; letter-spacing:.65px; }.jungle-chat-game header b{color:#ecff8b}.jungle-chat-game header span{color:#afd979}
+.jungle-run-field { position:relative; height:158px; overflow:hidden; border:1px solid #77a860; background: linear-gradient(90deg,#0c3b1b96 0 33%,#062b1599 33% 66%,#0c3b1b96 66%), repeating-linear-gradient(0deg,#d8ff9d10 0 2px,transparent 2px 22px); }
+.jungle-run-field::before { content:""; position:absolute; inset:0; background:radial-gradient(circle at 15% 10%,#d9ff9d45,transparent 14%),radial-gradient(circle at 83% 44%,#bdff7040,transparent 16%); pointer-events:none; }
+.jungle-runner,.jungle-hazard { position:absolute; left:calc((var(--lane) * 33.333%) + 16.666%); transform:translateX(-50%); font-style:normal; }.jungle-runner{bottom:8px;font-size:28px;filter:drop-shadow(0 4px 3px #0009);transition:left .14s ease, bottom .12s ease}.jungle-runner.is-jumping{bottom:62px}.jungle-hazard{top:var(--y);font-size:24px;filter:drop-shadow(0 3px 3px #0009)}
+.jungle-chat-game footer { display:grid; gap:7px; margin-top:9px; }.jungle-chat-game button { border:1px solid #d9ef7c; background:#7ea83a; color:#061107; padding:8px; font:800 9px "DM Mono",monospace; letter-spacing:1px; text-transform:uppercase; cursor:pointer; }.jungle-chat-game button:hover{background:#ddfa84}.jungle-chat-game small{color:#ccedaf;font:8px/1.35 "DM Mono",monospace;}
 @media (max-width: 680px) { body.app-section-chat .app-section-page { background-attachment: scroll; } }

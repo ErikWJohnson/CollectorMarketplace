@@ -737,9 +737,55 @@ document.addEventListener('keydown', event => {
   if (event.code === 'Backquote') settleAuctionPiece(); else renderAuctionBlocks();
 });
 
+// Canopy Run is an optional little jungle game for the Messages workspace.
+// Its controls mirror the other site games without capturing normal typing.
+const jungleChatGame = { host: null, timer: 0, started: false, lane: 1, jump: 0, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-canopy-run-high-score') || 0), hazards: [], lastHazard: 0, lastTick: 0, gameOver: false };
+function renderJungleChatGame() {
+  const game = jungleChatGame; if (!game.host?.isConnected) return;
+  const status = game.started ? '[ ] move · = leap · ` swipe' : game.gameOver ? 'Caught in the vines · Play again' : 'Run the canopy between messages';
+  game.host.innerHTML = `<section class="jungle-chat-game"><header><b>CANOPY RUN</b><span>${String(game.score).padStart(4, '0')} · HI ${String(game.highScore).padStart(4, '0')}</span></header><div class="jungle-run-field"><i class="jungle-runner ${game.jump ? 'is-jumping' : ''}" style="--lane:${game.lane}">🦜</i>${game.hazards.map(hazard => `<i class="jungle-hazard" style="--lane:${hazard.lane};--y:${hazard.y}%">${hazard.type}</i>`).join('')}</div><footer>${game.started ? '<button type="button" data-jungle-game-stop>Pause</button>' : '<button type="button" data-jungle-game-play>▶ Play</button>'}<small>${status}</small></footer></section>`;
+}
+function launchJungleChatGame() {
+  const game = jungleChatGame; if (!game.host?.isConnected || game.started) return;
+  game.started = true; game.gameOver = false; game.lane = 1; game.jump = 0; game.score = 0; game.hazards = []; game.lastHazard = 0; game.lastTick = Date.now(); clearInterval(game.timer); game.timer = setInterval(tickJungleChatGame, 95); renderJungleChatGame();
+}
+function endJungleChatGame() {
+  const game = jungleChatGame; clearInterval(game.timer); game.timer = 0; game.started = false; game.gameOver = true; game.highScore = Math.max(game.highScore, game.score); localStorage.setItem('collector-marketplace-canopy-run-high-score', String(game.highScore)); renderJungleChatGame();
+}
+function stopJungleChatGame() { clearInterval(jungleChatGame.timer); jungleChatGame.timer = 0; jungleChatGame.started = false; jungleChatGame.hazards = []; jungleChatGame.host = null; }
+function tickJungleChatGame() {
+  const game = jungleChatGame; if (!game.started) return; const now = Date.now();
+  if (now - game.lastHazard > 920) { game.hazards.push({ lane: Math.floor(Math.random() * 3), y: -14, type: Math.random() > .5 ? '🍃' : '🪵' }); game.lastHazard = now; }
+  game.hazards.forEach(hazard => { hazard.y += 5.2; }); game.hazards = game.hazards.filter(hazard => hazard.y < 112);
+  if (game.jump > 0) game.jump -= 1;
+  if (game.hazards.some(hazard => hazard.lane === game.lane && hazard.y > 72 && hazard.y < 95) && !game.jump) return endJungleChatGame();
+  if (now - game.lastTick > 220) { game.score += 1; game.lastTick = now; }
+  renderJungleChatGame();
+}
+function mountJungleChatGame() {
+  const page = stream?.querySelector('.app-section-page'); if (!page || !document.body.classList.contains('app-section-chat')) return stopJungleChatGame();
+  let host = page.querySelector('.jungle-chat-game-host'); if (!host) { host = document.createElement('div'); host.className = 'jungle-chat-game-host'; page.append(host); }
+  jungleChatGame.host = host; renderJungleChatGame();
+}
+document.addEventListener('click', event => {
+  if (event.target.closest('[data-jungle-game-play]')) { launchJungleChatGame(); return; }
+  if (event.target.closest('[data-jungle-game-stop]')) { endJungleChatGame(); jungleChatGame.gameOver = false; renderJungleChatGame(); }
+});
+document.addEventListener('keydown', event => {
+  const game = jungleChatGame; if (!game.started || !document.body.classList.contains('app-section-chat') || !canUseAutoScroll(event.target)) return;
+  if (!['BracketLeft', 'BracketRight', 'Equal', 'Backquote'].includes(event.code)) return;
+  event.preventDefault();
+  if (event.code === 'BracketLeft') game.lane = Math.max(0, game.lane - 1);
+  if (event.code === 'BracketRight') game.lane = Math.min(2, game.lane + 1);
+  if (event.code === 'Equal') game.jump = 6;
+  if (event.code === 'Backquote') { const target = game.hazards.find(hazard => hazard.lane === game.lane && hazard.y > 24 && hazard.y < 92); if (target) { game.hazards = game.hazards.filter(hazard => hazard !== target); game.score += 12; } }
+  renderJungleChatGame();
+});
+
 function syncBrowseModeUi() {
   const auctionActive = document.body.classList.contains('auction-mode');
   if (!auctionActive) stopAuctionWaterfall();
+  if (!document.body.classList.contains('app-section-chat')) stopJungleChatGame();
   const browseSurface = !document.body.classList.contains('app-section-mode') && !modal.open;
   const conveyor = browseMode === 'conveyor' && searchScope === 'listings' && browseSurface && !auctionActive;
   const doomscroll = browseMode === 'doomscroll' && searchScope === 'listings' && browseSurface && !auctionActive;
@@ -1167,7 +1213,7 @@ function renderFeed(reset = true) {
   document.querySelector('#result-count').textContent = `${rows.length} listed`; sentinel.textContent = browseMode === 'conveyor' ? 'Conveyor mode · looping continuously' : page * 4 < rows.length ? 'Scroll for more finds ↓' : 'You are all caught up.'; syncBrowseModeUi(); renderVisibleCheckoutEstimates();
 }
 function openAppSection(kind, title, copy, content = '') {
-  if (modal.open) modal.close(); stopAutoScroll(); stopConveyor(); stopAuctionWaterfall(); clearInterval(auctionClock); clearInterval(auctionFeedClock);
+  if (modal.open) modal.close(); stopAutoScroll(); stopConveyor(); stopAuctionWaterfall(); stopJungleChatGame(); clearInterval(auctionClock); clearInterval(auctionFeedClock);
   document.querySelector('.conveyor-smog-layer')?.remove();
   document.querySelector('.conveyor-orbit-layer')?.remove();
   document.body.classList.remove('auction-mode', 'browse-conveyor', 'chat-open', 'account-open', 'purchase-open', 'comments-open', 'app-section-chat', 'app-section-account');
@@ -1175,7 +1221,7 @@ function openAppSection(kind, title, copy, content = '') {
   const workspaceLabel = kind === 'account' ? 'Collector workspace' : kind === 'membership' ? 'Membership' : 'Social workspace';
   stream.innerHTML = `<section class="app-section-page"><header class="app-section-intro"><span>${workspaceLabel}</span><h1>${title}</h1><p>${copy || ''}</p></header><div class="app-section-content">${content}</div></section>`;
   queueMicrotask(() => { modal.className = ''; document.body.classList.remove('chat-open', 'account-open'); });
-  requestAnimationFrame(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); const thread = stream.querySelector('.collector-thread'); if (thread) thread.scrollTop = thread.scrollHeight; stream.querySelector('.collector-message-form textarea')?.focus({ preventScroll: true }); });
+  requestAnimationFrame(() => { if (kind === 'chat') mountJungleChatGame(); window.scrollTo({ top: 0, behavior: 'smooth' }); const thread = stream.querySelector('.collector-thread'); if (thread) thread.scrollTop = thread.scrollHeight; stream.querySelector('.collector-message-form textarea')?.focus({ preventScroll: true }); });
 }
 function openModal(title, copy, form) {
   const sectionKind = title === 'Messages' || title.startsWith('Chat · @') ? 'chat' : copy === 'Manage your collector profile and marketplace activity.' ? 'account' : '';
