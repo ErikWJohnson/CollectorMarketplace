@@ -698,7 +698,15 @@ function endAuctionBlocks() {
   const game = auctionBlocks; clearInterval(game.timer); game.timer = 0; game.started = false; game.gameOver = true; game.highScore = Math.max(game.highScore, game.score); localStorage.setItem('collector-marketplace-auction-falls-high-score', String(game.highScore)); renderAuctionBlocks();
 }
 function stopAuctionBlocks() { clearInterval(auctionBlocks.timer); auctionBlocks.timer = 0; auctionBlocks.started = false; auctionBlocks.piece = null; auctionBlocks.host = null; }
-function mountAuctionBlocks() { const host = stream?.querySelector('.auction-house'); if (!host) return stopAuctionBlocks(); auctionBlocks.host = host; if (!auctionBlocks.board.length) auctionBlocks.board = emptyAuctionBoard(); renderAuctionBlocks(); }
+function mountAuctionBlocks() {
+  const auctionHouse = stream?.querySelector('.auction-house');
+  if (!auctionHouse) return stopAuctionBlocks();
+  let host = auctionHouse.querySelector('.auction-block-game-host');
+  if (!host) { host = document.createElement('div'); host.className = 'auction-block-game-host'; auctionHouse.append(host); }
+  auctionBlocks.host = host;
+  if (!auctionBlocks.board.length) auctionBlocks.board = emptyAuctionBoard();
+  renderAuctionBlocks();
+}
 document.addEventListener('click', event => {
   if (event.target.closest('[data-auction-blocks-play]')) { launchAuctionBlocks(); return; }
   if (event.target.closest('[data-auction-blocks-pause]')) { endAuctionBlocks(); auctionBlocks.gameOver = false; renderAuctionBlocks(); }

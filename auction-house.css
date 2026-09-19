@@ -71,6 +71,7 @@ body.auction-mode {
 
 /* A small, opt-in falling-block game floats over the water without taking
    focus away from the auction floor. */
+.auction-block-game-host { position:relative; z-index:8; }
 .auction-block-game { position:fixed; z-index:8; right:18px; bottom:94px; width:190px; padding:10px; border:1px solid #8fc8c299; background:#031417de; box-shadow:0 14px 42px #000b; backdrop-filter:blur(7px); color:#dff8f3; }
 .auction-block-game header { display:flex; justify-content:space-between; gap:8px; margin-bottom:8px; font:700 9px "DM Mono"; letter-spacing:.7px; }
 .auction-block-game header b { color:#f0cc78; }.auction-block-game header span { color:#8ed3ca; }
