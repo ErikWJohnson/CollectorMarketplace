@@ -7,6 +7,37 @@ body.account-open {
     url("/public/account-venice-dock.png") center top / cover fixed no-repeat #120b09 !important;
 }
 
+/* Moving bands of reflected sunset light stay in the water portion of the
+   scene. They are purely visual and sit behind every account control. */
+body.app-section-account::before {
+  position: fixed;
+  z-index: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 58vh;
+  content: "";
+  pointer-events: none;
+  opacity: .46;
+  background:
+    repeating-linear-gradient(176deg, transparent 0 18px, #ffd38a14 20px 23px, transparent 27px 43px),
+    repeating-linear-gradient(4deg, transparent 0 27px, #76c8d11a 30px 33px, transparent 36px 56px),
+    linear-gradient(180deg, transparent, #0b2b3455 26%, #06151c88);
+  background-size: 160% 260%, 190% 290%, 100% 100%;
+  background-position: 0 0, 100% 0, center;
+  mix-blend-mode: screen;
+  animation: venice-water-reflections 5.4s ease-in-out infinite alternate;
+}
+
+body.app-section-account .app-shell { position: relative; z-index: 1; }
+
+@keyframes venice-water-reflections {
+  from { background-position: 0 0, 100% 0, center; transform: translate3d(0, 0, 0) scaleX(1.02); }
+  to { background-position: 13% 18%, 83% 27%, center; transform: translate3d(0, 5px, 0) scaleX(1.08); }
+}
+
+@media (prefers-reduced-motion: reduce) { body.app-section-account::before { animation: none; } }
+
 body.app-section-account .app-shell,
 body.app-section-account .market-stage,
 body.app-section-account .listing-stream,
