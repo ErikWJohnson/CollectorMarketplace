@@ -29,6 +29,7 @@ const stopAuctionWaterfall = () => {
   if (!auctionWaterfallAudio) return;
   auctionWaterfallAudio.pause();
   auctionWaterfallAudio.currentTime = 0;
+  stopAuctionBlocks();
   syncAuctionWaterfallControl();
 };
 function syncAuctionWaterfallControl() {
@@ -656,6 +657,63 @@ document.addEventListener('keydown', event => {
 document.addEventListener('keyup', event => { if (puppyControlCodes.has(event.code)) puppyJump.keys.delete(event.code); if (event.code === 'Equal') puppyJumpGame.jumpHeld = false; });
 window.addEventListener('blur', () => { puppyJump.keys.clear(); puppyJumpGame.jumpHeld = false; });
 document.addEventListener('click', event => { if (event.target.closest('[data-puppy-jump-play]')) launchPuppyJump(); });
+
+// Auction Falls is a compact falling-block game that lives only on the
+// waterfall auction surface. It starts on demand so normal bidding controls
+// and keyboard shortcuts remain untouched until the collector presses Play.
+const auctionBlocks = { host: null, board: [], piece: null, x: 3, y: 0, timer: 0, started: false, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-auction-falls-high-score') || 0), gameOver: false };
+const auctionBlockShapes = [
+  [[1, 1, 1, 1]], [[1, 1], [1, 1]], [[0, 1, 0], [1, 1, 1]], [[1, 0], [1, 0], [1, 1]], [[0, 1], [0, 1], [1, 1]], [[1, 1, 0], [0, 1, 1]], [[0, 1, 1], [1, 1, 0]]
+];
+const emptyAuctionBoard = () => Array.from({ length: 16 }, () => Array(10).fill(0));
+const rotateAuctionPiece = piece => piece[0].map((_, index) => piece.map(row => row[index]).reverse());
+function auctionBlocksCollide(piece = auctionBlocks.piece, x = auctionBlocks.x, y = auctionBlocks.y) {
+  return piece.some((row, rowIndex) => row.some((filled, colIndex) => filled && (x + colIndex < 0 || x + colIndex >= 10 || y + rowIndex >= 16 || (y + rowIndex >= 0 && auctionBlocks.board[y + rowIndex][x + colIndex]))));
+}
+function renderAuctionBlocks() {
+  const game = auctionBlocks; if (!game.host?.isConnected) return;
+  const display = game.board.map(row => [...row]);
+  if (game.piece) game.piece.forEach((row, rowIndex) => row.forEach((filled, colIndex) => { const y = game.y + rowIndex; const x = game.x + colIndex; if (filled && y >= 0 && y < 16 && x >= 0 && x < 10) display[y][x] = 2; }));
+  const status = game.started ? 'Arrow keys move · ↑ rotates · Space drops' : game.gameOver ? 'Water swept the stack away · Play again' : 'Arrow keys move · ↑ rotates · Space drops';
+  game.host.innerHTML = `<section class="auction-block-game"><header><b>AUCTION FALLS</b><span>${String(game.score).padStart(4, '0')} · HI ${String(game.highScore).padStart(4, '0')}</span></header><div class="auction-block-grid" aria-label="Auction Falls game board">${display.flat().map(cell => `<i class="${cell === 2 ? 'is-falling' : cell ? 'is-set' : ''}"></i>`).join('')}</div><footer>${game.started ? '<button type="button" data-auction-blocks-pause>Pause</button>' : '<button type="button" data-auction-blocks-play>▶ Play</button>'}<small>${status}</small></footer></section>`;
+}
+function spawnAuctionPiece() {
+  auctionBlocks.piece = auctionBlockShapes[Math.floor(Math.random() * auctionBlockShapes.length)].map(row => [...row]);
+  auctionBlocks.x = Math.floor((10 - auctionBlocks.piece[0].length) / 2); auctionBlocks.y = 0;
+  if (auctionBlocksCollide()) endAuctionBlocks();
+}
+function settleAuctionPiece() {
+  const game = auctionBlocks;
+  game.piece.forEach((row, rowIndex) => row.forEach((filled, colIndex) => { const y = game.y + rowIndex; const x = game.x + colIndex; if (filled && y >= 0) game.board[y][x] = 1; }));
+  const retained = game.board.filter(row => !row.every(Boolean)); const cleared = 16 - retained.length;
+  while (retained.length < 16) retained.unshift(Array(10).fill(0));
+  game.board = retained; game.score += cleared ? cleared * cleared * 100 : 8; spawnAuctionPiece(); renderAuctionBlocks();
+}
+function tickAuctionBlocks() { const game = auctionBlocks; if (!game.started) return; if (!auctionBlocksCollide(game.piece, game.x, game.y + 1)) { game.y += 1; renderAuctionBlocks(); } else settleAuctionPiece(); }
+function launchAuctionBlocks() {
+  const game = auctionBlocks; if (!game.host?.isConnected || game.started) return;
+  game.board = emptyAuctionBoard(); game.score = 0; game.gameOver = false; game.started = true; spawnAuctionPiece(); clearInterval(game.timer); game.timer = setInterval(tickAuctionBlocks, 560); renderAuctionBlocks();
+}
+function endAuctionBlocks() {
+  const game = auctionBlocks; clearInterval(game.timer); game.timer = 0; game.started = false; game.gameOver = true; game.highScore = Math.max(game.highScore, game.score); localStorage.setItem('collector-marketplace-auction-falls-high-score', String(game.highScore)); renderAuctionBlocks();
+}
+function stopAuctionBlocks() { clearInterval(auctionBlocks.timer); auctionBlocks.timer = 0; auctionBlocks.started = false; auctionBlocks.piece = null; auctionBlocks.host = null; }
+function mountAuctionBlocks() { const host = stream?.querySelector('.auction-house'); if (!host) return stopAuctionBlocks(); auctionBlocks.host = host; if (!auctionBlocks.board.length) auctionBlocks.board = emptyAuctionBoard(); renderAuctionBlocks(); }
+document.addEventListener('click', event => {
+  if (event.target.closest('[data-auction-blocks-play]')) { launchAuctionBlocks(); return; }
+  if (event.target.closest('[data-auction-blocks-pause]')) { endAuctionBlocks(); auctionBlocks.gameOver = false; renderAuctionBlocks(); }
+});
+document.addEventListener('keydown', event => {
+  const game = auctionBlocks; if (!game.started || !document.body.classList.contains('auction-mode') || !canUseAutoScroll(event.target)) return;
+  if (!['ArrowLeft', 'ArrowRight', 'ArrowDown', 'ArrowUp', 'Space'].includes(event.code)) return;
+  event.preventDefault();
+  if (event.code === 'ArrowLeft' && !auctionBlocksCollide(game.piece, game.x - 1, game.y)) game.x -= 1;
+  if (event.code === 'ArrowRight' && !auctionBlocksCollide(game.piece, game.x + 1, game.y)) game.x += 1;
+  if (event.code === 'ArrowDown') tickAuctionBlocks();
+  if (event.code === 'ArrowUp') { const turned = rotateAuctionPiece(game.piece); if (!auctionBlocksCollide(turned)) game.piece = turned; }
+  if (event.code === 'Space') while (!auctionBlocksCollide(game.piece, game.x, game.y + 1)) game.y += 1;
+  if (event.code === 'Space') settleAuctionPiece(); else renderAuctionBlocks();
+});
 
 function syncBrowseModeUi() {
   const auctionActive = document.body.classList.contains('auction-mode');
@@ -1358,6 +1416,7 @@ function renderAuctionHouse() {
   activeAuctionId = lot.id; const minimum = Number(lot.currentBid) + 5;
   const activity = auctionActivity.filter(row => row.lotId === lot.id).slice(0, 5);
   stream.innerHTML = `<section class="auction-house"><header class="auction-head"><div><p><i></i> Live bidding floor</p><h1>Auction House</h1></div><div class="auction-head-meta"><strong>${auctions.length}</strong><span>Lots open now</span></div></header><div class="auction-ticker"><span>LIVE</span><div>${auctions.map(item => `<button type="button" data-auction-select="${item.id}">${safe(item.title)} <b>${money(item.currentBid)}</b></button>`).join('')}</div></div><main class="auction-stage"><section class="auction-showcase"><div class="auction-art"><img src="${safe(lot.image)}" alt="${safe(lot.title)}"><span class="auction-lot-number">LOT ${String(auctions.indexOf(lot) + 1).padStart(2, '0')}</span><div class="auction-countdown"><small>Closing in</small><strong data-auction-clock="${lot.id}">${auctionTime(lot)}</strong></div></div><div class="auction-details"><p class="auction-category">${safe(lot.category)} · Live lot</p><h2>${safe(lot.title)}</h2><p class="auction-description">A featured collector lot, presented live. Review the current bid, join the room, and place your bid before the floor closes.</p><div class="auction-price"><span>Current bid</span><strong>${money(lot.currentBid)}</strong><small>${lot.bids} bids placed</small></div><form class="auction-bid-panel" data-auction-bid-form="${lot.id}"><label>Your maximum bid<input name="amount" required type="number" inputmode="decimal" min="${minimum}" step="1" value="${minimum}" aria-label="Your maximum bid"></label><div class="auction-quick-bids"><button type="button" data-bid-add="10">+ $10</button><button type="button" data-bid-add="25">+ $25</button><button type="button" data-bid-add="50">+ $50</button></div><button class="auction-bid" type="submit">Place live bid <span>→</span></button><small>By placing a bid, you agree to the auction terms.</small></form><button type="button" class="voice-start auction-voice" data-voice-room="auction:${lot.id}" data-voice-label="Auction voice · ${safe(lot.title)}">Join the live voice room</button></div></section><aside class="auction-live-panel"><header><span><i></i> Floor activity</span><small>Updates live</small></header><div class="auction-activity" aria-live="polite">${activity.length ? activity.map(row => `<article><b>${safe(row.initials)}</b><p><strong>${safe(row.name)}</strong> placed a bid <em>${money(row.amount)}</em><small>${safe(row.time)}</small></p></article>`).join('') : `<div class="auction-awaiting"><i>◇</i><strong>The floor is open</strong><span>New bids will appear here in real time.</span></div>`}</div><div class="auction-confidence"><span>Buyer protection</span><p>Verified accounts, binding bids, and protected checkout after the auction closes.</p></div></aside></main><section class="auction-lot-rail"><header><div><p>Tonight's catalogue</p><h2>Explore live lots</h2></div><span>Choose a lot to enter its bidding floor</span></header><div class="auction-grid">${auctions.map((item, index) => `<button type="button" class="auction-card ${item.id === lot.id ? 'is-active' : ''}" data-auction-select="${item.id}"><span class="auction-card-image"><img src="${safe(item.image)}" alt=""><i>LOT ${String(index + 1).padStart(2, '0')}</i></span><span class="auction-info"><small>${safe(item.category)}</small><strong>${safe(item.title)}</strong><span><b>${money(item.currentBid)}</b><em data-auction-clock="${item.id}">${auctionTime(item)}</em></span></span></button>`).join('')}</div></section></section>`;
+  mountAuctionBlocks();
   syncAuctionWaterfallControl();
   updateAuctionClocks();
 }
@@ -1558,6 +1617,7 @@ const renderTaggedAuctionHouse = () => {
   sentinel.hidden = true;
   const lots = filteredAuctions();
   stream.innerHTML = `<section class="auction-house"><header class="auction-head"><div><p>Live bidding</p><h1>Auction House</h1></div><p>${lots.length} matching lot${lots.length === 1 ? '' : 's'} open now</p></header>${lots.length ? `<div class="auction-grid">${lots.map(lot => `<article class="auction-card"><img src="${safe(lot.image)}" alt="${safe(lot.title)}"><div class="auction-info"><h2>${safe(lot.title)}</h2><p>${safe(lot.category)}</p><div class="auction-stats"><div>Current bid<strong>${money(lot.currentBid)}</strong></div><div>Ends in<strong>${safe(lot.ends)}</strong></div><div>${lot.bids} bids</div></div><button class="auction-bid" data-bid="${lot.id}">Place bid</button></div></article>`).join('')}</div>` : '<p class="load-state">No active auction lots match those tags. Try removing a tag or choose ANY matching.</p>'}</section>`;
+  mountAuctionBlocks();
   syncAuctionWaterfallControl();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };

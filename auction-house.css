@@ -40,7 +40,7 @@ body.auction-mode {
   background: url("/public/auction-waterfall-wall.png") center 0 / 116% auto repeat-y;
   filter: saturate(.9) contrast(1.14) brightness(.76);
   will-change: transform, background-position;
-  animation: auction-waterfall-flow 5.8s linear infinite;
+  animation: auction-waterfall-flow 7.2s cubic-bezier(.36,.03,.62,.98) infinite;
 }
 .auction-house::after {
   background-image: repeating-linear-gradient(104deg, transparent 0 6%, #d6f3f00b 8% 11%, transparent 14% 24%), linear-gradient(90deg, #041014c9, #06171a66 35%, #07171b73 68%, #02090ccf), linear-gradient(180deg, #02090cbe, transparent 28%, #041013ac 100%);
@@ -58,8 +58,9 @@ body.auction-mode {
 .auction-sound-control { border: 1px solid #83c9c0; background: #071b1fe8; color: #d4f4ea; padding: 9px 12px; font: 700 9px "DM Mono"; letter-spacing: .7px; text-transform: uppercase; cursor: pointer; }
 .auction-sound-control:hover, .auction-sound-control[aria-pressed="true"] { border-color: #d4ae64; color: #f6db92; }
 @keyframes auction-waterfall-flow {
-  from { transform: scale(1.04) translate3d(0, -4%, 0); background-position: center 0; }
-  to { transform: scale(1.07) translate3d(0, 4%, 0); background-position: center 100%; }
+  0% { transform: scale(1.045) translate3d(0, -6%, 0); background-position: center 0; }
+  48% { transform: scale(1.06) translate3d(-.45%, 1.5%, 0); background-position: center 48%; }
+  100% { transform: scale(1.075) translate3d(.35%, 7%, 0); background-position: center 100%; }
 }
 @keyframes auction-waterfall-sheen { from { background-position: 0 -30%, center, center; } to { background-position: 0 130%, center, center; } }
 @keyframes auction-waterfall-page-flow {
@@ -67,3 +68,15 @@ body.auction-mode {
   to { background-position: center 58%; }
 }
 @media (prefers-reduced-motion: reduce) { body.auction-mode, .auction-house::before { animation: none; } }
+
+/* A small, opt-in falling-block game floats over the water without taking
+   focus away from the auction floor. */
+.auction-block-game { position:fixed; z-index:8; right:18px; bottom:94px; width:190px; padding:10px; border:1px solid #8fc8c299; background:#031417de; box-shadow:0 14px 42px #000b; backdrop-filter:blur(7px); color:#dff8f3; }
+.auction-block-game header { display:flex; justify-content:space-between; gap:8px; margin-bottom:8px; font:700 9px "DM Mono"; letter-spacing:.7px; }
+.auction-block-game header b { color:#f0cc78; }.auction-block-game header span { color:#8ed3ca; }
+.auction-block-grid { display:grid; grid-template-columns:repeat(10,1fr); aspect-ratio:10/16; overflow:hidden; border:1px solid #75a9a466; background:#03101499; }
+.auction-block-grid i { min-width:0; border:1px solid #8ce4db0d; background:#06212633; }
+.auction-block-grid i.is-set { background:linear-gradient(135deg,#177a79,#0a4d59); box-shadow:inset 0 0 0 1px #7fdcd088; }
+.auction-block-grid i.is-falling { background:linear-gradient(135deg,#e9c568,#b56a26); box-shadow:inset 0 0 0 1px #fff0a3bb; }
+.auction-block-game footer { display:grid; gap:7px; margin-top:9px; }.auction-block-game button { border:1px solid #d5b456; background:#172d2f; color:#ffdf87; padding:8px; font:800 9px "DM Mono"; letter-spacing:1px; text-transform:uppercase; cursor:pointer; }.auction-block-game button:hover { background:#25474a; }.auction-block-game small { color:#9bbdb9; font:8px/1.35 "DM Mono"; }
+@media(max-width:720px){.auction-block-game{right:10px;bottom:82px;width:142px;padding:7px}.auction-block-game footer small{display:none}.auction-block-game button{padding:6px;font-size:8px}}
