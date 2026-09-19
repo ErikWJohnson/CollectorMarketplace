@@ -13,6 +13,8 @@ const modalContent = document.querySelector('#modal-content');
 let listings = [], auctions = [], accounts = [], collectives = [], brands = [], couriers = [], chatrooms = [], deliveries = [], uploadedListingImages = [], uploadedListingVideos = [], activeCategory = 'All', activeQuery = '', activeTags = [], searchScope = 'listings', sortMode = 'popular', page = 1, observer, searchRenderTimer, auctionClock;
 const siteThemeAudio = document.querySelector('#site-theme-audio');
 const auctionWaterfallAudio = document.querySelector('#auction-waterfall-audio');
+const auctionBlockPlaceAudio = document.querySelector('#auction-block-place-audio');
+const auctionBlockClearAudio = document.querySelector('#auction-block-clear-audio');
 const rocketBoostAudio = document.querySelector('#rocket-boost-audio');
 const gameLaserAudio = document.querySelector('#game-laser-audio');
 const gameAsteroidAudio = document.querySelector('#game-asteroid-audio');
@@ -22,7 +24,7 @@ const puppyAngerAudio = document.querySelector('#puppy-anger-audio');
 const startAuctionWaterfall = () => {
   if (!auctionWaterfallAudio) return;
   auctionWaterfallAudio.loop = true;
-  auctionWaterfallAudio.volume = 0.28;
+  auctionWaterfallAudio.volume = 0.16;
   auctionWaterfallAudio.play().then(syncAuctionWaterfallControl).catch(syncAuctionWaterfallControl);
 };
 const stopAuctionWaterfall = () => {
@@ -689,9 +691,10 @@ function spawnAuctionPiece() {
 function settleAuctionPiece() {
   const game = auctionBlocks;
   game.piece.forEach((row, rowIndex) => row.forEach((filled, colIndex) => { const y = game.y + rowIndex; const x = game.x + colIndex; if (filled && y >= 0) game.board[y][x] = 1; }));
+  playGameEffect(auctionBlockPlaceAudio, .34);
   const retained = game.board.filter(row => !row.every(Boolean)); const cleared = 16 - retained.length;
   while (retained.length < 16) retained.unshift(Array(10).fill(0));
-  game.board = retained; game.score += cleared ? cleared * cleared * 100 : 8; spawnAuctionPiece(); spawnAuctionRowBomb(); renderAuctionBlocks();
+  game.board = retained; game.score += cleared ? cleared * cleared * 100 : 8; if (cleared) playGameEffect(auctionBlockClearAudio, .46); spawnAuctionPiece(); spawnAuctionRowBomb(); renderAuctionBlocks();
 }
 function tickAuctionBlocks() { const game = auctionBlocks; if (!game.started) return; if (!auctionBlocksCollide(game.piece, game.x, game.y + 1)) { game.y += 1; renderAuctionBlocks(); } else settleAuctionPiece(); }
 function launchAuctionBlocks() {
@@ -703,7 +706,7 @@ function spawnAuctionRowBomb() {
   const row = Math.floor(6 + Math.random() * 10); const emptyColumns = game.board[row].map((cell, index) => cell === 0 ? index : -1).filter(index => index >= 0);
   if (!emptyColumns.length) return;
   const column = emptyColumns[Math.floor(Math.random() * emptyColumns.length)]; game.board[row][column] = 3; renderAuctionBlocks();
-  const timer = setTimeout(() => { if (!game.started) return; game.board[row] = Array(10).fill(0); game.score += 75; renderAuctionBlocks(); }, 1250);
+  const timer = setTimeout(() => { if (!game.started) return; game.board[row] = Array(10).fill(0); game.score += 75; playGameEffect(auctionBlockClearAudio, .56); renderAuctionBlocks(); }, 1250);
   game.bombTimers.push(timer);
 }
 function endAuctionBlocks() {
