@@ -1228,7 +1228,7 @@ function openAppSection(kind, title, copy, content = '') {
   if (modal.open) modal.close(); stopAutoScroll(); stopConveyor(); stopAuctionWaterfall(); stopJungleChatGame(); stopJungleChatAmbience(); clearInterval(auctionClock); clearInterval(auctionFeedClock);
   document.querySelector('.conveyor-smog-layer')?.remove();
   document.querySelector('.conveyor-orbit-layer')?.remove();
-  document.body.classList.remove('auction-mode', 'browse-conveyor', 'chat-open', 'account-open', 'purchase-open', 'comments-open', 'app-section-chat', 'app-section-account');
+  document.body.classList.remove('auction-mode', 'browse-conveyor', 'browse-doomscroll', 'chat-open', 'account-open', 'purchase-open', 'comments-open', 'app-section-chat', 'app-section-account');
   document.body.classList.add('app-section-mode', `app-section-${kind}`); if (kind === 'chat') startJungleChatAmbience(); if (observer) observer.disconnect(); sentinel.hidden = true;
   const workspaceLabel = kind === 'account' ? 'Collector workspace' : kind === 'membership' ? 'Membership' : 'Social workspace';
   stream.innerHTML = `<section class="app-section-page"><header class="app-section-intro"><span>${workspaceLabel}</span><h1>${title}</h1><p>${copy || ''}</p></header><div class="app-section-content">${content}</div></section>`;
@@ -1505,7 +1505,7 @@ document.addEventListener('click', event => {
   if (auctionWaterfallAudio.paused) startAuctionWaterfall();
   else { auctionWaterfallAudio.pause(); syncAuctionWaterfallControl(); }
 });
-function showAuctionHouse() { if (observer) observer.disconnect(); clearInterval(auctionClock); sentinel.hidden = true; document.body.classList.remove('app-section-mode', 'app-section-chat', 'app-section-account'); document.body.classList.add('auction-mode'); startAuctionWaterfall(); syncBrowseModeUi(); if (!activeAuctionId) activeAuctionId = auctions[0]?.id; renderAuctionHouse(); auctionClock = setInterval(updateAuctionClocks, 1000); startAuctionFeed(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+function showAuctionHouse() { if (observer) observer.disconnect(); clearInterval(auctionClock); sentinel.hidden = true; document.body.classList.remove('app-section-mode', 'app-section-chat', 'app-section-account', 'browse-conveyor', 'browse-doomscroll'); document.body.classList.add('auction-mode'); startAuctionWaterfall(); syncBrowseModeUi(); if (!activeAuctionId) activeAuctionId = auctions[0]?.id; renderAuctionHouse(); auctionClock = setInterval(updateAuctionClocks, 1000); startAuctionFeed(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
 document.addEventListener('click', event => {
   if (event.target.closest('.delivery-update-form, .delivery-message-form, .trade-message-form')) return;
@@ -1711,7 +1711,7 @@ const renderFilteredAuctionHouse = () => {
   renderAuctionHouse();
   auctions = allLots;
 };
-showAuctionHouse = () => { auctionTagView = true; if (observer) observer.disconnect(); clearInterval(auctionClock); sentinel.hidden = true; document.body.classList.remove('app-section-mode', 'app-section-chat', 'app-section-account'); document.body.classList.add('auction-mode'); startAuctionWaterfall(); syncBrowseModeUi(); renderFilteredAuctionHouse(); auctionClock = setInterval(updateAuctionClocks, 1000); startAuctionFeed(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+showAuctionHouse = () => { auctionTagView = true; if (observer) observer.disconnect(); clearInterval(auctionClock); sentinel.hidden = true; document.body.classList.remove('app-section-mode', 'app-section-chat', 'app-section-account', 'browse-conveyor', 'browse-doomscroll'); document.body.classList.add('auction-mode'); startAuctionWaterfall(); syncBrowseModeUi(); renderFilteredAuctionHouse(); auctionClock = setInterval(updateAuctionClocks, 1000); startAuctionFeed(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 const refreshTaggedAuction = () => { if (auctionTagView) renderFilteredAuctionHouse(); };
 document.addEventListener('click', event => {
   if (event.target.closest('[data-home], [data-market]')) auctionTagView = false;
