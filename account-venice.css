@@ -7,38 +7,57 @@ body.account-open {
     url("/public/account-venice-dock.png") center top / cover fixed no-repeat #120b09 !important;
 }
 
-/* Broken pools of warm light glide across the lower water, with overlapping
-   soft ripple bands rather than obvious straight stripes. */
+/* Two restrained, masked layers are limited to the canal itself. Their broken
+   elliptical highlights move like water ripples, never like a page overlay. */
 body.app-section-account::before {
   position: fixed;
   z-index: 0;
   right: 0;
   bottom: 0;
   left: 0;
-  height: 58vh;
+  height: 45vh;
   content: "";
   pointer-events: none;
-  opacity: .52;
+  opacity: .32;
   background:
-    repeating-radial-gradient(ellipse 86% 14% at 44% 108%, transparent 0 12px, #ffd59218 14px 18px, transparent 22px 36px),
-    repeating-radial-gradient(ellipse 74% 12% at 58% 104%, transparent 0 17px, #8cd4dd18 19px 23px, transparent 27px 48px),
-    radial-gradient(ellipse at 52% 84%, #ffc87732, transparent 42%),
-    linear-gradient(180deg, transparent, #0b2b3455 26%, #06151c88);
-  background-size: 155% 182%, 188% 212%, 100% 100%, 100% 100%;
-  background-position: 10% 0, 92% 0, center, center;
+    repeating-radial-gradient(ellipse 72% 11% at 48% 108%, transparent 0 16px, #ffdca51c 18px 21px, transparent 24px 43px),
+    repeating-radial-gradient(ellipse 64% 9% at 64% 104%, transparent 0 23px, #9cdfe217 25px 28px, transparent 32px 56px),
+    radial-gradient(ellipse at 53% 89%, #ffc97827, transparent 43%);
+  background-size: 145% 184%, 174% 228%, 100% 100%;
+  background-position: 5% 8%, 94% 0, center;
+  mix-blend-mode: soft-light;
+  filter: blur(.65px) saturate(1.06);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 17%, #000 92%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 17%, #000 92%, transparent);
+  animation: venice-water-ripple-drift 8s ease-in-out infinite alternate;
+}
+
+body.app-section-account::after {
+  position: fixed;
+  z-index: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 38vh;
+  content: "";
+  pointer-events: none;
+  opacity: .2;
+  background: repeating-radial-gradient(ellipse 90% 13% at 40% 105%, transparent 0 20px, #ffe0a516 22px 25px, transparent 29px 48px);
+  background-size: 170% 230%;
+  background-position: 17% 0;
   mix-blend-mode: screen;
-  filter: blur(1.3px) saturate(1.08);
-  animation: venice-water-reflections 7.2s cubic-bezier(.42,.02,.56,.98) infinite alternate;
+  filter: blur(1.25px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 24%, #000 84%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 24%, #000 84%, transparent);
+  animation: venice-water-ripple-shimmer 5.4s linear infinite;
 }
 
 body.app-section-account .app-shell { position: relative; z-index: 1; }
 
-@keyframes venice-water-reflections {
-  from { background-position: 10% 0, 92% 0, center, center; transform: translate3d(-1%, 0, 0) scaleX(1.015); }
-  to { background-position: 26% 30%, 70% 37%, 51% 6%, center; transform: translate3d(1%, 5px, 0) scaleX(1.065); }
-}
+@keyframes venice-water-ripple-drift { from { background-position:5% 8%,94% 0,center; } to { background-position:21% 32%,76% 39%,53% 4%; } }
+@keyframes venice-water-ripple-shimmer { from { background-position:17% 0; } to { background-position:3% 46%; } }
 
-@media (prefers-reduced-motion: reduce) { body.app-section-account::before { animation: none; } }
+@media (prefers-reduced-motion: reduce) { body.app-section-account::before,body.app-section-account::after { animation: none; } }
 
 body.app-section-account .app-shell,
 body.app-section-account .market-stage,
