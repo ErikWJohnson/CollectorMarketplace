@@ -86,6 +86,20 @@ body.auction-mode .auction-house {
   padding-bottom: calc(142px + env(safe-area-inset-bottom)) !important;
 }
 
+/* Auction Falls updates the page frequently.  Keep scrolling on the document
+   root only; making both html and body scrollable produced a second flashing
+   scrollbar beside the browser's normal scrollbar. */
+html:has(body.auction-mode) {
+  overflow-x: clip !important;
+  overflow-y: scroll !important;
+  scrollbar-gutter: stable;
+}
+
+body.auction-mode {
+  overflow: visible !important;
+  scrollbar-gutter: auto;
+}
+
 @media (max-width: 680px) {
   body.app-section-mode .listing-stream,
   body.auction-mode .listing-stream {
