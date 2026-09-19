@@ -89,6 +89,15 @@ accountVeniceAudio?.addEventListener('play', syncAccountVeniceControl);
 accountVeniceAudio?.addEventListener('pause', syncAccountVeniceControl);
 const veniceSailingGame = { host: null, frame: 0, started: false, playerAngle: Math.PI / 2, enemyAngle: -Math.PI / 2, enemyDirection: 1, enemyActive: true, enemyRespawnAt: 0, playerShots: [], enemyShots: [], explosions: [], score: 0, highScore: Number(localStorage.getItem('collector-marketplace-venice-cannon-high-score') || 0), lastShot: 0, lastEnemyShot: 0, shieldUntil: 0, shieldReadyAt: 0, invulnerableUntil: 0, lastFrame: 0, message: 'Press Play to begin your cannon run.' };
 const veniceOrbitPoint = angle => ({ x: 50 + Math.cos(angle) * 37, y: 51 + Math.sin(angle) * 31 });
+const distanceToVeniceShotPath = (shot, target) => {
+  const startX = shot.previousX ?? shot.x;
+  const startY = shot.previousY ?? shot.y;
+  const segmentX = shot.x - startX;
+  const segmentY = shot.y - startY;
+  const segmentLengthSquared = segmentX * segmentX + segmentY * segmentY;
+  const progress = segmentLengthSquared ? Math.max(0, Math.min(1, ((target.x - startX) * segmentX + (target.y - startY) * segmentY) / segmentLengthSquared)) : 0;
+  return Math.hypot(target.x - (startX + segmentX * progress), target.y - (startY + segmentY * progress));
+};
 function renderVeniceSailingGame() {
   const game = veniceSailingGame; if (!game.host?.isConnected) return;
   const player = veniceOrbitPoint(game.playerAngle); const enemy = veniceOrbitPoint(game.enemyAngle);
@@ -117,16 +126,16 @@ function updateVeniceSailingGame(timestamp) {
     game.enemyAngle += game.enemyDirection * delta * .00075;
     if (Math.random() < .006) game.enemyDirection *= -1;
   }
-  game.playerShots.forEach(item => { item.x += item.vx * delta; item.y += item.vy * delta; }); game.enemyShots.forEach(item => { item.x += item.vx * delta; item.y += item.vy * delta; });
+  game.playerShots.forEach(item => { item.previousX = item.x; item.previousY = item.y; item.x += item.vx * delta; item.y += item.vy * delta; }); game.enemyShots.forEach(item => { item.previousX = item.x; item.previousY = item.y; item.x += item.vx * delta; item.y += item.vy * delta; });
   game.playerShots = game.playerShots.filter(item => item.x > -5 && item.x < 105 && item.y > -5 && item.y < 105); game.enemyShots = game.enemyShots.filter(item => item.x > -5 && item.x < 105 && item.y > -5 && item.y < 105);
   game.explosions = game.explosions.filter(item => timestamp - item.at < 520);
   const now = performance.now();
   const player = veniceOrbitPoint(game.playerAngle); const enemy = veniceOrbitPoint(game.enemyAngle);
   if (!game.enemyActive && now >= game.enemyRespawnAt) { game.enemyActive = true; game.enemyAngle = game.playerAngle + Math.PI; game.enemyDirection = Math.random() > .5 ? 1 : -1; game.lastEnemyShot = now; }
   if (game.enemyActive && now - game.lastEnemyShot > 900 + Math.random() * 600) { const dx = player.x - enemy.x; const dy = player.y - enemy.y; const distance = Math.hypot(dx, dy) || 1; game.lastEnemyShot = now; game.enemyShots.push({ x: enemy.x, y: enemy.y, vx: dx / distance * .12, vy: dy / distance * .12, angle: Math.atan2(dy, dx) * 180 / Math.PI + 90 }); }
-  const hitEnemy = game.enemyActive && game.playerShots.find(item => Math.hypot(item.x - enemy.x, item.y - enemy.y) <= 3.1);
+  const hitEnemy = game.enemyActive && game.playerShots.find(item => distanceToVeniceShotPath(item, enemy) <= 4.4);
   if (hitEnemy) { game.score += 100; game.explosions.push({ x: enemy.x, y: enemy.y, at: timestamp }); game.enemyActive = false; game.enemyRespawnAt = now + 2000; game.enemyShots = []; game.playerShots = []; playVeniceGameSound(gameAsteroidAudio, .36); }
-  const hitPlayer = game.enemyShots.find(item => Math.hypot(item.x - player.x, item.y - player.y) <= 3.8);
+  const hitPlayer = game.enemyShots.find(item => distanceToVeniceShotPath(item, player) <= 4.8);
   if (hitPlayer) { game.enemyShots = game.enemyShots.filter(item => item !== hitPlayer); game.explosions.push({ x: player.x, y: player.y, at: timestamp }); if (now < game.invulnerableUntil || now < game.shieldUntil) { playVeniceGameSound(gameAsteroidAudio, .18); } else { playVeniceGameSound(gameAsteroidAudio, .4); endVeniceSailingGame(`Your ship was hit. Final score: ${game.score}. Press Play to sail again.`); return; } }
   renderVeniceSailingGame(); game.frame = requestAnimationFrame(updateVeniceSailingGame);
 }
