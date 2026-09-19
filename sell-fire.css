@@ -1,12 +1,10 @@
 /* The publishing workspace uses a contained, animated ember-and-fire atmosphere. */
 body.app-section-listing {
   background:
-    radial-gradient(ellipse 52% 70% at 8% 112%, #ff5a142e 0 24%, transparent 59%),
-    radial-gradient(ellipse 45% 74% at 35% 118%, #e4331640 0 21%, transparent 61%),
-    radial-gradient(ellipse 58% 80% at 70% 115%, #ff8d1d2d 0 19%, transparent 58%),
-    linear-gradient(180deg, #160a08 0%, #3a100b 42%, #09090d 100%) !important;
-  background-size: 150% 155%, 135% 160%, 170% 175%, 100% 100% !important;
-  animation: sell-fire-sky 8s ease-in-out infinite alternate;
+    linear-gradient(180deg, #08090ba8 0%, #180a0a7d 44%, #08090bb8 100%),
+    url("/public/sell-lava-field.png") center / cover fixed no-repeat !important;
+  background-size: 100% 100%, 118% auto !important;
+  animation: sell-lava-drift 13s ease-in-out infinite alternate;
 }
 
 body.app-section-listing .app-shell,
@@ -20,13 +18,10 @@ body.app-section-listing .app-section-page {
   isolation: isolate;
   min-height: calc(100dvh - 154px);
   background:
-    radial-gradient(ellipse 42% 58% at 6% 104%, #fa5a1a6b 0 15%, transparent 55%),
-    radial-gradient(ellipse 36% 65% at 30% 107%, #e636185c 0 16%, transparent 58%),
-    radial-gradient(ellipse 42% 60% at 68% 106%, #ff8e2160 0 13%, transparent 56%),
-    radial-gradient(ellipse 36% 70% at 96% 104%, #df2d1959 0 15%, transparent 60%),
-    linear-gradient(90deg, #090809e3 0%, #140a0ac9 20%, #1b0d0a82 50%, #10090ace 80%, #090809e3 100%) !important;
-  background-size: 135% 165%, 120% 155%, 145% 170%, 125% 160%, 100% 100% !important;
-  animation: sell-fire-page 4.2s ease-in-out infinite alternate;
+    linear-gradient(90deg, #090809e9 0%, #160908c2 22%, #290d0985 50%, #130908c9 80%, #090809e9 100%),
+    url("/public/sell-lava-field.png") center / 120% auto fixed no-repeat !important;
+  background-size: 100% 100%, 120% auto !important;
+  animation: sell-lava-drift 15s ease-in-out infinite alternate-reverse;
 }
 
 body.app-section-listing .app-section-page > * { position: relative; z-index: 1; }
@@ -138,14 +133,9 @@ body.app-section-listing .listing-publish-bar button {
   box-shadow: 0 0 22px #ff64154d;
 }
 
-@keyframes sell-fire-sky {
-  from { background-position: 2% 0, 38% 4%, 86% 0, 0 0; }
-  to { background-position: 16% 8%, 54% 0, 72% 10%, 0 0; }
-}
-
-@keyframes sell-fire-page {
-  from { background-position: 0 12%, 28% 0, 65% 11%, 100% 4%, 0 0; }
-  to { background-position: 14% -5%, 13% 15%, 79% -2%, 85% 13%, 0 0; }
+@keyframes sell-lava-drift {
+  from { background-position: 0 0, 46% 45%; }
+  to { background-position: 0 0, 56% 56%; }
 }
 
 @keyframes sell-flames {
