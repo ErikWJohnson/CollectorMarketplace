@@ -72,6 +72,15 @@ body.auction-mode {
 }
 @media (prefers-reduced-motion: reduce) { body.auction-mode, .auction-house::before { animation: none; } }
 
+/* Auction updates can change document height. Reserve the browser scrollbar
+   gutter permanently so the page width never jumps while live lots refresh. */
+html:has(body.auction-mode),
+body.auction-mode {
+  overflow-y: scroll !important;
+  overflow-x: clip;
+  scrollbar-gutter: stable;
+}
+
 /* A small, opt-in falling-block game floats over the water without taking
    focus away from the auction floor. */
 .auction-block-game-host { position:relative; z-index:8; }
