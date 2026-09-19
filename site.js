@@ -13,6 +13,7 @@ const modalContent = document.querySelector('#modal-content');
 let listings = [], auctions = [], accounts = [], collectives = [], brands = [], couriers = [], chatrooms = [], deliveries = [], uploadedListingImages = [], uploadedListingVideos = [], activeCategory = 'All', activeQuery = '', activeTags = [], searchScope = 'listings', sortMode = 'popular', page = 1, observer, searchRenderTimer, auctionClock;
 const siteThemeAudio = document.querySelector('#site-theme-audio');
 const auctionWaterfallAudio = document.querySelector('#auction-waterfall-audio');
+const jungleChatAudio = document.querySelector('#jungle-chat-audio');
 const auctionBlockPlaceAudio = document.querySelector('#auction-block-place-audio');
 const auctionBlockClearAudio = document.querySelector('#auction-block-clear-audio');
 const rocketBoostAudio = document.querySelector('#rocket-boost-audio');
@@ -33,6 +34,17 @@ const stopAuctionWaterfall = () => {
   auctionWaterfallAudio.currentTime = 0;
   stopAuctionBlocks();
   syncAuctionWaterfallControl();
+};
+const startJungleChatAmbience = () => {
+  if (!jungleChatAudio) return;
+  jungleChatAudio.loop = true;
+  jungleChatAudio.volume = 0.18;
+  jungleChatAudio.play().catch(() => {});
+};
+const stopJungleChatAmbience = () => {
+  if (!jungleChatAudio) return;
+  jungleChatAudio.pause();
+  jungleChatAudio.currentTime = 0;
 };
 function syncAuctionWaterfallControl() {
   const head = stream?.querySelector('.auction-head');
@@ -785,7 +797,7 @@ document.addEventListener('keydown', event => {
 function syncBrowseModeUi() {
   const auctionActive = document.body.classList.contains('auction-mode');
   if (!auctionActive) stopAuctionWaterfall();
-  if (!document.body.classList.contains('app-section-chat')) stopJungleChatGame();
+  if (!document.body.classList.contains('app-section-chat')) { stopJungleChatGame(); stopJungleChatAmbience(); }
   const browseSurface = !document.body.classList.contains('app-section-mode') && !modal.open;
   const conveyor = browseMode === 'conveyor' && searchScope === 'listings' && browseSurface && !auctionActive;
   const doomscroll = browseMode === 'doomscroll' && searchScope === 'listings' && browseSurface && !auctionActive;
@@ -1213,11 +1225,11 @@ function renderFeed(reset = true) {
   document.querySelector('#result-count').textContent = `${rows.length} listed`; sentinel.textContent = browseMode === 'conveyor' ? 'Conveyor mode · looping continuously' : page * 4 < rows.length ? 'Scroll for more finds ↓' : 'You are all caught up.'; syncBrowseModeUi(); renderVisibleCheckoutEstimates();
 }
 function openAppSection(kind, title, copy, content = '') {
-  if (modal.open) modal.close(); stopAutoScroll(); stopConveyor(); stopAuctionWaterfall(); stopJungleChatGame(); clearInterval(auctionClock); clearInterval(auctionFeedClock);
+  if (modal.open) modal.close(); stopAutoScroll(); stopConveyor(); stopAuctionWaterfall(); stopJungleChatGame(); stopJungleChatAmbience(); clearInterval(auctionClock); clearInterval(auctionFeedClock);
   document.querySelector('.conveyor-smog-layer')?.remove();
   document.querySelector('.conveyor-orbit-layer')?.remove();
   document.body.classList.remove('auction-mode', 'browse-conveyor', 'chat-open', 'account-open', 'purchase-open', 'comments-open', 'app-section-chat', 'app-section-account');
-  document.body.classList.add('app-section-mode', `app-section-${kind}`); if (observer) observer.disconnect(); sentinel.hidden = true;
+  document.body.classList.add('app-section-mode', `app-section-${kind}`); if (kind === 'chat') startJungleChatAmbience(); if (observer) observer.disconnect(); sentinel.hidden = true;
   const workspaceLabel = kind === 'account' ? 'Collector workspace' : kind === 'membership' ? 'Membership' : 'Social workspace';
   stream.innerHTML = `<section class="app-section-page"><header class="app-section-intro"><span>${workspaceLabel}</span><h1>${title}</h1><p>${copy || ''}</p></header><div class="app-section-content">${content}</div></section>`;
   queueMicrotask(() => { modal.className = ''; document.body.classList.remove('chat-open', 'account-open'); });
