@@ -1,0 +1,192 @@
+/* Private collector workspace: a Venetian trading port at sundown, kept behind
+   a glassy, high-contrast interface so profile information stays effortless to read. */
+body.app-section-account,
+body.account-open {
+  background:
+    linear-gradient(180deg, #1b0d07b8 0%, #27100886 34%, #080b10e8 100%),
+    url("/public/account-venice-dock.png") center top / cover fixed no-repeat #120b09 !important;
+}
+
+body.app-section-account .app-shell,
+body.app-section-account .market-stage,
+body.app-section-account .listing-stream,
+body.account-open .app-shell {
+  background: transparent !important;
+}
+
+body.app-section-account .app-section-page {
+  min-height: 100dvh;
+  background: linear-gradient(180deg, #1e0f0a28 0%, #071016b8 100%) !important;
+}
+
+body.app-section-account .app-section-content {
+  padding: clamp(18px, 3vw, 44px) clamp(14px, 3vw, 46px) calc(150px + env(safe-area-inset-bottom)) !important;
+}
+
+body.app-section-account .profile-workspace,
+body.account-open .account-workspace {
+  overflow: hidden;
+  border: 1px solid #e1ac6373 !important;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #120d10ed, #071116e8 56%, #17100ce8) !important;
+  box-shadow: 0 28px 90px #020304b5, inset 0 1px #ffe4ae25;
+  backdrop-filter: blur(15px) saturate(1.15);
+}
+
+body.app-section-account .account-hero,
+body.account-open .account-hero {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(26px, 4vw, 54px) !important;
+  border-bottom-color: #dfa75d61 !important;
+  background:
+    linear-gradient(100deg, #2a1008e8, #1b1421da 54%, #09202ae0),
+    url("/public/account-venice-dock.png") center 43% / cover !important;
+}
+
+body.app-section-account .account-hero::after,
+body.account-open .account-hero::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  background: linear-gradient(90deg, #09070bd9, transparent 65%), radial-gradient(circle at 75% 15%, #ffd27e3b, transparent 27%);
+}
+
+body.app-section-account .account-hero > *,
+body.account-open .account-hero > * { position: relative; z-index: 1; }
+
+body.app-section-account .account-avatar-large,
+body.account-open .account-avatar-large {
+  border: 1px solid #ffd07c !important;
+  box-shadow: 0 0 0 7px #f1a9571c, 0 18px 36px #000b;
+}
+
+body.app-section-account .account-hero p,
+body.account-open .account-hero p { color: #ffd27d !important; }
+
+body.app-section-account .account-hero h3,
+body.account-open .account-hero h3 {
+  color: #fff5e7 !important;
+  text-shadow: 0 3px 18px #000b;
+}
+
+body.app-section-account .account-hero span,
+body.account-open .account-hero span { color: #f0d6bb !important; }
+
+body.app-section-account .account-hero > button,
+body.account-open .account-hero > button {
+  border-color: #ffd27d !important;
+  border-radius: 999px;
+  background: #180e0bb8 !important;
+  color: #ffe5ae !important;
+  box-shadow: 0 10px 30px #0008;
+}
+
+body.app-section-account .account-columns > section,
+body.account-open .account-columns > section { border-color: #d99e5961 !important; background: linear-gradient(180deg, #0d1218bc, #0b0b0fdd); }
+
+body.app-section-account .account-columns h3,
+body.account-open .account-columns h3 { border-bottom-color: #d99e5957 !important; color: #ffe9c6 !important; background: #24150e8a; }
+
+body.app-section-account .account-columns h3 small,
+body.account-open .account-columns h3 small,
+body.app-section-account .account-dialog .account-post span { color: #ffd27d !important; }
+
+body.app-section-account .connection-row,
+body.app-section-account .suggested-account,
+body.app-section-account .account-dialog .account-post,
+body.account-open .connection-row,
+body.account-open .suggested-account,
+body.account-open .account-dialog .account-post { border-bottom-color: #b8804d44 !important; }
+
+body.app-section-account .suggested-account:hover,
+body.app-section-account .account-dialog .account-post:hover,
+body.account-open .suggested-account:hover,
+body.account-open .account-dialog .account-post:hover { background: #f4ab5520 !important; }
+
+body.app-section-account .account-actions,
+body.account-open .account-actions { border-top-color: #d99e5957 !important; background: #0a0b0dbc; }
+
+body.app-section-account .account-actions button,
+body.app-section-account .suggested-account button,
+body.account-open .account-actions button,
+body.account-open .suggested-account button {
+  border-color: #d49c56 !important;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #2d170f, #15232a) !important;
+  color: #ffe2ad !important;
+}
+
+body.app-section-account .listing-management,
+body.account-open .listing-management {
+  border-color: #dfaa6470 !important;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #130f12ed, #0b1a20e6) !important;
+  box-shadow: inset 0 1px #ffdb9f18, 0 18px 48px #0008;
+}
+
+body.app-section-account .managed-listing-card,
+body.account-open .managed-listing-card { border-color: #bd864d62 !important; border-radius: 10px; background: #0b1116d9 !important; }
+
+/* Current Account pages use the profile workspace.  These selectors keep every
+   part of that page in the same polished Venetian glass treatment. */
+body.app-section-account .profile-hero,
+body.account-open .profile-hero {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(28px, 4vw, 56px) !important;
+  border-bottom-color: #dfa75d61 !important;
+  background: linear-gradient(100deg, #250f09e8, #1d1420d8 55%, #071b23e0), url("/public/account-venice-dock.png") center 43% / cover !important;
+}
+
+body.app-section-account .profile-hero::after,
+body.account-open .profile-hero::after { position:absolute; inset:0; content:""; pointer-events:none; background:linear-gradient(90deg,#09070bd9,transparent 66%),radial-gradient(circle at 75% 15%,#ffd27e3b,transparent 28%); }
+body.app-section-account .profile-hero > *,
+body.account-open .profile-hero > * { position:relative; z-index:1; }
+body.app-section-account .profile-hero .account-avatar,
+body.account-open .profile-hero .account-avatar { border-color:#ffd27d !important; box-shadow:0 0 0 7px #f1a9571c,0 18px 36px #000b; }
+body.app-section-account .profile-kicker,
+body.account-open .profile-kicker { color:#ffd27d !important; }
+body.app-section-account .profile-hero h3,
+body.account-open .profile-hero h3 { color:#fff5e7 !important; text-shadow:0 3px 18px #000b; }
+body.app-section-account .profile-hero > div > span,
+body.account-open .profile-hero > div > span { color:#f0d6bb !important; }
+body.app-section-account .profile-hero > button,
+body.account-open .profile-hero > button { border-color:#ffd27d !important; border-radius:999px; background:#180e0bb8 !important; color:#ffe5ae !important; box-shadow:0 10px 30px #0008; }
+body.app-section-account .profile-summary,
+body.app-section-account .profile-listings,
+body.app-section-account .profile-account-tools,
+body.app-section-account .profile-footer,
+body.account-open .profile-summary,
+body.account-open .profile-listings,
+body.account-open .profile-account-tools,
+body.account-open .profile-footer { border-color:#d99e5961 !important; background:linear-gradient(180deg,#0d1218bc,#0b0b0fdd) !important; }
+body.app-section-account .profile-summary h4,
+body.app-section-account .profile-listings h4,
+body.app-section-account .profile-account-tools h4,
+body.account-open .profile-summary h4,
+body.account-open .profile-listings h4,
+body.account-open .profile-account-tools h4 { color:#ffd27d !important; }
+body.app-section-account .profile-metrics,
+body.app-section-account .profile-listing-card,
+body.account-open .profile-metrics,
+body.account-open .profile-listing-card { border-color:#c18c5266 !important; background:#0a1014df !important; }
+body.app-section-account .profile-metrics span,
+body.account-open .profile-metrics span { border-color:#b8804d44 !important; }
+body.app-section-account .profile-listing-card:hover,
+body.account-open .profile-listing-card:hover { border-color:#ffd27d !important; box-shadow:0 16px 34px #0008; }
+body.app-section-account .profile-listing-card img,
+body.account-open .profile-listing-card img { background:#05080a !important; }
+body.app-section-account .profile-listing-card span,
+body.account-open .profile-listing-card span { color:#9fe7bd !important; }
+body.app-section-account .profile-footer .entity-primary,
+body.account-open .profile-footer .entity-primary { border-color:#d49c56 !important; border-radius:8px; background:linear-gradient(135deg,#2d170f,#15232a) !important; color:#ffe2ad !important; }
+
+@media (max-width: 700px) {
+  body.app-section-account,
+  body.account-open { background-position: 43% top !important; background-attachment: scroll !important; }
+  body.app-section-account .app-section-content { padding-right: 10px !important; padding-left: 10px !important; }
+  body.app-section-account .profile-workspace,
+  body.account-open .account-workspace { border-radius: 12px; }
+}
