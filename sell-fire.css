@@ -127,6 +127,15 @@ body.app-section-listing .listing-publish-bar button {
   box-shadow: 0 0 22px #ff64154d;
 }
 
+.sell-lava-game-host { width: min(860px, 100%); margin: 34px auto 0; }
+.sell-lava-game { overflow: hidden; border: 1px solid #ff873f8a; border-radius: 14px; background: #130909e8; box-shadow: 0 24px 54px #070303a8, 0 0 40px #f3451f26; color: #fff0d7; }
+.sell-lava-game header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 16px; border-bottom: 1px solid #ff8b4b71; background: linear-gradient(90deg, #2a0d09, #6b1f0e, #2a0d09); font: 800 .66rem/1 "DM Mono", monospace; letter-spacing: .08em; text-transform: uppercase; }.sell-lava-game header b { color: #ffe09a; }.sell-lava-game header span { color: #ffe2bd; }
+.sell-lava-field { position: relative; height: 270px; overflow: hidden; background: linear-gradient(#250b08ad, #09060840), url("/public/sell-lava-field.png") center / 128% auto; animation: sell-lava-drift 8s ease-in-out infinite alternate; }.sell-lava-field::before { position: absolute; inset: 0; content: ""; background: linear-gradient(90deg, #1305049c, transparent 23% 77%, #1305049c), linear-gradient(180deg, #0000 50%, #05030598); pointer-events: none; }
+.sell-lava-lanes { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(3, 1fr); pointer-events: none; }.sell-lava-lanes i { border-right: 1px dashed #ffc05a4f; }.sell-lava-lanes i:last-child { border: 0; }
+.sell-lava-runner, .sell-lava-rock { position: absolute; z-index: 2; left: calc((var(--lane) * 33.333%) + 16.666%); transform: translateX(-50%); font-style: normal; user-select: none; }.sell-lava-runner { bottom: 12px; font-size: 2.7rem; filter: drop-shadow(0 5px 5px #000) drop-shadow(0 0 12px #ffb2467a); transition: left .14s ease; }.sell-lava-rock { top: var(--drop); font-size: 2rem; filter: drop-shadow(0 5px 5px #000) drop-shadow(0 0 8px #ff551c); }
+.sell-lava-toast { position: absolute; z-index: 3; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; pointer-events: none; }.sell-lava-toast span { max-width: 360px; border: 1px solid #ff9a4d91; padding: 10px 13px; background: #170908d9; color: #fff0d3; box-shadow: 0 10px 28px #0008; font: 800 .69rem/1.5 "DM Mono", monospace; letter-spacing: .05em; }
+.sell-lava-game footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-top: 1px solid #ff854b65; background: #120a0be8; }.sell-lava-game footer small { color: #f5c7a8; font: .63rem/1.4 "DM Mono", monospace; }.sell-lava-game footer div { display: flex; gap: 7px; }.sell-lava-game button { min-width: 42px; border: 1px solid #ff9d4e; border-radius: 7px; padding: 9px 11px; background: linear-gradient(135deg, #6f2414, #2a1211); color: #ffe6b8; font: 800 .65rem/1 "DM Mono", monospace; cursor: pointer; }.sell-lava-game button[data-sell-lava-play] { min-width: 76px; background: linear-gradient(135deg, #ffb63f, #e95720); color: #240b06; }.sell-lava-game button:hover { filter: brightness(1.18); }
+
 @keyframes sell-lava-drift {
   from { background-position: 0 0, 46% 45%; }
   to { background-position: 0 0, 56% 56%; }
@@ -143,3 +152,5 @@ body.app-section-listing .listing-publish-bar button {
   body.app-section-listing .app-section-page::before,
   body.app-section-listing .app-section-page::after { animation: none; }
 }
+
+@media (max-width: 620px) { .sell-lava-game-host { margin-top: 20px; }.sell-lava-game header, .sell-lava-game footer { align-items: flex-start; flex-direction: column; }.sell-lava-game footer div { width: 100%; }.sell-lava-game footer button { flex: 1; }.sell-lava-field { height: 235px; } }

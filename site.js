@@ -110,6 +110,30 @@ const distanceToVeniceShotPath = (shot, target) => {
   const progress = segmentLengthSquared ? Math.max(0, Math.min(1, ((target.x - startX) * segmentX + (target.y - startY) * segmentY) / segmentLengthSquared)) : 0;
   return Math.hypot(target.x - (startX + segmentX * progress), target.y - (startY + segmentY * progress));
 };
+const sellLavaGame = { host: null, frame: 0, restartTimer: 0, started: false, lane: 1, rocks: [], score: 0, best: Number(localStorage.getItem('collector-marketplace-lava-run-high-score') || 0), lastFrame: 0, lastSpawn: 0, message: 'Press Play to start your lava run.' };
+function renderSellLavaGame() {
+  const game = sellLavaGame; if (!game.host?.isConnected) return;
+  const rock = item => `<i class="sell-lava-rock" style="--lane:${item.lane};--drop:${item.y}%" aria-hidden="true">☄️</i>`;
+  game.host.innerHTML = `<section class="sell-lava-game"><header><b>Lava Courier Run</b><span>Score ${String(Math.floor(game.score)).padStart(4, '0')} · Best ${String(game.best).padStart(4, '0')}</span></header><div class="sell-lava-field"><div class="sell-lava-lanes" aria-hidden="true"><i></i><i></i><i></i></div>${game.rocks.map(rock).join('')}<i class="sell-lava-runner" style="--lane:${game.lane}" aria-label="Your lava courier" role="img">🏃</i>${!game.started ? `<div class="sell-lava-toast"><span>${game.message}</span></div>` : ''}</div><footer><small>[ and ] move between lanes · avoid molten debris</small><div><button type="button" data-sell-lava-left aria-label="Move left">←</button><button type="button" data-sell-lava-play>${game.started ? 'Restart' : 'Play'}</button><button type="button" data-sell-lava-right aria-label="Move right">→</button></div></footer></section>`;
+}
+function resetSellLavaGame() { const game = sellLavaGame; game.lane = 1; game.rocks = []; game.score = 0; game.lastFrame = performance.now(); game.lastSpawn = performance.now(); game.message = 'Press Play to start your lava run.'; }
+function endSellLavaGame(message) { const game = sellLavaGame; game.started = false; game.best = Math.max(game.best, Math.floor(game.score)); localStorage.setItem('collector-marketplace-lava-run-high-score', String(game.best)); game.message = `${message} Restarting…`; renderSellLavaGame(); clearTimeout(game.restartTimer); game.restartTimer = window.setTimeout(() => { if (game.host?.isConnected && document.body.classList.contains('app-section-listing')) launchSellLavaGame(); }, 1400); }
+function moveSellLavaRunner(direction) { const game = sellLavaGame; if (!game.started) return; game.lane = Math.max(0, Math.min(2, game.lane + direction)); renderSellLavaGame(); }
+function updateSellLavaGame(timestamp) {
+  const game = sellLavaGame; if (!game.started || !game.host?.isConnected || !document.body.classList.contains('app-section-listing')) return;
+  const delta = Math.min(40, timestamp - game.lastFrame || 16); game.lastFrame = timestamp; game.score += delta / 40;
+  if (timestamp - game.lastSpawn > 650 + Math.random() * 450) { game.rocks.push({ lane: Math.floor(Math.random() * 3), y: -10, speed: .024 + Math.min(.016, game.score / 9000) }); game.lastSpawn = timestamp; }
+  game.rocks.forEach(item => { item.y += item.speed * delta; });
+  const collision = game.rocks.find(item => item.lane === game.lane && item.y >= 78 && item.y <= 93);
+  game.rocks = game.rocks.filter(item => item.y < 112);
+  if (collision) { playVeniceGameSound(gameAsteroidAudio, .35); endSellLavaGame(`The courier hit a magma rock. Score: ${Math.floor(game.score)}.`); return; }
+  renderSellLavaGame(); game.frame = requestAnimationFrame(updateSellLavaGame);
+}
+function launchSellLavaGame() { clearTimeout(sellLavaGame.restartTimer); cancelAnimationFrame(sellLavaGame.frame); resetSellLavaGame(); sellLavaGame.started = true; renderSellLavaGame(); sellLavaGame.frame = requestAnimationFrame(updateSellLavaGame); }
+function stopSellLavaGame() { clearTimeout(sellLavaGame.restartTimer); cancelAnimationFrame(sellLavaGame.frame); sellLavaGame.frame = 0; sellLavaGame.started = false; sellLavaGame.host = null; }
+function mountSellLavaGame() { const host = stream?.querySelector('.sell-lava-game-host'); if (!host) return stopSellLavaGame(); sellLavaGame.host = host; renderSellLavaGame(); }
+document.addEventListener('click', event => { if (event.target.closest('[data-sell-lava-play]')) { launchSellLavaGame(); return; } if (event.target.closest('[data-sell-lava-left]')) { moveSellLavaRunner(-1); return; } if (event.target.closest('[data-sell-lava-right]')) moveSellLavaRunner(1); });
+document.addEventListener('keydown', event => { if (!sellLavaGame.started || !document.body.classList.contains('app-section-listing') || !canUseAutoScroll(event.target)) return; if (!['BracketLeft', 'BracketRight'].includes(event.code)) return; event.preventDefault(); moveSellLavaRunner(event.code === 'BracketLeft' ? -1 : 1); });
 function renderVeniceSailingGame() {
   const game = veniceSailingGame; if (!game.host?.isConnected) return;
   const player = veniceOrbitPoint(game.playerAngle); const enemy = veniceOrbitPoint(game.enemyAngle);
@@ -909,7 +933,7 @@ function syncBrowseModeUi() {
   if (!auctionActive) stopAuctionWaterfall();
   if (!document.body.classList.contains('app-section-chat')) { stopJungleChatGame(); stopJungleChatAmbience(); }
   if (!document.body.classList.contains('app-section-account')) { stopAccountVeniceAmbience(); stopVeniceSailingGame(); }
-  if (!document.body.classList.contains('app-section-listing')) stopSellLavaAmbience();
+  if (!document.body.classList.contains('app-section-listing')) { stopSellLavaAmbience(); stopSellLavaGame(); }
   const browseSurface = !document.body.classList.contains('app-section-mode') && !modal.open;
   const conveyor = browseMode === 'conveyor' && searchScope === 'listings' && browseSurface && !auctionActive;
   const doomscroll = browseMode === 'doomscroll' && searchScope === 'listings' && browseSurface && !auctionActive;
@@ -1337,14 +1361,15 @@ function renderFeed(reset = true) {
   document.querySelector('#result-count').textContent = `${rows.length} listed`; sentinel.textContent = browseMode === 'conveyor' ? 'Conveyor mode · looping continuously' : page * 4 < rows.length ? 'Scroll for more finds ↓' : 'You are all caught up.'; syncBrowseModeUi(); renderVisibleCheckoutEstimates();
 }
 function openAppSection(kind, title, copy, content = '') {
-  if (modal.open) modal.close(); stopAutoScroll(); stopConveyor(); stopAuctionWaterfall(); stopJungleChatGame(); stopJungleChatAmbience(); stopAccountVeniceAmbience(); stopSellLavaAmbience(); stopVeniceSailingGame(); clearInterval(auctionClock); clearInterval(auctionFeedClock);
+  if (modal.open) modal.close(); stopAutoScroll(); stopConveyor(); stopAuctionWaterfall(); stopJungleChatGame(); stopJungleChatAmbience(); stopAccountVeniceAmbience(); stopSellLavaAmbience(); stopSellLavaGame(); stopVeniceSailingGame(); clearInterval(auctionClock); clearInterval(auctionFeedClock);
   document.querySelector('.conveyor-smog-layer')?.remove();
   document.querySelector('.conveyor-orbit-layer')?.remove();
   document.body.classList.remove('auction-mode', 'browse-conveyor', 'chat-open', 'account-open', 'purchase-open', 'comments-open', 'app-section-chat', 'app-section-account', 'app-section-listing');
   document.body.classList.add('app-section-mode', `app-section-${kind}`); syncBrowseModeUi(); if (kind === 'chat') startJungleChatAmbience(); if (kind === 'account') startAccountVeniceAmbience(); if (kind === 'listing') startSellLavaAmbience(); if (observer) observer.disconnect(); sentinel.hidden = true;
   const workspaceLabel = kind === 'account' ? 'Collector workspace' : kind === 'membership' ? 'Membership' : 'Social workspace';
-  stream.innerHTML = `<section class="app-section-page"><header class="app-section-intro"><span>${workspaceLabel}</span><h1>${title}</h1><p>${copy || ''}</p></header><div class="app-section-content">${content}${kind === 'account' ? '<div class="account-sailing-game-host" aria-label="Venice Cannon Run game"></div>' : ''}</div></section>`;
+  stream.innerHTML = `<section class="app-section-page"><header class="app-section-intro"><span>${workspaceLabel}</span><h1>${title}</h1><p>${copy || ''}</p></header><div class="app-section-content">${content}${kind === 'account' ? '<div class="account-sailing-game-host" aria-label="Venice Cannon Run game"></div>' : ''}${kind === 'listing' ? '<div class="sell-lava-game-host" aria-label="Lava Courier Run game"></div>' : ''}</div></section>`;
   if (kind === 'account') { syncAccountVeniceControl(); mountVeniceSailingGame(); }
+  if (kind === 'listing') mountSellLavaGame();
   queueMicrotask(() => { modal.className = ''; document.body.classList.remove('chat-open', 'account-open'); });
   requestAnimationFrame(() => { if (kind === 'chat') mountJungleChatGame(); window.scrollTo({ top: 0, behavior: 'smooth' }); const thread = stream.querySelector('.collector-thread'); if (thread) thread.scrollTop = thread.scrollHeight; stream.querySelector('.collector-message-form textarea')?.focus({ preventScroll: true }); });
 }
@@ -1692,7 +1717,7 @@ document.addEventListener('click', event => {
   if (action?.matches('[data-policy]')) { setWorkspaceHash('fees'); openModal('Marketplace fees', 'Standard purchase fees are 4% per side. Curator members pay 1% on their own side for $150/month. Buyers pay taxes and delivery; courier pay is the greater of $8 or $0.10 per mile, plus packaging. Transaction and delivery terms are policy drafts pending legal review.'); }
   if (action?.matches('[data-auction]')) { setWorkspaceHash('auction-house'); activateNav('auction'); showAuctionHouse(); }
   if (event.target.closest('.like')) { const like = event.target.closest('.like'); like.textContent = like.textContent === '♡' ? '♥' : '♡'; like.classList.toggle('liked'); }
-  if (action?.matches('[data-market],[data-home]')) { setWorkspaceHash('browse'); stopAuctionWaterfall(); stopAccountVeniceAmbience(); stopSellLavaAmbience(); stopVeniceSailingGame(); document.body.classList.remove('auction-mode', 'app-section-mode', 'app-section-chat', 'app-section-account', 'app-section-listing'); clearInterval(auctionClock); clearInterval(auctionFeedClock); activateNav(action.matches('[data-market]') ? 'market' : 'home'); sentinel.hidden = false; activeCategory = 'All'; setQuery(''); setDiscoveryMode(activeTags.length || lockedTags.length || voidTags.length ? 'tags' : 'search'); renderTags(); renderCategories(); renderFeed(); if (observer) observer.observe(sentinel); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  if (action?.matches('[data-market],[data-home]')) { setWorkspaceHash('browse'); stopAuctionWaterfall(); stopAccountVeniceAmbience(); stopSellLavaAmbience(); stopSellLavaGame(); stopVeniceSailingGame(); document.body.classList.remove('auction-mode', 'app-section-mode', 'app-section-chat', 'app-section-account', 'app-section-listing'); clearInterval(auctionClock); clearInterval(auctionFeedClock); activateNav(action.matches('[data-market]') ? 'market' : 'home'); sentinel.hidden = false; activeCategory = 'All'; setQuery(''); setDiscoveryMode(activeTags.length || lockedTags.length || voidTags.length ? 'tags' : 'search'); renderTags(); renderCategories(); renderFeed(); if (observer) observer.observe(sentinel); window.scrollTo({ top: 0, behavior: 'smooth' }); }
   if (event.target.matches('.close')) modal.close();
 });
 search.addEventListener('input', event => { setDiscoveryMode('search'); clearTimeout(searchRenderTimer); const value = event.target.value; searchRenderTimer = setTimeout(() => setQuery(value), 140); });
