@@ -50,8 +50,20 @@ const stopJungleChatAmbience = () => {
 const startAccountVeniceAmbience = () => {
   if (!accountVeniceAudio) return;
   accountVeniceAudio.loop = true;
-  accountVeniceAudio.volume = 0.14;
-  accountVeniceAudio.play().catch(() => {});
+  // Keep the recorded harbor detail present above the music bed without
+  // becoming harsh.  A short fade-in avoids an artificial hard start.
+  accountVeniceAudio.volume = 0.03;
+  accountVeniceAudio.play().then(() => {
+    const startedAt = performance.now();
+    const raiseVolume = now => {
+      if (accountVeniceAudio.paused || !document.body.classList.contains('app-section-account')) return;
+      accountVeniceAudio.volume = Math.min(.32, .03 + ((now - startedAt) / 700) * .29);
+      if (accountVeniceAudio.volume < .32) requestAnimationFrame(raiseVolume);
+      else syncAccountVeniceControl();
+    };
+    requestAnimationFrame(raiseVolume);
+    syncAccountVeniceControl();
+  }).catch(() => syncAccountVeniceControl());
 };
 const stopAccountVeniceAmbience = () => {
   if (!accountVeniceAudio) return;
@@ -73,6 +85,8 @@ function syncAccountVeniceControl() {
   control.textContent = playing ? 'Dock ambience · On' : 'Dock ambience · Play';
   control.setAttribute('aria-pressed', String(playing));
 }
+accountVeniceAudio?.addEventListener('play', syncAccountVeniceControl);
+accountVeniceAudio?.addEventListener('pause', syncAccountVeniceControl);
 const veniceSailingGame = { host: null, frame: 0, started: false, playerX: 50, enemyX: 50, enemyDirection: 1, playerShots: [], enemyShots: [], score: 0, highScore: Number(localStorage.getItem('collector-marketplace-venice-cannon-high-score') || 0), lastShot: 0, lastEnemyShot: 0, lastFrame: 0, message: 'Press Play to begin your cannon run.' };
 function renderVeniceSailingGame() {
   const game = veniceSailingGame; if (!game.host?.isConnected) return;
