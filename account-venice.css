@@ -7,57 +7,7 @@ body.account-open {
     url("/public/account-venice-dock.png") center top / cover fixed no-repeat #120b09 !important;
 }
 
-/* Two restrained, masked layers are limited to the canal itself. Their broken
-   elliptical highlights move like water ripples, never like a page overlay. */
-body.app-section-account::before {
-  position: fixed;
-  z-index: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: 45vh;
-  content: "";
-  pointer-events: none;
-  opacity: .32;
-  background:
-    repeating-radial-gradient(ellipse 72% 11% at 48% 108%, transparent 0 16px, #ffdca51c 18px 21px, transparent 24px 43px),
-    repeating-radial-gradient(ellipse 64% 9% at 64% 104%, transparent 0 23px, #9cdfe217 25px 28px, transparent 32px 56px),
-    radial-gradient(ellipse at 53% 89%, #ffc97827, transparent 43%);
-  background-size: 145% 184%, 174% 228%, 100% 100%;
-  background-position: 5% 8%, 94% 0, center;
-  mix-blend-mode: soft-light;
-  filter: blur(.65px) saturate(1.06);
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 17%, #000 92%, transparent);
-  mask-image: linear-gradient(to bottom, transparent, #000 17%, #000 92%, transparent);
-  animation: venice-water-ripple-drift 8s ease-in-out infinite alternate;
-}
-
-body.app-section-account::after {
-  position: fixed;
-  z-index: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: 38vh;
-  content: "";
-  pointer-events: none;
-  opacity: .2;
-  background: repeating-radial-gradient(ellipse 90% 13% at 40% 105%, transparent 0 20px, #ffe0a516 22px 25px, transparent 29px 48px);
-  background-size: 170% 230%;
-  background-position: 17% 0;
-  mix-blend-mode: screen;
-  filter: blur(1.25px);
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 24%, #000 84%, transparent);
-  mask-image: linear-gradient(to bottom, transparent, #000 24%, #000 84%, transparent);
-  animation: venice-water-ripple-shimmer 5.4s linear infinite;
-}
-
 body.app-section-account .app-shell { position: relative; z-index: 1; }
-
-@keyframes venice-water-ripple-drift { from { background-position:5% 8%,94% 0,center; } to { background-position:21% 32%,76% 39%,53% 4%; } }
-@keyframes venice-water-ripple-shimmer { from { background-position:17% 0; } to { background-position:3% 46%; } }
-
-@media (prefers-reduced-motion: reduce) { body.app-section-account::before,body.app-section-account::after { animation: none; } }
 
 body.app-section-account .app-shell,
 body.app-section-account .market-stage,
@@ -246,6 +196,24 @@ body.app-section-account .profile-listing-card span,
 body.account-open .profile-listing-card span { color:#9fe7bd !important; }
 body.app-section-account .profile-footer .entity-primary,
 body.account-open .profile-footer .entity-primary { border-color:#d49c56 !important; border-radius:8px; background:linear-gradient(135deg,#2d170f,#15232a) !important; color:#ffe2ad !important; }
+
+/* Venetian cannon run — a compact, self-contained harbor game at the end of
+   the account page. */
+.account-sailing-game-host { width:100%; padding:28px 0 0; }
+.account-sailing-game { overflow:hidden; border:1px solid #e4ae6875; border-radius:14px; background:linear-gradient(180deg,#442214c9,#15313bcf 48%,#07151fe8); box-shadow:0 24px 54px #0009; color:#fff0d8; }
+.account-sailing-game header { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:14px 18px; border-bottom:1px solid #efbe7745; background:#130c0dba; font:800 .66rem/1 "DM Mono",monospace; letter-spacing:.09em; text-transform:uppercase; }
+.account-sailing-game header b { color:#ffd38b; }.account-sailing-game header span { color:#c8e5e2; }
+.sailing-battlefield { position:relative; height:300px; overflow:hidden; background:linear-gradient(180deg,#e2834a15 0 40%,#0f5365d8 41% 100%); }
+.sailing-battlefield::before { position:absolute; inset:42% 0 0; content:""; opacity:.55; background:repeating-linear-gradient(174deg,transparent 0 14px,#bcecf419 16px 18px,transparent 21px 31px); }
+.sailing-battlefield::after { position:absolute; right:0; bottom:0; left:0; height:36%; content:""; opacity:.32; background:radial-gradient(ellipse at 50% 0,#ffe0a535,transparent 58%); }
+.sailing-ship { position:absolute; z-index:2; width:88px; height:56px; transition:left .1s linear; filter:drop-shadow(0 10px 8px #0009); }
+.sailing-ship .hull { position:absolute; right:2px; bottom:0; left:2px; height:17px; border-radius:3px 3px 45% 45%; background:linear-gradient(#633419,#20140d); border:1px solid #db9f59; }
+.sailing-ship .mast { position:absolute; bottom:15px; left:43px; width:3px; height:37px; background:#1c110c; }.sailing-ship .sail { position:absolute; bottom:21px; left:45px; width:0; height:0; border-top:23px solid transparent; border-bottom:0 solid transparent; border-left:26px solid #f7e3bc; filter:drop-shadow(2px 1px #0005); }.sailing-ship .flag { position:absolute; bottom:45px; left:46px; width:13px; height:7px; background:#bb452f; }
+.sailing-player { bottom:20px; }.sailing-enemy { top:51px; transform:scale(.86); }.sailing-enemy .hull { background:linear-gradient(#5f241b,#170d0b); border-color:#f08b70; }.sailing-enemy .sail { border-left-color:#332a31; }.sailing-enemy .flag { background:#e84d3f; }
+.sailing-cannonball { position:absolute; z-index:3; width:10px; height:10px; border-radius:50%; background:#1d1714; box-shadow:0 0 0 2px #e7c481aa,0 2px 5px #000; }.sailing-cannonball.enemy { background:#32110c; box-shadow:0 0 0 2px #ed9d77aa,0 2px 5px #000; }
+.sailing-toast { position:absolute; z-index:4; inset:0; display:grid; place-items:center; padding:20px; color:#fff1d5; text-align:center; font:800 .78rem/1.5 "DM Mono",monospace; letter-spacing:.04em; text-shadow:0 3px 8px #000; pointer-events:none; }.sailing-toast span { display:inline-block; padding:10px 14px; border:1px solid #f0bf777a; background:#120e10bb; }
+.account-sailing-game footer { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 18px; border-top:1px solid #efbe7745; background:#101012e8; }.account-sailing-game footer small { color:#c7d5d2; font:.65rem/1.45 "DM Mono",monospace; }.sailing-controls { display:flex; gap:7px; }.sailing-controls button { min-width:42px; border:1px solid #dca461; border-radius:7px; padding:9px 11px; background:linear-gradient(135deg,#3e2112,#153039); color:#ffe0a3; font:800 .68rem/1 "DM Mono",monospace; cursor:pointer; }.sailing-controls button[data-venice-sailing-fire] { min-width:82px; background:linear-gradient(135deg,#9b452b,#5c1b17); color:#fff0c9; }.sailing-controls button:hover { border-color:#ffe0a3; filter:brightness(1.15); }
+@media(max-width:700px){.account-sailing-game-host{padding-top:16px}.sailing-battlefield{height:250px}.account-sailing-game footer{align-items:flex-start;flex-direction:column}.sailing-controls{width:100%}.sailing-controls button{flex:1}.account-sailing-game header{padding:12px}.sailing-ship{width:74px;transform-origin:center bottom}.sailing-enemy{transform:scale(.72)}}
 
 @media (max-width: 700px) {
   body.app-section-account,

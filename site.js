@@ -73,6 +73,37 @@ function syncAccountVeniceControl() {
   control.textContent = playing ? 'Dock ambience · On' : 'Dock ambience · Play';
   control.setAttribute('aria-pressed', String(playing));
 }
+const veniceSailingGame = { host: null, frame: 0, started: false, playerX: 50, enemyX: 50, enemyDirection: 1, playerShots: [], enemyShots: [], score: 0, highScore: Number(localStorage.getItem('collector-marketplace-venice-cannon-high-score') || 0), lastShot: 0, lastEnemyShot: 0, lastFrame: 0, message: 'Press Play to begin your cannon run.' };
+function renderVeniceSailingGame() {
+  const game = veniceSailingGame; if (!game.host?.isConnected) return;
+  const ship = (className, x) => `<div class="sailing-ship ${className}" style="left:${Math.max(2, Math.min(88, x))}%"><i class="mast"></i><i class="sail"></i><i class="flag"></i><i class="hull"></i></div>`;
+  const shot = (item, enemy = false) => `<i class="sailing-cannonball${enemy ? ' enemy' : ''}" style="left:${item.x}%;top:${item.y}%"></i>`;
+  game.host.innerHTML = `<section class="account-sailing-game"><header><b>Venice Cannon Run</b><span>Score ${String(game.score).padStart(4, '0')} · Best ${String(game.highScore).padStart(4, '0')}</span></header><div class="sailing-battlefield">${ship('sailing-enemy', game.enemyX)}${ship('sailing-player', game.playerX)}${game.playerShots.map(item => shot(item)).join('')}${game.enemyShots.map(item => shot(item, true)).join('')}${!game.started ? `<div class="sailing-toast"><span>${game.message}</span></div>` : ''}</div><footer><small>[ and ] steer · = fires a cannon<br>Sink rival ships. Avoid their cannon fire.</small><div class="sailing-controls"><button type="button" data-venice-sailing-left aria-label="Sail left">←</button><button type="button" data-venice-sailing-fire>Fire</button><button type="button" data-venice-sailing-right aria-label="Sail right">→</button><button type="button" data-venice-sailing-play>${game.started ? 'Restart' : 'Play'}</button></div></footer></section>`;
+}
+function resetVeniceSailingGame() { const game = veniceSailingGame; game.playerX = 50; game.enemyX = 50; game.enemyDirection = Math.random() > .5 ? 1 : -1; game.playerShots = []; game.enemyShots = []; game.score = 0; game.lastShot = 0; game.lastEnemyShot = 0; game.lastFrame = performance.now(); game.message = 'Press Play to begin your cannon run.'; }
+function fireVeniceCannon() { const game = veniceSailingGame; const now = performance.now(); if (!game.started || now - game.lastShot < 360) return; game.lastShot = now; game.playerShots.push({ x: game.playerX + 4, y: 70 }); }
+function moveVeniceSailingShip(direction) { const game = veniceSailingGame; if (!game.started) return; game.playerX = Math.max(2, Math.min(88, game.playerX + direction * 6)); renderVeniceSailingGame(); }
+function endVeniceSailingGame(message) { const game = veniceSailingGame; game.started = false; game.highScore = Math.max(game.highScore, game.score); localStorage.setItem('collector-marketplace-venice-cannon-high-score', String(game.highScore)); game.message = message; renderVeniceSailingGame(); }
+function updateVeniceSailingGame(timestamp) {
+  const game = veniceSailingGame; if (!game.started || !game.host?.isConnected || !document.body.classList.contains('app-section-account')) return;
+  const delta = Math.min(40, timestamp - game.lastFrame || 16); game.lastFrame = timestamp;
+  game.enemyX += game.enemyDirection * delta * .012;
+  if (game.enemyX < 2 || game.enemyX > 88) { game.enemyDirection *= -1; game.enemyX = Math.max(2, Math.min(88, game.enemyX)); }
+  game.playerShots.forEach(item => item.y -= delta * .055); game.enemyShots.forEach(item => item.y += delta * .042);
+  game.playerShots = game.playerShots.filter(item => item.y > 5); game.enemyShots = game.enemyShots.filter(item => item.y < 88);
+  const now = performance.now();
+  if (now - game.lastEnemyShot > 1250 + Math.random() * 850) { game.lastEnemyShot = now; game.enemyShots.push({ x: game.enemyX + 4, y: 24 }); }
+  const hitEnemy = game.playerShots.find(item => item.y < 26 && Math.abs(item.x - (game.enemyX + 4)) < 8);
+  if (hitEnemy) { game.score += 100; game.enemyX = 5 + Math.random() * 82; game.enemyDirection *= -1; game.playerShots = game.playerShots.filter(item => item !== hitEnemy); }
+  const hitPlayer = game.enemyShots.find(item => item.y > 68 && Math.abs(item.x - (game.playerX + 4)) < 8);
+  if (hitPlayer) { endVeniceSailingGame(`Your ship was hit. Final score: ${game.score}. Press Play to sail again.`); return; }
+  renderVeniceSailingGame(); game.frame = requestAnimationFrame(updateVeniceSailingGame);
+}
+function launchVeniceSailingGame() { cancelAnimationFrame(veniceSailingGame.frame); resetVeniceSailingGame(); veniceSailingGame.started = true; renderVeniceSailingGame(); veniceSailingGame.frame = requestAnimationFrame(updateVeniceSailingGame); }
+function stopVeniceSailingGame() { cancelAnimationFrame(veniceSailingGame.frame); veniceSailingGame.frame = 0; veniceSailingGame.started = false; veniceSailingGame.host = null; }
+function mountVeniceSailingGame() { const host = stream?.querySelector('.account-sailing-game-host'); if (!host) return stopVeniceSailingGame(); veniceSailingGame.host = host; renderVeniceSailingGame(); }
+document.addEventListener('click', event => { if (event.target.closest('[data-venice-sailing-play]')) { launchVeniceSailingGame(); return; } if (event.target.closest('[data-venice-sailing-left]')) { moveVeniceSailingShip(-1); return; } if (event.target.closest('[data-venice-sailing-right]')) { moveVeniceSailingShip(1); return; } if (event.target.closest('[data-venice-sailing-fire]')) fireVeniceCannon(); });
+document.addEventListener('keydown', event => { if (!veniceSailingGame.started || !document.body.classList.contains('app-section-account') || !canUseAutoScroll(event.target)) return; if (!['BracketLeft', 'BracketRight', 'Equal'].includes(event.code)) return; event.preventDefault(); if (event.code === 'BracketLeft') moveVeniceSailingShip(-1); else if (event.code === 'BracketRight') moveVeniceSailingShip(1); else if (!event.repeat) fireVeniceCannon(); });
 function syncAuctionWaterfallControl() {
   const head = stream?.querySelector('.auction-head');
   if (!head || !auctionWaterfallAudio) return;
@@ -825,7 +856,7 @@ function syncBrowseModeUi() {
   const auctionActive = document.body.classList.contains('auction-mode');
   if (!auctionActive) stopAuctionWaterfall();
   if (!document.body.classList.contains('app-section-chat')) { stopJungleChatGame(); stopJungleChatAmbience(); }
-  if (!document.body.classList.contains('app-section-account')) stopAccountVeniceAmbience();
+  if (!document.body.classList.contains('app-section-account')) { stopAccountVeniceAmbience(); stopVeniceSailingGame(); }
   const browseSurface = !document.body.classList.contains('app-section-mode') && !modal.open;
   const conveyor = browseMode === 'conveyor' && searchScope === 'listings' && browseSurface && !auctionActive;
   const doomscroll = browseMode === 'doomscroll' && searchScope === 'listings' && browseSurface && !auctionActive;
@@ -1253,14 +1284,14 @@ function renderFeed(reset = true) {
   document.querySelector('#result-count').textContent = `${rows.length} listed`; sentinel.textContent = browseMode === 'conveyor' ? 'Conveyor mode · looping continuously' : page * 4 < rows.length ? 'Scroll for more finds ↓' : 'You are all caught up.'; syncBrowseModeUi(); renderVisibleCheckoutEstimates();
 }
 function openAppSection(kind, title, copy, content = '') {
-  if (modal.open) modal.close(); stopAutoScroll(); stopConveyor(); stopAuctionWaterfall(); stopJungleChatGame(); stopJungleChatAmbience(); stopAccountVeniceAmbience(); clearInterval(auctionClock); clearInterval(auctionFeedClock);
+  if (modal.open) modal.close(); stopAutoScroll(); stopConveyor(); stopAuctionWaterfall(); stopJungleChatGame(); stopJungleChatAmbience(); stopAccountVeniceAmbience(); stopVeniceSailingGame(); clearInterval(auctionClock); clearInterval(auctionFeedClock);
   document.querySelector('.conveyor-smog-layer')?.remove();
   document.querySelector('.conveyor-orbit-layer')?.remove();
   document.body.classList.remove('auction-mode', 'browse-conveyor', 'chat-open', 'account-open', 'purchase-open', 'comments-open', 'app-section-chat', 'app-section-account');
   document.body.classList.add('app-section-mode', `app-section-${kind}`); syncBrowseModeUi(); if (kind === 'chat') startJungleChatAmbience(); if (kind === 'account') startAccountVeniceAmbience(); if (observer) observer.disconnect(); sentinel.hidden = true;
   const workspaceLabel = kind === 'account' ? 'Collector workspace' : kind === 'membership' ? 'Membership' : 'Social workspace';
-  stream.innerHTML = `<section class="app-section-page"><header class="app-section-intro"><span>${workspaceLabel}</span><h1>${title}</h1><p>${copy || ''}</p></header><div class="app-section-content">${content}</div></section>`;
-  if (kind === 'account') syncAccountVeniceControl();
+  stream.innerHTML = `<section class="app-section-page"><header class="app-section-intro"><span>${workspaceLabel}</span><h1>${title}</h1><p>${copy || ''}</p></header><div class="app-section-content">${content}${kind === 'account' ? '<div class="account-sailing-game-host" aria-label="Venice Cannon Run game"></div>' : ''}</div></section>`;
+  if (kind === 'account') { syncAccountVeniceControl(); mountVeniceSailingGame(); }
   queueMicrotask(() => { modal.className = ''; document.body.classList.remove('chat-open', 'account-open'); });
   requestAnimationFrame(() => { if (kind === 'chat') mountJungleChatGame(); window.scrollTo({ top: 0, behavior: 'smooth' }); const thread = stream.querySelector('.collector-thread'); if (thread) thread.scrollTop = thread.scrollHeight; stream.querySelector('.collector-message-form textarea')?.focus({ preventScroll: true }); });
 }
@@ -1608,7 +1639,7 @@ document.addEventListener('click', event => {
   if (action?.matches('[data-policy]')) { setWorkspaceHash('fees'); openModal('Marketplace fees', 'Standard purchase fees are 4% per side. Curator members pay 1% on their own side for $150/month. Buyers pay taxes and delivery; courier pay is the greater of $8 or $0.10 per mile, plus packaging. Transaction and delivery terms are policy drafts pending legal review.'); }
   if (action?.matches('[data-auction]')) { setWorkspaceHash('auction-house'); activateNav('auction'); showAuctionHouse(); }
   if (event.target.closest('.like')) { const like = event.target.closest('.like'); like.textContent = like.textContent === '♡' ? '♥' : '♡'; like.classList.toggle('liked'); }
-  if (action?.matches('[data-market],[data-home]')) { setWorkspaceHash('browse'); stopAuctionWaterfall(); stopAccountVeniceAmbience(); document.body.classList.remove('auction-mode', 'app-section-mode', 'app-section-chat', 'app-section-account'); clearInterval(auctionClock); clearInterval(auctionFeedClock); activateNav(action.matches('[data-market]') ? 'market' : 'home'); sentinel.hidden = false; activeCategory = 'All'; setQuery(''); setDiscoveryMode(activeTags.length || lockedTags.length || voidTags.length ? 'tags' : 'search'); renderTags(); renderCategories(); renderFeed(); if (observer) observer.observe(sentinel); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  if (action?.matches('[data-market],[data-home]')) { setWorkspaceHash('browse'); stopAuctionWaterfall(); stopAccountVeniceAmbience(); stopVeniceSailingGame(); document.body.classList.remove('auction-mode', 'app-section-mode', 'app-section-chat', 'app-section-account'); clearInterval(auctionClock); clearInterval(auctionFeedClock); activateNav(action.matches('[data-market]') ? 'market' : 'home'); sentinel.hidden = false; activeCategory = 'All'; setQuery(''); setDiscoveryMode(activeTags.length || lockedTags.length || voidTags.length ? 'tags' : 'search'); renderTags(); renderCategories(); renderFeed(); if (observer) observer.observe(sentinel); window.scrollTo({ top: 0, behavior: 'smooth' }); }
   if (event.target.matches('.close')) modal.close();
 });
 search.addEventListener('input', event => { setDiscoveryMode('search'); clearTimeout(searchRenderTimer); const value = event.target.value; searchRenderTimer = setTimeout(() => setQuery(value), 140); });
