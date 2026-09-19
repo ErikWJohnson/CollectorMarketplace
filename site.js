@@ -58,8 +58,8 @@ const startAccountVeniceAmbience = () => {
     const startedAt = performance.now();
     const raiseVolume = now => {
       if (accountVeniceAudio.paused || !document.body.classList.contains('app-section-account')) return;
-      accountVeniceAudio.volume = Math.min(.32, .03 + ((now - startedAt) / 700) * .29);
-      if (accountVeniceAudio.volume < .32) requestAnimationFrame(raiseVolume);
+      accountVeniceAudio.volume = Math.min(.46, .03 + ((now - startedAt) / 700) * .43);
+      if (accountVeniceAudio.volume < .46) requestAnimationFrame(raiseVolume);
       else syncAccountVeniceControl();
     };
     requestAnimationFrame(raiseVolume);
@@ -74,7 +74,7 @@ const stopAccountVeniceAmbience = () => {
 const startSellLavaAmbience = () => {
   if (!sellLavaAudio) return;
   sellLavaAudio.loop = true;
-  sellLavaAudio.volume = .15;
+  sellLavaAudio.volume = .30;
   sellLavaAudio.play().catch(() => {});
 };
 const stopSellLavaAmbience = () => {
