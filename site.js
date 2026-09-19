@@ -1484,11 +1484,9 @@ function updateAuctionClocks() { document.querySelectorAll('[data-auction-clock]
 function pauseAuctionFeed(milliseconds = 15000) { auctionFeedPausedUntil = Math.max(auctionFeedPausedUntil, Date.now() + milliseconds); }
 function advanceAuctionFeed() {
   if (!document.body.classList.contains('auction-mode') || Date.now() < auctionFeedPausedUntil) return;
-  const visibleLots = typeof filteredAuctions === 'function' ? filteredAuctions() : auctions;
-  if (visibleLots.length < 2) return;
-  const current = Math.max(0, visibleLots.findIndex(lot => lot.id === activeAuctionId));
-  activeAuctionId = visibleLots[(current + 1) % visibleLots.length].id;
-  if (typeof renderFilteredAuctionHouse === 'function') renderFilteredAuctionHouse(); else renderAuctionHouse();
+  // The live floor may refresh its status, but it must never replace the lot
+  // a collector is viewing without an intentional catalogue selection.
+  updateAuctionClocks();
 }
 function startAuctionFeed() { clearInterval(auctionFeedClock); auctionFeedClock = setInterval(advanceAuctionFeed, 8000); }
 function renderAuctionHouse() {
