@@ -20,13 +20,15 @@ body.app-section-listing .app-section-page {
   isolation: isolate;
   min-height: calc(100dvh - 154px);
   background:
-    linear-gradient(90deg, #090809e6 0%, #140a0ad4 20%, #1b0d0aad 50%, #10090ad9 80%, #090809e8 100%) !important;
+    linear-gradient(90deg, #090809e3 0%, #140a0ac9 20%, #1b0d0a82 50%, #10090ace 80%, #090809e3 100%) !important;
 }
+
+body.app-section-listing .app-section-page > * { position: relative; z-index: 1; }
 
 body.app-section-listing .app-section-page::before,
 body.app-section-listing .app-section-page::after {
   position: fixed;
-  z-index: -1;
+  z-index: 0;
   right: 0;
   bottom: 0;
   left: 0;
@@ -74,6 +76,49 @@ body.app-section-listing .listing-media-panel {
   background: linear-gradient(145deg, #181012f2, #0f1115f2) !important;
   box-shadow: 0 18px 44px #0805058a;
 }
+
+body.app-section-listing .listing-step,
+body.app-section-listing .listing-tag-composer-head b { color: #ffc15d !important; }
+
+body.app-section-listing .listing-form input,
+body.app-section-listing .listing-form textarea,
+body.app-section-listing .listing-form select {
+  border-color: #8d483576 !important;
+  background: #0d0e12ed !important;
+  color: #fff1df !important;
+}
+
+body.app-section-listing .listing-form input:focus,
+body.app-section-listing .listing-form textarea:focus,
+body.app-section-listing .listing-form select:focus {
+  border-color: #ffb84e !important;
+  box-shadow: 0 0 0 3px #ff6e2133, 0 0 20px #e83c1930 !important;
+}
+
+body.app-section-listing .listing-upload-field,
+body.app-section-listing .listing-location-panel,
+body.app-section-listing .listing-fulfillment-field,
+body.app-section-listing .listing-tag-composer {
+  border-color: #a9553970 !important;
+  background: #170e10dd !important;
+}
+
+body.app-section-listing .listing-upload-field input[type=file]::file-selector-button,
+body.app-section-listing .listing-tag-chip {
+  border-color: #f28b42 !important;
+  background: #482014 !important;
+  color: #ffe0ad !important;
+}
+
+body.app-section-listing .listing-image-preview,
+body.app-section-listing .preview-card {
+  border-color: #9f53376b !important;
+  background: #0b0b0ee8 !important;
+}
+
+body.app-section-listing .listing-media-panel h3 { color: #fff0d5 !important; }
+body.app-section-listing .listing-media-panel p:not(.listing-step),
+body.app-section-listing .listing-form label { color: #eed7c5 !important; }
 
 body.app-section-listing .listing-publish-bar {
   border-top-color: #e86c398a !important;
