@@ -92,6 +92,7 @@ const store = new Store();
 // Voice audio stays peer-to-peer. These short-lived rooms only carry WebRTC
 // signaling and presence, so no microphone audio is stored by the marketplace.
 const voiceRooms = new Map();
+const googleOAuthStates = new Map();
 app.use(express.json({ limit: '16mb' }));
 app.get('/healthz', (req, res) => res.status(200).json({ ok: true, service: 'CollectorMarketplace.net', database: store.pool ? 'collector-db' : 'local' }));
 
@@ -125,6 +126,54 @@ async function paypalRequest(method, pathname, body, requestId) {
 }
 function shippoAddress(input, label) { const value = input && typeof input === 'object' ? input : {}; const required = ['name', 'street1', 'city', 'state', 'zip']; if (required.some(key => !String(value[key] || '').trim())) throw new Error(`Add a complete ${label} address.`); return { name: String(value.name).trim(), street1: String(value.street1).trim(), street2: String(value.street2 || '').trim(), city: String(value.city).trim(), state: String(value.state).trim(), zip: String(value.zip).trim(), country: String(value.country || 'US').trim().toUpperCase() }; }
 function shippoParcel(input) { const value = input && typeof input === 'object' ? input : {}; const keys = ['length', 'width', 'height', 'weight']; if (keys.some(key => !(Number(value[key]) > 0))) throw new Error('Add positive package dimensions and weight.'); return { length: Number(value.length), width: Number(value.width), height: Number(value.height), distance_unit: 'in', weight: Number(value.weight), mass_unit: 'lb' }; }
+const googleOAuthReady = () => Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+const googleRedirectUri = req => `${req.protocol}://${req.get('host')}/auth/google/callback`;
+const readCookie = (req, name) => String(req.headers.cookie || '').split(';').map(value => value.trim()).find(value => value.startsWith(`${name}=`))?.slice(name.length + 1) || '';
+const googleUsername = profile => {
+  const base = String(profile.email || profile.name || 'collector').split('@')[0].replace(/[^a-z0-9_]/gi, '').slice(0, 20) || 'collector';
+  let candidate = base;
+  let suffix = 1;
+  while (store.data.users.some(user => user.username.toLowerCase() === candidate.toLowerCase())) candidate = `${base.slice(0, Math.max(1, 20 - String(++suffix).length))}${suffix}`;
+  return candidate;
+};
+app.get('/auth/google', (req, res) => {
+  if (!googleOAuthReady()) return res.status(503).send('Google sign-in is not configured yet. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to the deployment environment.');
+  const state = crypto.randomBytes(32).toString('hex');
+  googleOAuthStates.set(state, Date.now() + 10 * 60 * 1000);
+  res.cookie('collector_google_state', state, { httpOnly: true, secure: req.secure, sameSite: 'lax', path: '/auth/google', maxAge: 10 * 60 * 1000 });
+  const params = new URLSearchParams({ client_id: process.env.GOOGLE_CLIENT_ID, redirect_uri: googleRedirectUri(req), response_type: 'code', scope: 'openid email profile', state, prompt: 'select_account' });
+  res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
+});
+app.get('/auth/google/callback', async (req, res) => {
+  const state = String(req.query.state || '');
+  const expiry = googleOAuthStates.get(state);
+  googleOAuthStates.delete(state);
+  res.clearCookie('collector_google_state', { path: '/auth/google' });
+  if (!googleOAuthReady() || !state || readCookie(req, 'collector_google_state') !== state || !expiry || expiry < Date.now() || !req.query.code) return res.redirect('/#google-auth-error');
+  try {
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ code: String(req.query.code), client_id: process.env.GOOGLE_CLIENT_ID, client_secret: process.env.GOOGLE_CLIENT_SECRET, redirect_uri: googleRedirectUri(req), grant_type: 'authorization_code' }) });
+    const tokenPayload = await tokenResponse.json().catch(() => ({}));
+    if (!tokenResponse.ok || !tokenPayload.access_token) throw new Error('Google did not authorize this sign-in.');
+    const profileResponse = await fetch('https://openidconnect.googleapis.com/v1/userinfo', { headers: { Authorization: `Bearer ${tokenPayload.access_token}` } });
+    const profile = await profileResponse.json().catch(() => ({}));
+    const email = String(profile.email || '').trim().toLowerCase();
+    if (!profileResponse.ok || !profile.sub || !email || profile.email_verified !== true) throw new Error('Google did not provide a verified email address.');
+    let user = store.data.users.find(entry => entry.googleId === profile.sub || String(entry.email || '').toLowerCase() === email);
+    if (user) {
+      user.googleId = profile.sub;
+      if (!user.avatar || /^[A-Z]{1,2}$/.test(user.avatar)) user.avatar = String(profile.picture || user.avatar || user.username.slice(0, 2).toUpperCase());
+    } else {
+      user = { id: id(), username: googleUsername(profile), email, password: null, googleId: profile.sub, avatar: String(profile.picture || '').trim() || googleUsername(profile).slice(0, 2).toUpperCase(), bio: '', reputation: 0, following: [], developerPass: false, createdAt: now() };
+      store.data.users.push(user);
+      activity('signup', user.id, { provider: 'google' });
+    }
+    store.save();
+    res.redirect(`/#${new URLSearchParams({ google_token: user.id, google_login: '1' })}`);
+  } catch (error) {
+    console.error('Google sign-in failed:', error.message);
+    res.redirect('/#google-auth-error');
+  }
+});
 function usCityTownTag(location) {
   const parts = String(location || '').split(',').map(part => part.trim()).filter(Boolean);
   const country = parts.at(-1) || '';
