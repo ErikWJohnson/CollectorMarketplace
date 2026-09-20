@@ -1061,7 +1061,7 @@ document.addEventListener('keydown', event => {
 const bottomNavigation = ['home', 'auction', 'chat', 'sell', 'account'];
 document.addEventListener('keydown', event => {
   const key = event.key.toLowerCase();
-  if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || !canUseAutoScroll(event.target) || document.body.classList.contains('app-section-mode') || document.body.classList.contains('auction-mode') || modal.open || !['z', 'x'].includes(key)) return;
+  if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || !canUseAutoScroll(event.target) || !['z', 'x'].includes(key)) return;
   event.preventDefault();
   const activeButton = document.querySelector('.bottom-nav button.active');
   const current = Math.max(0, bottomNavigation.findIndex(name => activeButton?.hasAttribute(`data-${name}`)));
