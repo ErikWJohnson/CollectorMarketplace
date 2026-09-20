@@ -41,6 +41,24 @@ const chatRoomCatalog = [
   { id: 'art-salon', name: 'Art Salon', description: 'Discuss art, design, antiques, and museum-worthy objects.', tags: ['Art', 'Fine Art', 'Vintage'], members: 31 },
   { id: 'watch-club', name: 'Watch Club', description: 'A room for timepieces, jewelry, luxury, and craftsmanship.', tags: ['Watches', 'Fine Jewelry', 'Luxury'], members: 29 }
 ];
+const artifactLoreCache = new Map();
+const getArtifactLore = async title => {
+  const query = String(title || '').replace(/[^\w\s&'’-]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
+  if (!query) return null;
+  const cached = artifactLoreCache.get(query.toLowerCase());
+  if (cached && Date.now() - cached.savedAt < 86400000) return cached.value;
+  const search = await fetch(`https://en.wikipedia.org/w/rest.php/v1/search/title?q=${encodeURIComponent(query)}&limit=1`, { headers: { 'User-Agent': 'CollectorMarketplace ArtifactLore/1.0' } });
+  if (!search.ok) throw new Error('Public reference search is temporarily unavailable.');
+  const searchData = await search.json();
+  const result = searchData.pages?.[0];
+  if (!result?.key) return null;
+  const summaryResponse = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(result.key)}`, { headers: { 'User-Agent': 'CollectorMarketplace ArtifactLore/1.0' } });
+  if (!summaryResponse.ok) return null;
+  const summary = await summaryResponse.json();
+  const value = { title: summary.title || result.title, description: summary.description || result.description || '', extract: summary.extract || '', url: summary.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodeURIComponent(result.key)}` };
+  artifactLoreCache.set(query.toLowerCase(), { savedAt: Date.now(), value });
+  return value;
+};
 
 class Store {
   constructor() { fs.mkdirSync(dataDir, { recursive: true }); this.data = this.load(); this.ensureData(); this.removeDemoContent(); this.pool = null; this.writeQueue = Promise.resolve(); }
@@ -312,6 +330,16 @@ app.post('/listing', required, (req, res) => {
   store.data.listings.unshift(listing); activity('listing', req.user.id, { listingId: listing.id }); store.save(); res.status(201).json(listing);
 });
 app.get('/listing/:id', (req, res) => { const listing = store.data.listings.find(l => l.id === req.params.id); if (!listing) return res.status(404).json({ error: 'Listing not found' }); res.json({ ...listing, owner: publicUser(store.data.users.find(u => u.id === listing.ownerId)), likeCount: listing.likes.length }); });
+app.get('/listing/:id/artifact-lore', async (req, res) => {
+  const listing = store.data.listings.find(row => row.id === req.params.id);
+  if (!listing) return res.status(404).json({ error: 'Listing not found' });
+  try {
+    const lore = await getArtifactLore(`${listing.title} ${listing.category || ''}`);
+    res.json({ listingId: listing.id, lore, source: lore ? 'Wikipedia public reference data' : 'No matching public reference found' });
+  } catch (error) {
+    res.status(502).json({ error: error.message || 'Artifact Lore research is temporarily unavailable.' });
+  }
+});
 app.put('/listing/:id', required, (req, res) => {
   const listing = store.data.listings.find(l => l.id === req.params.id);
   if (!listing) return res.status(404).json({ error: 'Listing not found' });

@@ -1703,8 +1703,21 @@ function openListingValuation(item) {
   if (!item) return;
   const estimate = marketValueEstimate(item);
   const image = item.image || item.images?.[0] || '';
-  const content = `<section class="valuation-workspace"><article class="valuation-item"><img src="${safe(image)}" alt="${safe(item.title)}"><div><span>${safe(item.category || 'Collector item')}</span><h2>${safe(item.title)}</h2><p>Listed by @${safe(item.owner?.username || item.ownerName || 'collector')} · ${safe(item.condition || 'Condition not specified')}</p><b>Listed at ${money(item.price)}</b></div></article><article class="valuation-report"><header><span>AI-ASSISTED</span><h3>Estimated fair-market range</h3><small>Based on the information in this listing</small></header><strong>${money(estimate.low)} — ${money(estimate.high)}</strong><p>Midpoint estimate: <b>${money(estimate.midpoint)}</b> · Confidence: <b>${estimate.confidence}</b></p><ul>${estimate.signals.map(signal => `<li>${safe(signal)}</li>`).join('')}</ul><small>For a higher-confidence value, compare recent sold listings, verify authenticity and provenance, and consult a qualified specialist for high-value items.</small></article><footer class="valuation-actions"><button type="button" data-valuation-back>← Back to browse</button><button type="button" data-valuation-trade="${safe(item.id)}">⇄ Continue with trade</button><button type="button" data-purchase="${safe(item.id)}">Buy for ${money(item.price)}</button></footer></section>`;
+  const content = `<section class="valuation-workspace"><article class="valuation-item"><img src="${safe(image)}" alt="${safe(item.title)}"><div><span>${safe(item.category || 'Collector item')}</span><h2>${safe(item.title)}</h2><p>Listed by @${safe(item.owner?.username || item.ownerName || 'collector')} · ${safe(item.condition || 'Condition not specified')}</p><b>Listed at ${money(item.price)}</b></div></article><article class="valuation-report"><header><span>AI-ASSISTED</span><h3>Estimated fair-market range</h3><small>Based on the information in this listing</small></header><strong>${money(estimate.low)} — ${money(estimate.high)}</strong><p>Midpoint estimate: <b>${money(estimate.midpoint)}</b> · Confidence: <b>${estimate.confidence}</b></p><ul>${estimate.signals.map(signal => `<li>${safe(signal)}</li>`).join('')}</ul><small>For a higher-confidence value, compare recent sold listings, verify authenticity and provenance, and consult a qualified specialist for high-value items.</small></article><article class="artifact-lore" data-artifact-lore><header><span>ARTIFACT LORE</span><h3>Researching public references…</h3></header><p>Looking for a matching historical or cultural reference for this artifact.</p></article><footer class="valuation-actions"><button type="button" data-valuation-back>← Back to browse</button><button type="button" data-valuation-trade="${safe(item.id)}">⇄ Continue with trade</button><button type="button" data-purchase="${safe(item.id)}">Buy for ${money(item.price)}</button></footer></section>`;
   openAppSection('valuation', `AI Market Value · ${safe(item.title)}`, 'Review the market estimate, then choose how you want to continue.', content);
+  loadArtifactLore(item);
+}
+async function loadArtifactLore(item) {
+  const host = stream.querySelector('[data-artifact-lore]');
+  if (!host) return;
+  try {
+    const result = await api(`/listing/${encodeURIComponent(item.id)}/artifact-lore`);
+    if (!host.isConnected || !document.body.classList.contains('app-section-valuation')) return;
+    const lore = result.lore;
+    host.innerHTML = lore ? `<header><span>ARTIFACT LORE · WEB RESEARCH</span><h3>${safe(lore.title)}</h3><small>${safe(lore.description || 'Public reference match')}</small></header><p>${safe(lore.extract || 'A public reference match was found, but it does not include a summary.')}</p><footer><small>Source: ${safe(result.source)}</small><a href="${safe(lore.url)}" target="_blank" rel="noopener noreferrer">Open source ↗</a></footer>` : `<header><span>ARTIFACT LORE</span><h3>No public reference match yet</h3></header><p>There was no reliable match for this specific listing title. Add maker, era, edition, material, or provenance details to improve future research.</p><footer><small>${safe(result.source)}</small></footer>`;
+  } catch (error) {
+    if (host.isConnected) host.innerHTML = `<header><span>ARTIFACT LORE</span><h3>Research is unavailable right now</h3></header><p>${safe(error.message)}</p>`;
+  }
 }
 function feeCalculator(item, type, shippingProfile = {}) {
   const trade = type === 'trade';
