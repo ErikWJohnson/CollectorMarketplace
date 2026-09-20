@@ -16,6 +16,7 @@ const auctionWaterfallAudio = document.querySelector('#auction-waterfall-audio')
 const jungleChatAudio = document.querySelector('#jungle-chat-audio');
 const accountVeniceAudio = document.querySelector('#account-venice-audio');
 const sellLavaAudio = document.querySelector('#sell-lava-audio');
+const gothicCheckoutAudio = document.querySelector('#gothic-checkout-audio');
 const auctionBlockPlaceAudio = document.querySelector('#auction-block-place-audio');
 const auctionBlockClearAudio = document.querySelector('#auction-block-clear-audio');
 const rocketBoostAudio = document.querySelector('#rocket-boost-audio');
@@ -81,6 +82,17 @@ const stopSellLavaAmbience = () => {
   if (!sellLavaAudio) return;
   sellLavaAudio.pause();
   sellLavaAudio.currentTime = 0;
+};
+const startGothicCheckoutAmbience = () => {
+  if (!gothicCheckoutAudio) return;
+  gothicCheckoutAudio.loop = true;
+  gothicCheckoutAudio.volume = .28;
+  gothicCheckoutAudio.play().catch(() => {});
+};
+const stopGothicCheckoutAmbience = () => {
+  if (!gothicCheckoutAudio) return;
+  gothicCheckoutAudio.pause();
+  gothicCheckoutAudio.currentTime = 0;
 };
 function syncAccountVeniceControl() {
   const hero = stream?.querySelector('.profile-hero');
@@ -992,6 +1004,7 @@ function syncBrowseModeUi() {
   if (!document.body.classList.contains('app-section-chat')) { stopJungleChatGame(); stopJungleChatAmbience(); }
   if (!document.body.classList.contains('app-section-account')) { stopAccountVeniceAmbience(); stopVeniceSailingGame(); }
   if (!document.body.classList.contains('app-section-listing')) { stopSellLavaAmbience(); stopSellLavaGame(); }
+  if (!document.body.classList.contains('app-section-purchase')) stopGothicCheckoutAmbience();
   const browseSurface = !document.body.classList.contains('app-section-mode') && !modal.open;
   const conveyor = browseMode === 'conveyor' && searchScope === 'listings' && browseSurface && !auctionActive;
   const doomscroll = browseMode === 'doomscroll' && searchScope === 'listings' && browseSurface && !auctionActive;
@@ -1440,11 +1453,11 @@ function renderFeed(reset = true) {
   document.querySelector('#result-count').textContent = `${rows.length} listed`; sentinel.textContent = browseMode === 'conveyor' ? 'Conveyor mode · looping continuously' : page * 4 < rows.length ? 'Scroll for more finds ↓' : 'You are all caught up.'; syncBrowseModeUi(); renderVisibleCheckoutEstimates();
 }
 function openAppSection(kind, title, copy, content = '') {
-  if (modal.open) modal.close(); stopAutoScroll(); stopConveyor(); stopAuctionWaterfall(); stopJungleChatGame(); stopJungleChatAmbience(); stopAccountVeniceAmbience(); stopSellLavaAmbience(); stopSellLavaGame(); stopVeniceSailingGame(); clearInterval(auctionClock); clearInterval(auctionFeedClock);
+  if (modal.open) modal.close(); stopAutoScroll(); stopConveyor(); stopAuctionWaterfall(); stopJungleChatGame(); stopJungleChatAmbience(); stopAccountVeniceAmbience(); stopSellLavaAmbience(); stopGothicCheckoutAmbience(); stopSellLavaGame(); stopVeniceSailingGame(); clearInterval(auctionClock); clearInterval(auctionFeedClock);
   document.querySelector('.conveyor-smog-layer')?.remove();
   document.querySelector('.conveyor-orbit-layer')?.remove();
   document.body.classList.remove('auction-mode', 'browse-conveyor', 'chat-open', 'account-open', 'purchase-open', 'comments-open', 'listing-page', 'app-section-chat', 'app-section-account', 'app-section-listing', 'app-section-membership', 'app-section-purchase');
-  document.body.classList.add('app-section-mode', `app-section-${kind}`); syncBrowseModeUi(); if (kind === 'chat') startJungleChatAmbience(); if (kind === 'account') startAccountVeniceAmbience(); if (kind === 'listing') startSellLavaAmbience(); if (observer) observer.disconnect(); sentinel.hidden = true;
+  document.body.classList.add('app-section-mode', `app-section-${kind}`); syncBrowseModeUi(); if (kind === 'chat') startJungleChatAmbience(); if (kind === 'account') startAccountVeniceAmbience(); if (kind === 'listing') startSellLavaAmbience(); if (kind === 'purchase') startGothicCheckoutAmbience(); if (observer) observer.disconnect(); sentinel.hidden = true;
   const workspaceLabel = kind === 'account' ? 'Collector workspace' : kind === 'listing' ? 'Seller workspace' : kind === 'membership' ? 'Membership' : kind === 'purchase' ? 'Secure checkout' : 'Social workspace';
   const purchaseDecor = kind === 'purchase' ? '<div class="gothic-checkout-scene" aria-hidden="true"><i class="castle castle-left"><b></b><b></b><b></b></i><i class="castle castle-right"><b></b><b></b></i><i class="gargoyle gargoyle-left">♜</i><i class="gargoyle gargoyle-right">♜</i><i class="moon"></i></div>' : '';
   stream.innerHTML = `<section class="app-section-page">${purchaseDecor}<header class="app-section-intro"><span>${workspaceLabel}</span><h1>${title}</h1><p>${copy || ''}</p></header><div class="app-section-content">${content}${kind === 'account' ? '<div class="account-sailing-game-host" aria-label="Venice Cannon Run game"></div>' : ''}${kind === 'listing' ? '<div class="sell-lava-game-host" aria-label="Lava Dash Run game"></div>' : ''}</div></section>`;
