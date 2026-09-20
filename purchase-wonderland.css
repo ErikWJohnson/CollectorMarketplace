@@ -3,9 +3,9 @@ body.app-section-purchase { background: #250a35; color: #fff7fb; }
 
 body.app-section-purchase .app-shell {
   background:
-    radial-gradient(circle at 12% 16%, rgba(255, 115, 205, .32), transparent 28rem),
-    radial-gradient(circle at 90% 20%, rgba(111, 219, 255, .25), transparent 30rem),
-    linear-gradient(135deg, #21072d 0%, #531156 48%, #18255f 100%);
+    radial-gradient(circle at 12% 16%, rgba(255, 213, 150, .32), transparent 28rem),
+    radial-gradient(circle at 90% 20%, rgba(140, 222, 255, .22), transparent 30rem),
+    linear-gradient(135deg, #220d20 0%, #613227 48%, #183e5b 100%);
 }
 
 body.app-section-purchase .market-head,
@@ -23,7 +23,7 @@ body.app-section-purchase .app-section-page {
   min-height: calc(100vh - 148px);
   overflow: hidden;
   padding: clamp(26px, 4vw, 72px) clamp(18px, 5vw, 88px) 96px;
-  background: linear-gradient(135deg, rgba(56, 8, 76, .76), rgba(27, 24, 93, .76)), radial-gradient(circle at 50% -10%, rgba(255, 228, 247, .22), transparent 42rem);
+  background: linear-gradient(135deg, rgba(66, 20, 36, .82), rgba(17, 53, 79, .8)), radial-gradient(circle at 50% -10%, rgba(255, 244, 220, .24), transparent 42rem);
 }
 
 body.app-section-purchase .app-section-page::before,
@@ -48,6 +48,29 @@ body.app-section-purchase .app-section-page::after {
 
 body.app-section-purchase .app-section-page::after { opacity: .4; transform: scale(1.35) rotate(180deg); animation-duration: 28s; animation-direction: reverse; }
 
+/* A small, parallax-like gingerbread village lives behind the checkout cards. */
+body.app-section-purchase .gingerbread-village { position: absolute; z-index: -1; inset: 0; overflow: hidden; pointer-events: none; }
+body.app-section-purchase .cookie-house { position: absolute; bottom: 4%; width: 142px; height: 110px; border: 7px solid #ffe9cb; border-radius: 9px 9px 18px 18px; background: repeating-linear-gradient(90deg, #a95733 0 18px, #c87543 19px 36px); box-shadow: 0 12px 30px rgba(17, 5, 11, .35), inset 0 0 0 3px #8c402d; opacity: .7; animation: gingerbread-sway 7s ease-in-out infinite alternate; }
+body.app-section-purchase .cookie-house::before { content: ''; position: absolute; left: -17px; top: -82px; width: 0; height: 0; border-left: 81px solid transparent; border-right: 81px solid transparent; border-bottom: 82px solid #f5d7bd; filter: drop-shadow(0 -5px 0 #b85b45); }
+body.app-section-purchase .cookie-house::after { content: ''; position: absolute; left: 52px; bottom: -7px; width: 31px; height: 53px; border: 5px solid #ffe8c9; border-bottom: 0; border-radius: 17px 17px 0 0; background: #693122; }
+body.app-section-purchase .cookie-house b { position: absolute; top: 23px; left: 17px; width: 23px; height: 23px; border: 5px solid #fff0c7; border-radius: 50%; background: #72c9e4; box-shadow: 69px 0 0 -5px #72c9e4, 69px 0 0 0 #fff0c7; }
+body.app-section-purchase .cookie-house em { position: absolute; z-index: 1; left: 18px; top: -76px; width: 108px; height: 7px; border-radius: 100%; background: #fff7e8; box-shadow: 0 11px 0 -1px #fff7e8, 0 23px 0 -2px #fff7e8; transform: rotate(-1deg); }
+body.app-section-purchase .cookie-house-left { left: 3%; transform: scale(.86); }
+body.app-section-purchase .cookie-house-right { right: 4%; bottom: 7%; transform: scale(1.05) scaleX(-1); animation-delay: -3s; }
+
+body.app-section-purchase .candy-cane { position: absolute; bottom: 11%; width: 27px; height: 178px; border: 7px solid #fff3de; border-radius: 25px 25px 12px 12px; background: repeating-linear-gradient(135deg, #e74258 0 11px, #fff2df 12px 22px); box-shadow: 0 10px 24px rgba(31, 2, 15, .35); opacity: .72; transform-origin: bottom center; animation: cane-bob 4.5s ease-in-out infinite alternate; }
+body.app-section-purchase .candy-cane::before { content: ''; position: absolute; top: -43px; left: -7px; width: 67px; height: 60px; border: 7px solid #fff3de; border-left: 0; border-bottom: 0; border-radius: 0 46px 0 0; background: repeating-linear-gradient(135deg, #e74258 0 11px, #fff2df 12px 22px); }
+body.app-section-purchase .candy-cane-left { left: 15%; transform: rotate(-12deg); }
+body.app-section-purchase .candy-cane-right { right: 17%; transform: rotate(11deg) scaleX(-1); animation-delay: -2s; }
+body.app-section-purchase .gumdrop { position:absolute; bottom: 5%; width: 51px; height: 36px; border-radius: 50% 50% 20px 20px; background: linear-gradient(135deg, #ffeb8c, #ee8b2c); box-shadow: inset 9px 8px 0 rgba(255,255,255,.35), 0 9px 19px rgba(32,4,13,.35); opacity:.72; animation: gumdrop-hop 3.8s ease-in-out infinite; }
+body.app-section-purchase .gumdrop-one { left: 27%; background:linear-gradient(135deg,#ffb1e1,#d94d9c); animation-delay:-1s; }
+body.app-section-purchase .gumdrop-two { right: 29%; background:linear-gradient(135deg,#baf5ff,#3c95d5); animation-delay:-2.1s; }
+body.app-section-purchase .gumdrop-three { right: 9%; bottom: 22%; animation-delay:-.4s; }
+
+@keyframes gingerbread-sway { to { translate: 0 -9px; rotate: 1deg; } }
+@keyframes cane-bob { to { translate: 0 -14px; } }
+@keyframes gumdrop-hop { 50% { translate: 0 -16px; } }
+
 @keyframes checkout-bubbles-rise {
   from { background-position: 0 0, 8rem 14rem, 15rem 2rem, 24rem 18rem, 31rem 9rem; }
   to { background-position: 8rem -44rem, 3rem -54rem, 25rem -36rem, 15rem -58rem, 44rem -46rem; }
@@ -61,12 +84,12 @@ body.app-section-purchase .app-section-intro {
   border: 1px solid rgba(255, 235, 253, .56);
   border-radius: 30px 30px 18px 18px;
   color: #fff;
-  background: linear-gradient(115deg, rgba(255, 82, 177, .9), rgba(130, 55, 196, .86) 53%, rgba(47, 143, 225, .82));
+  background: linear-gradient(115deg, rgba(164, 72, 57, .93), rgba(198, 109, 56, .88) 53%, rgba(45, 119, 143, .86));
   box-shadow: 0 20px 55px rgba(14, 0, 33, .36), inset 0 1px rgba(255,255,255,.44);
 }
 
 body.app-section-purchase .app-section-intro span { color: #fff4a5; letter-spacing: .14em; }
-body.app-section-purchase .app-section-intro h1 { margin: .3rem 0 .65rem; font-size: clamp(2.2rem, 5vw, 4.65rem); color: #fff; text-shadow: 0 3px 0 rgba(103, 17, 98, .34); }
+body.app-section-purchase .app-section-intro h1 { margin: .3rem 0 .65rem; font-size: clamp(2.2rem, 5vw, 4.65rem); color: #fff; text-shadow: 0 3px 0 rgba(92, 45, 22, .55); }
 body.app-section-purchase .app-section-intro p { max-width: 48rem; margin: 0; color: #fff7fc; font-size: 1.05rem; }
 body.app-section-purchase .app-section-content { padding-top: 24px; }
 
@@ -76,12 +99,12 @@ body.app-section-purchase .purchase-review {
   border: 1px solid rgba(255, 238, 252, .5);
   border-radius: 24px;
   padding: clamp(18px, 2.2vw, 30px);
-  background: linear-gradient(155deg, rgba(54, 13, 73, .91), rgba(30, 30, 91, .86));
+  background: linear-gradient(155deg, rgba(78, 34, 39, .93), rgba(40, 67, 86, .88));
   box-shadow: 0 20px 42px rgba(19, 0, 34, .28), inset 0 1px rgba(255,255,255,.16);
   backdrop-filter: blur(15px);
 }
 
-body.app-section-purchase .purchase-review { position: sticky; top: 88px; background: linear-gradient(155deg, rgba(83, 19, 84, .94), rgba(25, 51, 111, .91)); }
+body.app-section-purchase .purchase-review { position: sticky; top: 88px; background: linear-gradient(155deg, rgba(107, 51, 41, .95), rgba(31, 78, 98, .92)); }
 body.app-section-purchase .purchase-fields > header,
 body.app-section-purchase .purchase-review > header { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 24px; }
 body.app-section-purchase .purchase-fields > header > span,
@@ -98,8 +121,8 @@ body.app-section-purchase .purchase-checkout input,
 body.app-section-purchase .purchase-checkout select { border: 1px solid rgba(255, 211, 244, .64); border-radius: 12px; background: rgba(20, 8, 46, .78); color: #fff; box-shadow: inset 0 1px 7px rgba(0,0,0,.18); }
 body.app-section-purchase .purchase-checkout input:focus,
 body.app-section-purchase .purchase-checkout select:focus { outline: 3px solid rgba(255, 217, 91, .62); outline-offset: 2px; border-color: #fff0a0; }
-body.app-section-purchase .purchase-checkout input[readonly] { color: #ffeaa6; background: rgba(31, 11, 56, .76); }
-body.app-section-purchase .purchase-checkout option { background: #2d1352; color: #fff; }
+body.app-section-purchase .purchase-checkout input[readonly] { color: #ffeaa6; background: rgba(64, 25, 35, .76); }
+body.app-section-purchase .purchase-checkout option { background: #542f31; color: #fff; }
 body.app-section-purchase .shipping-address-fields { border-color: rgba(255, 208, 243, .38); background: rgba(255, 113, 189, .08); border-radius: 18px; }
 body.app-section-purchase .shipping-address-fields p,
 body.app-section-purchase .purchase-checkout small,
@@ -125,6 +148,9 @@ body.app-section-purchase .site-legal-links { background: rgba(30, 7, 48, .9); }
   body.app-section-purchase .app-section-page { padding-inline: 14px; }
   body.app-section-purchase .purchase-checkout { grid-template-columns: 1fr; }
   body.app-section-purchase .purchase-review { position: static; }
+  body.app-section-purchase .gingerbread-village { opacity: .38; }
+  body.app-section-purchase .cookie-house-right,
+  body.app-section-purchase .candy-cane-right { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
