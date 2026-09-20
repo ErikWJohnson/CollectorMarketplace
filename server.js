@@ -24,6 +24,7 @@ const hasDeveloperPass = user => user?.developerPass === true;
 const vipCuratorPrice = 150;
 const vipCuratorDays = 30;
 const hasActiveCuratorMembership = user => {
+  if (user?.grandCurator === true) return true;
   if (!(user?.curator === true || user?.membership === 'curator')) return false;
   const expiresAt = user?.curatorMembershipExpiresAt;
   return !expiresAt || new Date(expiresAt).valueOf() > Date.now();
@@ -101,6 +102,7 @@ class Store {
     console.log('Connected to collector-db.');
   }
   save() {
+    this.data.users.forEach(user => refreshGrandCurator(user));
     fs.writeFileSync(dataFile, JSON.stringify(this.data, null, 2));
     if (this.pool) this.writeQueue = this.writeQueue.then(() => this.pool.query('INSERT INTO marketplace_state (id, data, updated_at) VALUES ($1, $2::jsonb, NOW()) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()', ['primary', JSON.stringify(this.data)])).catch(error => console.error('Postgres save failed:', error));
     return this.writeQueue;
@@ -115,7 +117,7 @@ const isLeaderboardChampion = user => [...platformGames].some(game => {
   const best = Math.max(0, ...scores.map(row => row.score));
   return best > 0 && Number(user?.platformScores?.[game] || 0) === best;
 });
-const accountAwards = user => {
+const baseAccountAwards = user => {
   const originalCollector = /^2026-/.test(String(user?.createdAt || ''));
   const barterLord = completedItemCount(user) >= 5000;
   const leaderboardChampion = isLeaderboardChampion(user);
@@ -127,11 +129,21 @@ const accountAwards = user => {
     { id: 'pro-gamer', name: 'Pro Gamer', earned: proGamer, discount: .0025, detail: 'Reached a platform scoreboard · 0.25% lifetime fee reduction.' }
   ];
 };
+function refreshGrandCurator(user) {
+  if (!user?.grandCurator && baseAccountAwards(user).every(award => award.earned)) user.grandCurator = true;
+  return Boolean(user?.grandCurator);
+}
+const accountAwards = user => {
+  const baseAwards = baseAccountAwards(user);
+  const grandCurator = refreshGrandCurator(user);
+  return [...baseAwards, { id: 'grand-curator', name: 'Grand Curator', earned: grandCurator, discount: .004, detail: grandCurator ? 'All awards collected · lifetime VIP Curator and 0.40% fee reduction.' : 'Collect every other award at least once to unlock lifetime VIP Curator and 0.40% off.' }];
+};
 const marketplaceFeeRate = user => {
   if (hasDeveloperPass(user)) return 0;
   const awards = accountAwards(user);
   const proGamerDiscount = awards.find(award => award.id === 'pro-gamer' && award.earned)?.discount || 0;
-  if (hasActiveCuratorMembership(user)) return Math.max(0, .01 - proGamerDiscount);
+  const grandCuratorDiscount = awards.find(award => award.id === 'grand-curator' && award.earned)?.discount || 0;
+  if (hasActiveCuratorMembership(user)) return Math.max(0, .01 - proGamerDiscount - grandCuratorDiscount);
   return Math.max(0, .04 - awards.filter(award => award.earned).reduce((total, award) => total + award.discount, 0));
 };
 // Voice audio stays peer-to-peer. These short-lived rooms only carry WebRTC
