@@ -866,11 +866,23 @@ function applyAuctionGravityStep() {
   }
   return moved;
 }
+function clearCompletedAuctionRows() {
+  const game = auctionBlocks;
+  const retained = game.board.filter(row => !row.every(Boolean));
+  const cleared = 16 - retained.length;
+  if (!cleared) return 0;
+  while (retained.length < 16) retained.unshift(Array(10).fill(0));
+  game.board = retained;
+  game.score += cleared * cleared * 100;
+  playGameEffect(auctionBlockClearAudio, .46);
+  return cleared;
+}
 function settleAuctionGravity(onSettled = () => {}) {
   const game = auctionBlocks; clearTimeout(game.gravityTimer); game.settling = true;
   const fall = () => {
     if (!game.started) return;
-    if (applyAuctionGravityStep()) { renderAuctionBlocks(); game.gravityTimer = setTimeout(fall, 58); return; }
+    const cleared = clearCompletedAuctionRows();
+    if (cleared || applyAuctionGravityStep()) { renderAuctionBlocks(); game.gravityTimer = setTimeout(fall, 58); return; }
     game.gravityTimer = 0; game.settling = false; onSettled(); renderAuctionBlocks();
   };
   fall();
@@ -879,9 +891,7 @@ function settleAuctionPiece() {
   const game = auctionBlocks;
   game.piece.forEach((row, rowIndex) => row.forEach((filled, colIndex) => { const y = game.y + rowIndex; const x = game.x + colIndex; if (filled && y >= 0) game.board[y][x] = 1; }));
   playGameEffect(auctionBlockPlaceAudio, .34);
-  const retained = game.board.filter(row => !row.every(Boolean)); const cleared = 16 - retained.length;
-  while (retained.length < 16) retained.unshift(Array(10).fill(0));
-  game.board = retained; game.score += cleared ? cleared * cleared * 100 : 8; if (cleared) playGameEffect(auctionBlockClearAudio, .46); game.piece = null;
+  const cleared = clearCompletedAuctionRows(); game.score += cleared ? 0 : 8; game.piece = null;
   settleAuctionGravity(() => { spawnAuctionPiece(); spawnAuctionRowBomb(); });
 }
 function tickAuctionBlocks() { const game = auctionBlocks; if (!game.started || game.settling || !game.piece) return; if (!auctionBlocksCollide(game.piece, game.x, game.y + 1)) { game.y += 1; renderAuctionBlocks(); } else settleAuctionPiece(); }
