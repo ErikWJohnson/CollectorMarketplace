@@ -107,6 +107,33 @@ class Store {
   }
 }
 const store = new Store();
+const platformGames = new Set(['star-run', 'puppy-jump', 'auction-falls', 'canopy-run', 'venice-cannon', 'lava-run']);
+const completedItemCount = user => store.data.deliveries.filter(delivery => delivery.status === 'completed' && (delivery.buyerId === user?.id || delivery.sellerId === user?.id)).length;
+const platformScoreboard = game => store.data.users.map(user => ({ user, score: Math.max(0, Number(user.platformScores?.[game]) || 0) })).filter(row => row.score > 0);
+const isLeaderboardChampion = user => [...platformGames].some(game => {
+  const scores = platformScoreboard(game);
+  const best = Math.max(0, ...scores.map(row => row.score));
+  return best > 0 && Number(user?.platformScores?.[game] || 0) === best;
+});
+const accountAwards = user => {
+  const originalCollector = /^2026-/.test(String(user?.createdAt || ''));
+  const barterLord = completedItemCount(user) >= 5000;
+  const leaderboardChampion = isLeaderboardChampion(user);
+  const proGamer = Object.values(user?.platformScores || {}).some(score => Number(score) > 0);
+  return [
+    { id: 'original-collector', name: 'Original Collector', earned: originalCollector, discount: .015, detail: 'Been here since 2026 · 1.5% lifetime fee reduction.' },
+    { id: 'barter-lord', name: 'Barter Lord', earned: barterLord, discount: .005, detail: `${completedItemCount(user).toLocaleString()} of 5,000 completed items · 0.5% lifetime fee reduction.` },
+    { id: 'leaderboard-champion', name: 'Leaderboard Champion', earned: leaderboardChampion, discount: .01, detail: 'Currently holds at least one platform-wide high score · 1% temporary fee reduction.' },
+    { id: 'pro-gamer', name: 'Pro Gamer', earned: proGamer, discount: .0025, detail: 'Reached a platform scoreboard · 0.25% lifetime fee reduction.' }
+  ];
+};
+const marketplaceFeeRate = user => {
+  if (hasDeveloperPass(user)) return 0;
+  const awards = accountAwards(user);
+  const proGamerDiscount = awards.find(award => award.id === 'pro-gamer' && award.earned)?.discount || 0;
+  if (hasActiveCuratorMembership(user)) return Math.max(0, .01 - proGamerDiscount);
+  return Math.max(0, .04 - awards.filter(award => award.earned).reduce((total, award) => total + award.discount, 0));
+};
 // Voice audio stays peer-to-peer. These short-lived rooms only carry WebRTC
 // signaling and presence, so no microphone audio is stored by the marketplace.
 const voiceRooms = new Map();
@@ -114,7 +141,7 @@ const googleOAuthStates = new Map();
 app.use(express.json({ limit: '16mb' }));
 app.get('/healthz', (req, res) => res.status(200).json({ ok: true, service: 'CollectorMarketplace.net', database: store.pool ? 'collector-db' : 'local' }));
 
-function publicUser(user) { if (!user) return null; const { password, email, shippingProfile, lobbySong, ...safe } = user; return safe; }
+function publicUser(user) { if (!user) return null; const { password, email, shippingProfile, lobbySong, ...safe } = user; return { ...safe, awards: accountAwards(user), marketplaceFeeRate: marketplaceFeeRate(user) }; }
 function directoryUser(user) { if (!user) return null; const { password, email, following, shippingProfile, lobbySong, ...safe } = user; return safe; }
 function currentUser(req) { const token = req.headers.authorization?.replace('Bearer ', ''); return store.data.users.find(u => u.id === token); }
 function required(req, res, next) { const user = currentUser(req); if (!user) return res.status(401).json({ error: 'Sign in required' }); req.user = user; next(); }
@@ -209,6 +236,15 @@ app.post('/signup', (req, res) => {
 });
 app.post('/login', (req, res) => { const user = store.data.users.find(u => u.email === req.body.email && u.password === req.body.password); if (!user) return res.status(401).json({ error: 'Invalid email or password' }); res.json({ token: user.id, user: publicUser(user) }); });
 app.get('/user/:id', (req, res) => { const user = store.data.users.find(u => u.id === req.params.id); if (!user) return res.status(404).json({ error: 'User not found' }); const listings = store.data.listings.filter(l => l.ownerId === user.id); const history = store.data.trades.filter(t => (t.senderId === user.id || t.receiverId === user.id) && t.status === 'completed'); res.json({ ...publicUser(user), lobbySong: user.lobbySong || '', activeListings: listings.filter(l => l.status === 'active'), tradeHistory: history }); });
+app.post('/scoreboard/score', required, (req, res) => {
+  const game = String(req.body.game || '').trim();
+  const score = Math.min(1000000000, Math.max(0, Math.floor(Number(req.body.score) || 0)));
+  if (!platformGames.has(game) || !score) return res.status(400).json({ error: 'Use a supported game and a positive score.' });
+  if (!req.user.platformScores || typeof req.user.platformScores !== 'object') req.user.platformScores = {};
+  req.user.platformScores[game] = Math.max(Number(req.user.platformScores[game] || 0), score);
+  store.save();
+  res.json({ user: publicUser(req.user), game, score: req.user.platformScores[game], highScore: Math.max(0, ...platformScoreboard(game).map(row => row.score)) });
+});
 app.get('/user/:id/listings', required, (req, res) => { if (req.user.id !== req.params.id) return res.status(403).json({ error: 'Not allowed' }); const rows = store.data.listings.filter(listing => listing.ownerId === req.user.id).map(listing => ({ ...listing, owner: publicUser(req.user), likeCount: Array.isArray(listing.likes) ? listing.likes.length : 0, commentCount: store.data.comments.filter(comment => comment.listingId === listing.id).length })); res.json(rows); });
 app.get('/users/suggestions', required, (req, res) => { const excluded = new Set([req.user.id, ...req.user.following]); const users = store.data.users.filter(user => !excluded.has(user.id)).sort((a, b) => (b.reputation || 0) - (a.reputation || 0) || a.username.localeCompare(b.username)).slice(0, 8).map(user => ({ ...publicUser(user), activeListingCount: store.data.listings.filter(listing => listing.ownerId === user.id && listing.status === 'active').length })); res.json(users); });
 app.get('/users', (req, res) => res.json(store.data.users.map(user => ({ ...directoryUser(user), activeListingCount: store.data.listings.filter(listing => listing.ownerId === user.id && listing.status === 'active').length, followingCount: Array.isArray(user.following) ? user.following.length : 0 }))));
@@ -390,7 +426,7 @@ app.delete('/comment/:id', required, (req, res) => { const index = store.data.co
 const activeTradeListings = (ids, ownerId) => [...new Set(Array.isArray(ids) ? ids.filter(value => typeof value === 'string') : [])].map(listingId => store.data.listings.find(listing => listing.id === listingId && listing.ownerId === ownerId && listing.status === 'active')).filter(Boolean);
 const tradeSenderIds = trade => Array.isArray(trade.senderListingIds) ? trade.senderListingIds : [];
 const tradeReceiverIds = trade => Array.isArray(trade.receiverListingIds) ? trade.receiverListingIds : [trade.listingId].filter(Boolean);
-const tradeFeeRate = user => hasDeveloperPass(user) ? 0 : hasActiveCuratorMembership(user) ? 0.01 : 0.04;
+const tradeFeeRate = user => marketplaceFeeRate(user);
 const tradeFeeSnapshot = ({ sender, receiver, senderListings, receiverListings, senderCash, receiverCash }) => {
   const senderRate = tradeFeeRate(sender); const receiverRate = tradeFeeRate(receiver);
   const senderValueReceived = receiverListings.reduce((total, listing) => total + Number(listing.price || 0), 0) + receiverCash;
