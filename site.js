@@ -903,7 +903,7 @@ function spawnAuctionRowBomb() {
   const game = auctionBlocks; if (!game.started || Math.random() > .24) return;
   const row = Math.floor(6 + Math.random() * 10); const emptyColumns = game.board[row].map((cell, index) => cell === 0 ? index : -1).filter(index => index >= 0);
   if (!emptyColumns.length) return;
-  const column = emptyColumns[Math.floor(Math.random() * emptyColumns.length)]; game.board[row][column] = 3; renderAuctionBlocks();
+  const column = emptyColumns[Math.floor(Math.random() * emptyColumns.length)]; game.board[row][column] = 3; settleAuctionGravity();
   const timer = setTimeout(() => { if (!game.started) return; const liveRow = game.board.findIndex(cells => cells.includes(3)); if (liveRow < 0) return; game.board[liveRow] = Array(10).fill(0); game.score += 75; playGameEffect(auctionBlockClearAudio, .56); settleAuctionGravity(); }, 1250);
   game.bombTimers.push(timer);
 }
