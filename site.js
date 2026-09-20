@@ -1462,6 +1462,18 @@ function renderFeed(reset = true) {
   const rows = filtered(); if (reset) page = 1; const visible = browseMode === 'conveyor' ? rows : rows.slice(0, page * 4);
   const originalCards = visible.map(card).join(''); const conveyorCopies = browseMode === 'conveyor' && visible.length ? Array.from({ length: 2 }, () => visible.map(item => card(item).replace('<article class="listing"', '<article class="listing" data-conveyor-copy="true"')).join('')).join('') : '';
   stream.innerHTML = originalCards ? originalCards + conveyorCopies : '<p class="load-state">No collector finds match that search.</p>';
+  stream.querySelectorAll('.listing .listing-copy').forEach((copy, index) => {
+    const item = visible[index % visible.length];
+    const actions = copy.querySelector('.listing-actions');
+    if (!item || !actions || copy.querySelector('[data-artifact-lore-open]')) return;
+    const loreButton = document.createElement('button');
+    loreButton.type = 'button';
+    loreButton.className = 'artifact-lore-launch';
+    loreButton.dataset.artifactLoreOpen = item.id;
+    loreButton.setAttribute('aria-label', `Open Artifact Lore research for ${item.title}`);
+    loreButton.innerHTML = '<span aria-hidden="true">✦</span><b>ARTIFACT LORE</b><small>Metadata + web research</small>';
+    actions.insertAdjacentElement('beforebegin', loreButton);
+  });
   stream.querySelectorAll('.listing .collector-head').forEach((header, index) => { const item = visible[index % visible.length]; header.dataset.profile = item?.ownerId || ''; header.tabIndex = 0; header.setAttribute('role', 'button'); header.setAttribute('aria-label', `Open ${item?.owner?.username || 'collector'} profile`); });
   document.querySelector('#result-count').textContent = `${rows.length} listed`; sentinel.textContent = browseMode === 'conveyor' ? 'Conveyor mode · looping continuously' : page * 4 < rows.length ? 'Scroll for more finds ↓' : 'You are all caught up.'; syncBrowseModeUi(); renderVisibleCheckoutEstimates();
 }
@@ -1699,12 +1711,13 @@ function marketValueEstimate(item) {
   const confidence = detail.length > 90 && item?.category && item?.condition ? 'Moderate' : 'Limited';
   return { low: Math.max(1, midpoint - spread), high: midpoint + spread, midpoint, confidence, signals: [condition ? `Condition: ${item.condition}` : 'Condition not specified', item?.category ? `Category: ${item.category}` : 'Category not specified', collectibleWeight > 1 ? 'Collector / rarity terms detected' : 'Standard listing signals'] };
 }
-function openListingValuation(item) {
+function openListingValuation(item, { focusLore = false } = {}) {
   if (!item) return;
   const estimate = marketValueEstimate(item);
   const image = item.image || item.images?.[0] || '';
   const content = `<section class="valuation-workspace"><article class="valuation-item"><img src="${safe(image)}" alt="${safe(item.title)}"><div><span>${safe(item.category || 'Collector item')}</span><h2>${safe(item.title)}</h2><p>Listed by @${safe(item.owner?.username || item.ownerName || 'collector')} · ${safe(item.condition || 'Condition not specified')}</p><b>Listed at ${money(item.price)}</b></div></article><article class="valuation-report"><header><span>AI-ASSISTED</span><h3>Estimated fair-market range</h3><small>Based on the information in this listing</small></header><strong>${money(estimate.low)} — ${money(estimate.high)}</strong><p>Midpoint estimate: <b>${money(estimate.midpoint)}</b> · Confidence: <b>${estimate.confidence}</b></p><ul>${estimate.signals.map(signal => `<li>${safe(signal)}</li>`).join('')}</ul><small>For a higher-confidence value, compare recent sold listings, verify authenticity and provenance, and consult a qualified specialist for high-value items.</small></article><article class="artifact-lore" data-artifact-lore><header><span>ARTIFACT LORE</span><h3>Researching public references…</h3></header><p>Looking for a matching historical or cultural reference for this artifact.</p></article><footer class="valuation-actions"><button type="button" data-valuation-back>← Back to browse</button><button type="button" data-valuation-trade="${safe(item.id)}">⇄ Continue with trade</button><button type="button" data-purchase="${safe(item.id)}">Buy for ${money(item.price)}</button></footer></section>`;
-  openAppSection('valuation', `AI Market Value · ${safe(item.title)}`, 'Review the market estimate, then choose how you want to continue.', content);
+  openAppSection('valuation', `${focusLore ? 'Artifact Lore' : 'AI Market Value'} · ${safe(item.title)}`, focusLore ? 'Explore a public-reference research guess, then decide whether to buy or trade.' : 'Review the market estimate, then choose how you want to continue.', content);
+  if (focusLore) requestAnimationFrame(() => stream.querySelector('[data-artifact-lore]')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   loadArtifactLore(item);
 }
 async function loadArtifactLore(item) {
@@ -1714,7 +1727,10 @@ async function loadArtifactLore(item) {
     const result = await api(`/listing/${encodeURIComponent(item.id)}/artifact-lore`);
     if (!host.isConnected || !document.body.classList.contains('app-section-valuation')) return;
     const lore = result.lore;
-    host.innerHTML = lore ? `<header><span>ARTIFACT LORE · WEB RESEARCH</span><h3>${safe(lore.title)}</h3><small>${safe(lore.description || 'Public reference match')}</small></header><p>${safe(lore.extract || 'A public reference match was found, but it does not include a summary.')}</p><footer><small>Source: ${safe(result.source)}</small><a href="${safe(lore.url)}" target="_blank" rel="noopener noreferrer">Open source ↗</a></footer>` : `<header><span>ARTIFACT LORE</span><h3>No public reference match yet</h3></header><p>There was no reliable match for this specific listing title. Add maker, era, edition, material, or provenance details to improve future research.</p><footer><small>${safe(result.source)}</small></footer>`;
+    const research = result.research || {};
+    const inputs = Array.isArray(research.metadataSignals) ? `<aside class="artifact-lore-inputs"><b>Research inputs</b><ul>${research.metadataSignals.map(signal => `<li>${safe(signal)}</li>`).join('')}</ul></aside>` : '';
+    const guess = research.guess ? `<p class="artifact-lore-guess"><b>Artifact Lore guess</b>${safe(research.guess)}</p>` : '';
+    host.innerHTML = lore ? `<header><span>ARTIFACT LORE · WEB RESEARCH</span><h3>${safe(lore.title)}</h3><small>${safe(lore.description || 'Public reference match')}</small></header>${guess}${inputs}<p>${safe(lore.extract || 'A public reference match was found, but it does not include a summary.')}</p><footer><small>Source: ${safe(result.source)}</small><a href="${safe(lore.url)}" target="_blank" rel="noopener noreferrer">Open source ↗</a></footer>` : `<header><span>ARTIFACT LORE</span><h3>No public reference match yet</h3></header>${guess}${inputs}<footer><small>${safe(result.source)}</small></footer>`;
   } catch (error) {
     if (host.isConnected) host.innerHTML = `<header><span>ARTIFACT LORE</span><h3>Research is unavailable right now</h3></header><p>${safe(error.message)}</p>`;
   }
@@ -1783,6 +1799,15 @@ document.addEventListener('click', event => {
     openListingValuation(item);
     if (valuation.isConnected) { valuation.disabled = false; valuation.innerHTML = '✦ AI VALUE'; }
   }, 360);
+}, true);
+
+document.addEventListener('click', event => {
+  const lore = event.target.closest('[data-artifact-lore-open]');
+  if (!lore) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  const item = listings.find(row => row.id === lore.dataset.artifactLoreOpen);
+  openListingValuation(item, { focusLore: true });
 }, true);
 
 document.addEventListener('click', event => {

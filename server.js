@@ -334,8 +334,21 @@ app.get('/listing/:id/artifact-lore', async (req, res) => {
   const listing = store.data.listings.find(row => row.id === req.params.id);
   if (!listing) return res.status(404).json({ error: 'Listing not found' });
   try {
-    const lore = await getArtifactLore(`${listing.title} ${listing.category || ''}`);
-    res.json({ listingId: listing.id, lore, source: lore ? 'Wikipedia public reference data' : 'No matching public reference found' });
+    const tags = Array.isArray(listing.tags) ? listing.tags.filter(Boolean).slice(0, 5) : [];
+    const query = [listing.title, listing.category, listing.condition, ...tags].filter(Boolean).join(' ');
+    const hasImageReference = Boolean(listing.image || listing.images?.length);
+    const metadataSignals = [
+      `Title: ${listing.title}`,
+      listing.category && `Category: ${listing.category}`,
+      listing.condition && `Condition: ${listing.condition}`,
+      tags.length && `Tags: ${tags.join(', ')}`,
+      hasImageReference ? 'Listing photo: included as a visual reference' : 'Listing photo: not provided'
+    ].filter(Boolean);
+    const lore = await getArtifactLore(query);
+    const guess = lore
+      ? `Closest public-reference lead: ${lore.title}. This is a research guess based on the listing metadata, its photo reference, and public web results. Confirm maker, era, material, condition, and provenance before relying on it.`
+      : 'No reliable public-reference match was found. Add a maker, era, edition, material, or provenance detail to make the next research guess more specific.';
+    res.json({ listingId: listing.id, lore, source: lore ? 'Wikipedia public reference data' : 'No matching public reference found', research: { query, metadataSignals, hasImageReference, guess } });
   } catch (error) {
     res.status(502).json({ error: error.message || 'Artifact Lore research is temporarily unavailable.' });
   }
