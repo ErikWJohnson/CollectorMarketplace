@@ -110,36 +110,33 @@ const distanceToVeniceShotPath = (shot, target) => {
   const progress = segmentLengthSquared ? Math.max(0, Math.min(1, ((target.x - startX) * segmentX + (target.y - startY) * segmentY) / segmentLengthSquared)) : 0;
   return Math.hypot(target.x - (startX + segmentX * progress), target.y - (startY + segmentY * progress));
 };
-const sellLavaGame = { host: null, frame: 0, restartTimer: 0, started: false, playerX: 20, playerY: 18, velocityY: 0, grounded: true, platforms: [], score: 0, best: Number(localStorage.getItem('collector-marketplace-lava-run-high-score') || 0), lastFrame: 0, lastSpawn: 0, message: 'Press Play to begin your endless lava run.' };
+const sellLavaGame = { host: null, frame: 0, restartTimer: 0, started: false, playerY: 18, velocityY: 0, grounded: true, obstacles: [], score: 0, best: Number(localStorage.getItem('collector-marketplace-lava-run-high-score') || 0), lastFrame: 0, lastSpawn: 0, message: 'Press Play to begin your endless lava run.' };
 function renderSellLavaGame() {
   const game = sellLavaGame; if (!game.host?.isConnected) return;
-  const platform = item => `<i class="sell-lava-platform" style="--platform-x:${item.x}%;--platform-y:${item.y}px;--platform-width:${item.width}%" aria-hidden="true"></i>`;
-  game.host.innerHTML = `<section class="sell-lava-game"><header><b>Lava Courier Run</b><span>Score ${String(Math.floor(game.score)).padStart(4, '0')} · Best ${String(game.best).padStart(4, '0')}</span></header><div class="sell-lava-field">${game.platforms.map(platform).join('')}<i class="sell-lava-runner${game.grounded ? ' is-grounded' : ''}" style="--runner-x:${game.playerX}%;--runner-y:${game.playerY}px" aria-label="Your lava courier" role="img">🏃</i>${!game.started ? `<div class="sell-lava-toast"><span>${game.message}</span></div>` : ''}</div><footer><small>[ and ] move · = jump · keep ahead of the lava</small><div><button type="button" data-sell-lava-left aria-label="Move left">←</button><button type="button" data-sell-lava-jump>Jump</button><button type="button" data-sell-lava-right aria-label="Move right">→</button><button type="button" data-sell-lava-play>${game.started ? 'Restart' : 'Play'}</button></div></footer></section>`;
+  const obstacle = item => item.type === 'block' ? `<i class="sell-lava-block" style="--obstacle-x:${item.x}%;--obstacle-height:${item.height}px" aria-hidden="true"></i>` : `<i class="sell-lava-spike" style="--obstacle-x:${item.x}%" aria-hidden="true"></i>`;
+  game.host.innerHTML = `<section class="sell-lava-game"><header><b>Lava Dash Run</b><span>Score ${String(Math.floor(game.score)).padStart(4, '0')} · Best ${String(game.best).padStart(4, '0')}</span></header><div class="sell-lava-field"><i class="sell-lava-grid" aria-hidden="true"></i><i class="sell-lava-ground" aria-hidden="true"></i>${game.obstacles.map(obstacle).join('')}<i class="sell-lava-runner${game.grounded ? ' is-grounded' : ''}" style="--runner-y:${game.playerY}px" aria-label="Your lava runner" role="img"></i>${!game.started ? `<div class="sell-lava-toast"><span>${game.message}</span></div>` : ''}</div><footer><small>= jump · time every leap · survive the endless lava run</small><div><button type="button" data-sell-lava-jump>Jump</button><button type="button" data-sell-lava-play>${game.started ? 'Restart' : 'Play'}</button></div></footer></section>`;
 }
-function resetSellLavaGame() { const game = sellLavaGame; game.playerX = 20; game.playerY = 18; game.velocityY = 0; game.grounded = true; game.platforms = [{ x: -20, y: 0, width: 140 }, { x: 84, y: 0, width: 30 }]; game.score = 0; game.lastFrame = performance.now(); game.lastSpawn = performance.now(); game.message = 'Press Play to begin your endless lava run.'; }
+function resetSellLavaGame() { const game = sellLavaGame; game.playerY = 18; game.velocityY = 0; game.grounded = true; game.obstacles = []; game.score = 0; game.lastFrame = performance.now(); game.lastSpawn = performance.now(); game.message = 'Press Play to begin your endless lava run.'; }
 function endSellLavaGame(message) { const game = sellLavaGame; game.started = false; game.best = Math.max(game.best, Math.floor(game.score)); localStorage.setItem('collector-marketplace-lava-run-high-score', String(game.best)); game.message = `${message} Restarting…`; renderSellLavaGame(); clearTimeout(game.restartTimer); game.restartTimer = window.setTimeout(() => { if (game.host?.isConnected && document.body.classList.contains('app-section-listing')) launchSellLavaGame(); }, 1400); }
-function moveSellLavaRunner(direction) { const game = sellLavaGame; if (!game.started) return; game.playerX = Math.max(8, Math.min(80, game.playerX + direction * 7)); renderSellLavaGame(); }
 function jumpSellLavaRunner() { const game = sellLavaGame; if (!game.started || !game.grounded) return; game.velocityY = .34; game.grounded = false; playVeniceGameSound(gameLaserAudio, .18); }
 function updateSellLavaGame(timestamp) {
   const game = sellLavaGame; if (!game.started || !game.host?.isConnected || !document.body.classList.contains('app-section-listing')) return;
-  const delta = Math.min(40, timestamp - game.lastFrame || 16); game.lastFrame = timestamp; game.score += delta / 35;
-  const scrollSpeed = .018 + Math.min(.008, game.score / 12000);
-  game.platforms.forEach(item => { item.x -= scrollSpeed * delta; });
-  if (timestamp - game.lastSpawn > 920) { const last = game.platforms.at(-1); const y = Math.random() < .52 ? 0 : Math.random() < .67 ? 28 : 54; game.platforms.push({ x: Math.max(103, (last?.x || 96) + (last?.width || 30) + 10 + Math.random() * 10), y, width: 25 + Math.random() * 14 }); game.lastSpawn = timestamp; }
-  game.platforms = game.platforms.filter(item => item.x + item.width > -12);
-  const previousY = game.playerY; game.velocityY -= .001 * delta; game.playerY += game.velocityY * delta; game.grounded = false;
-  if (game.velocityY <= 0) {
-    const landing = game.platforms.find(item => game.playerX >= item.x - 3 && game.playerX <= item.x + item.width + 3 && previousY >= item.y + 16 && game.playerY <= item.y + 16);
-    if (landing) { game.playerY = landing.y + 16; game.velocityY = 0; game.grounded = true; }
-  }
-  if (game.playerY < -16 || game.playerX < 6 || game.playerX > 82) { playVeniceGameSound(gameAsteroidAudio, .35); endSellLavaGame(`The lava claimed the courier. Score: ${Math.floor(game.score)}.`); return; }
+  const delta = Math.min(40, timestamp - game.lastFrame || 16); game.lastFrame = timestamp; game.score += delta / 28;
+  const scrollSpeed = .024 + Math.min(.011, game.score / 15000);
+  game.obstacles.forEach(item => { item.x -= scrollSpeed * delta; });
+  if (timestamp - game.lastSpawn > Math.max(540, 980 - game.score * 1.2)) { const type = Math.random() < .72 ? 'spike' : 'block'; game.obstacles.push({ type, x: 104, height: type === 'block' ? (Math.random() < .55 ? 30 : 44) : 24 }); if (Math.random() < .24) game.obstacles.push({ type: 'spike', x: 115, height: 24 }); game.lastSpawn = timestamp; }
+  game.obstacles = game.obstacles.filter(item => item.x > -14);
+  game.velocityY -= .001 * delta; game.playerY += game.velocityY * delta;
+  if (game.playerY <= 18) { game.playerY = 18; game.velocityY = 0; game.grounded = true; } else game.grounded = false;
+  const collision = game.obstacles.find(item => item.x >= 13 && item.x <= 28 && game.playerY < (item.type === 'block' ? item.height + 20 : 40));
+  if (collision) { playVeniceGameSound(gameAsteroidAudio, .35); endSellLavaGame(`The lava run ended. Score: ${Math.floor(game.score)}.`); return; }
   renderSellLavaGame(); game.frame = requestAnimationFrame(updateSellLavaGame);
 }
 function launchSellLavaGame() { clearTimeout(sellLavaGame.restartTimer); cancelAnimationFrame(sellLavaGame.frame); resetSellLavaGame(); sellLavaGame.started = true; renderSellLavaGame(); sellLavaGame.frame = requestAnimationFrame(updateSellLavaGame); }
 function stopSellLavaGame() { clearTimeout(sellLavaGame.restartTimer); cancelAnimationFrame(sellLavaGame.frame); sellLavaGame.frame = 0; sellLavaGame.started = false; sellLavaGame.host = null; }
 function mountSellLavaGame() { const host = stream?.querySelector('.sell-lava-game-host'); if (!host) return stopSellLavaGame(); sellLavaGame.host = host; renderSellLavaGame(); }
-document.addEventListener('click', event => { if (event.target.closest('[data-sell-lava-play]')) { launchSellLavaGame(); return; } if (event.target.closest('[data-sell-lava-left]')) { moveSellLavaRunner(-1); return; } if (event.target.closest('[data-sell-lava-right]')) { moveSellLavaRunner(1); return; } if (event.target.closest('[data-sell-lava-jump]')) jumpSellLavaRunner(); });
-document.addEventListener('keydown', event => { if (!sellLavaGame.started || !document.body.classList.contains('app-section-listing') || !canUseAutoScroll(event.target)) return; if (!['BracketLeft', 'BracketRight', 'Equal'].includes(event.code)) return; event.preventDefault(); if (event.code === 'BracketLeft') moveSellLavaRunner(-1); else if (event.code === 'BracketRight') moveSellLavaRunner(1); else if (!event.repeat) jumpSellLavaRunner(); });
+document.addEventListener('click', event => { if (event.target.closest('[data-sell-lava-play]')) { launchSellLavaGame(); return; } if (event.target.closest('[data-sell-lava-jump]')) jumpSellLavaRunner(); });
+document.addEventListener('keydown', event => { if (!sellLavaGame.started || !document.body.classList.contains('app-section-listing') || !canUseAutoScroll(event.target) || event.code !== 'Equal') return; event.preventDefault(); if (!event.repeat) jumpSellLavaRunner(); });
 function renderVeniceSailingGame() {
   const game = veniceSailingGame; if (!game.host?.isConnected) return;
   const player = veniceOrbitPoint(game.playerAngle); const enemy = veniceOrbitPoint(game.enemyAngle);
@@ -1373,7 +1370,7 @@ function openAppSection(kind, title, copy, content = '') {
   document.body.classList.remove('auction-mode', 'browse-conveyor', 'chat-open', 'account-open', 'purchase-open', 'comments-open', 'app-section-chat', 'app-section-account', 'app-section-listing');
   document.body.classList.add('app-section-mode', `app-section-${kind}`); syncBrowseModeUi(); if (kind === 'chat') startJungleChatAmbience(); if (kind === 'account') startAccountVeniceAmbience(); if (kind === 'listing') startSellLavaAmbience(); if (observer) observer.disconnect(); sentinel.hidden = true;
   const workspaceLabel = kind === 'account' ? 'Collector workspace' : kind === 'membership' ? 'Membership' : 'Social workspace';
-  stream.innerHTML = `<section class="app-section-page"><header class="app-section-intro"><span>${workspaceLabel}</span><h1>${title}</h1><p>${copy || ''}</p></header><div class="app-section-content">${content}${kind === 'account' ? '<div class="account-sailing-game-host" aria-label="Venice Cannon Run game"></div>' : ''}${kind === 'listing' ? '<div class="sell-lava-game-host" aria-label="Lava Courier Run game"></div>' : ''}</div></section>`;
+  stream.innerHTML = `<section class="app-section-page"><header class="app-section-intro"><span>${workspaceLabel}</span><h1>${title}</h1><p>${copy || ''}</p></header><div class="app-section-content">${content}${kind === 'account' ? '<div class="account-sailing-game-host" aria-label="Venice Cannon Run game"></div>' : ''}${kind === 'listing' ? '<div class="sell-lava-game-host" aria-label="Lava Dash Run game"></div>' : ''}</div></section>`;
   if (kind === 'account') { syncAccountVeniceControl(); mountVeniceSailingGame(); }
   if (kind === 'listing') mountSellLavaGame();
   queueMicrotask(() => { modal.className = ''; document.body.classList.remove('chat-open', 'account-open'); });
