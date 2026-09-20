@@ -257,6 +257,16 @@ app.post('/scoreboard/score', required, (req, res) => {
   store.save();
   res.json({ user: publicUser(req.user), game, score: req.user.platformScores[game], highScore: Math.max(0, ...platformScoreboard(game).map(row => row.score)) });
 });
+app.get('/scoreboard', (req, res) => {
+  const viewer = currentUser(req);
+  const games = [...platformGames].map(game => {
+    const rows = platformScoreboard(game).sort((left, right) => right.score - left.score || String(left.user.username).localeCompare(String(right.user.username)));
+    const leaderboard = rows.slice(0, 50).map((row, index) => ({ rank: index + 1, score: row.score, user: { id: row.user.id, username: row.user.username, avatar: row.user.avatar || '' } }));
+    const viewerIndex = viewer ? rows.findIndex(row => row.user.id === viewer.id) : -1;
+    return { id: game, name: game.replace(/-/g, ' ').replace(/\b\w/g, character => character.toUpperCase()), leaderboard, yourPlacement: viewerIndex >= 0 ? { rank: viewerIndex + 1, score: rows[viewerIndex].score } : null };
+  });
+  res.json({ games, signedIn: Boolean(viewer) });
+});
 app.get('/user/:id/listings', required, (req, res) => { if (req.user.id !== req.params.id) return res.status(403).json({ error: 'Not allowed' }); const rows = store.data.listings.filter(listing => listing.ownerId === req.user.id).map(listing => ({ ...listing, owner: publicUser(req.user), likeCount: Array.isArray(listing.likes) ? listing.likes.length : 0, commentCount: store.data.comments.filter(comment => comment.listingId === listing.id).length })); res.json(rows); });
 app.get('/users/suggestions', required, (req, res) => { const excluded = new Set([req.user.id, ...req.user.following]); const users = store.data.users.filter(user => !excluded.has(user.id)).sort((a, b) => (b.reputation || 0) - (a.reputation || 0) || a.username.localeCompare(b.username)).slice(0, 8).map(user => ({ ...publicUser(user), activeListingCount: store.data.listings.filter(listing => listing.ownerId === user.id && listing.status === 'active').length })); res.json(users); });
 app.get('/users', (req, res) => res.json(store.data.users.map(user => ({ ...directoryUser(user), activeListingCount: store.data.listings.filter(listing => listing.ownerId === user.id && listing.status === 'active').length, followingCount: Array.isArray(user.following) ? user.following.length : 0 }))));
