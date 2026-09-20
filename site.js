@@ -1015,7 +1015,7 @@ const setWorkspaceHash = hash => {
   history.pushState({ collectorWorkspaceHash: hash, returnHash: location.hash || '#browse' }, '', `${location.pathname}${location.search}${next}`);
 };
 document.addEventListener('keydown', event => {
-  if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || !canUseAutoScroll(event.target)) return;
+  if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || !canUseAutoScroll(event.target) || document.body.classList.contains('app-section-mode') || document.body.classList.contains('auction-mode') || modal.open) return;
   const destination = keyboardNavigation[event.key.toLowerCase()];
   if (!destination) return;
   event.preventDefault();
@@ -1044,7 +1044,7 @@ document.addEventListener('keydown', event => {
 const bottomNavigation = ['home', 'auction', 'chat', 'sell', 'account'];
 document.addEventListener('keydown', event => {
   const key = event.key.toLowerCase();
-  if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || !canUseAutoScroll(event.target) || !['z', 'x'].includes(key)) return;
+  if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || !canUseAutoScroll(event.target) || document.body.classList.contains('app-section-mode') || document.body.classList.contains('auction-mode') || modal.open || !['z', 'x'].includes(key)) return;
   event.preventDefault();
   const activeButton = document.querySelector('.bottom-nav button.active');
   const current = Math.max(0, bottomNavigation.findIndex(name => activeButton?.hasAttribute(`data-${name}`)));
@@ -1884,7 +1884,15 @@ stream.addEventListener('wheel', event => { if (browseMode !== 'conveyor' || !do
 tagSearch.addEventListener('input', () => setTimeout(refreshTaggedAuction, 160));
 tagSearch.addEventListener('keydown', event => { if (event.key === 'Enter') setTimeout(refreshTaggedAuction, 0); });
 
-async function loadMarket() { const listingData = await fetch('/listings').then(response => { if (!response.ok) throw new Error('Listings API unavailable'); return response.json(); }); listings = listingData.filter(listing => listing.listingMode !== 'auction_only').map(asFeedListing).sort((a, b) => a.id === 'mantle' ? -1 : b.id === 'mantle' ? 1 : 0); renderTags(); renderCategories(); renderFeed(); }
+async function loadMarket() {
+  const listingData = await fetch('/listings').then(response => { if (!response.ok) throw new Error('Listings API unavailable'); return response.json(); });
+  listings = listingData.filter(listing => listing.listingMode !== 'auction_only').map(asFeedListing).sort((a, b) => a.id === 'mantle' ? -1 : b.id === 'mantle' ? 1 : 0);
+  renderTags();
+  renderCategories();
+  // Data refreshes can happen from checkout, account tools, and page games.
+  // Never replace an active full-page workspace with the browsing feed.
+  if (!document.body.classList.contains('app-section-mode') && !document.body.classList.contains('auction-mode') && !modal.open) renderFeed();
+}
 async function handlePayPalCheckoutResult() {
   const params = new URLSearchParams(location.search); const result = params.get('paypal'); const deliveryId = params.get('delivery');
   if (!result) return;
