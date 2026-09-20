@@ -8,16 +8,17 @@
   justify-content: center;
   gap: 10px;
   width: 100%;
-  min-height: 48px;
-  border: 1px solid #777d87;
-  border-radius: 6px;
-  background: #f8fafc;
+  min-height: 58px;
+  border: 1px solid #a9b0bb;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #ffffff, #edf1f6);
   color: #202124;
   font: 700 13px/1 "DM Sans", sans-serif;
   text-decoration: none;
   transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
 }
-.google-auth-button span { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: conic-gradient(#4285f4 0 25%, #34a853 0 50%, #fbbc05 0 75%, #ea4335 0); color: #fff; font: 800 12px/1 Arial, sans-serif; }
-.google-auth-button:hover { border-color: #4285f4; box-shadow: 0 6px 18px #0003; transform: translateY(-1px); }
+.google-auth-button span { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: conic-gradient(#4285f4 0 25%, #34a853 0 50%, #fbbc05 0 75%, #ea4335 0); color: #fff; font: 800 13px/1 Arial, sans-serif; }.google-auth-button b { flex: 1; }.google-auth-button small { color: #667085; font: 600 10px/1 "DM Mono", monospace; }
+.google-auth-button:hover { border-color: #4285f4; box-shadow: 0 8px 22px #0004; transform: translateY(-1px); }
 .auth-divider { display: flex; align-items: center; gap: 10px; margin: 16px 0; color: #9ba2ad; font: 10px/1 "DM Mono", monospace; letter-spacing: .08em; text-transform: uppercase; }
 .auth-divider::before,.auth-divider::after { flex: 1; height: 1px; content: ""; background: #4a4e55; }
+.auth-shell { display: grid; gap: 0; max-width: 460px; }.auth-form { display: grid; gap: 14px; }.auth-field { display: grid; gap: 7px; color: #d9dee7; font: 700 11px/1 "DM Sans", sans-serif; }.auth-field > span { color: #b9c1cd; letter-spacing: .02em; }.auth-field input { min-height: 48px; border: 1px solid #49515d; border-radius: 7px; background: #101318; color: #f7f9fc; }.auth-field input:focus { border-color: #7ba9ee; box-shadow: 0 0 0 3px #4d8de12e; outline: 0; }.auth-submit { min-height: 50px; margin-top: 4px; border-radius: 7px; font-weight: 800; }.auth-privacy { margin: 15px 0 0; color: #8f99a8; font: 11px/1.5 "DM Sans", sans-serif; text-align: center; }.auth-shell .auth-switch { width: 100%; margin-top: 12px; border: 0; background: transparent; color: #b9d1f8; font: 700 11px/1.4 "DM Sans", sans-serif; cursor: pointer; }.auth-shell .auth-switch:hover { color: #fff; text-decoration: underline; }
