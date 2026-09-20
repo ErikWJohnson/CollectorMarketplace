@@ -1411,7 +1411,11 @@ const directoryCard = (item, type) => {
   const itemTags = type === 'accounts' ? item.profileTags || [] : item.tags || [];
   return `<article class="search-directory-card social-directory-card"><header><span>${label}</span><b>${title}</b></header><p>${description}</p><small>${stats}</small>${itemTags.length ? `<div class="directory-tags">${itemTags.slice(0, 4).map(tag => `<button type="button" data-tag="${safe(tag)}">#${safe(tag)}</button>`).join('')}</div>` : ''}${socialActions(item, type)}</article>`;
 };
+const canRenderBrowseFeed = () => !document.body.classList.contains('app-section-mode') && !document.body.classList.contains('auction-mode') && !modal.open;
 function renderFeed(reset = true) {
+  // Search, checkout, location, and tag events all refresh the feed. Those
+  // updates belong only to Browse and must never replace an open workspace.
+  if (!canRenderBrowseFeed()) return;
   if (searchScope !== 'listings') { const rows = filteredDirectory(); const meta = socialScopeMeta[searchScope]; stream.innerHTML = rows.map(item => directoryCard(item, searchScope)).join('') || `<p class="load-state">No ${meta.noun}s match that search yet.</p>`; document.querySelector('#result-count').textContent = `${rows.length} ${meta.noun}${rows.length === 1 ? '' : 's'}`; sentinel.textContent = rows.length ? 'Community directory complete.' : 'Try another name, interest, or tag.'; syncBrowseModeUi(); return; }
   const rows = filtered(); if (reset) page = 1; const visible = browseMode === 'conveyor' ? rows : rows.slice(0, page * 4);
   const originalCards = visible.map(card).join(''); const conveyorCopies = browseMode === 'conveyor' && visible.length ? Array.from({ length: 2 }, () => visible.map(item => card(item).replace('<article class="listing"', '<article class="listing" data-conveyor-copy="true"')).join('')).join('') : '';
