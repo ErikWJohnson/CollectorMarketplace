@@ -1443,9 +1443,9 @@ function openAppSection(kind, title, copy, content = '') {
   if (modal.open) modal.close(); stopAutoScroll(); stopConveyor(); stopAuctionWaterfall(); stopJungleChatGame(); stopJungleChatAmbience(); stopAccountVeniceAmbience(); stopSellLavaAmbience(); stopSellLavaGame(); stopVeniceSailingGame(); clearInterval(auctionClock); clearInterval(auctionFeedClock);
   document.querySelector('.conveyor-smog-layer')?.remove();
   document.querySelector('.conveyor-orbit-layer')?.remove();
-  document.body.classList.remove('auction-mode', 'browse-conveyor', 'chat-open', 'account-open', 'purchase-open', 'comments-open', 'listing-page', 'app-section-chat', 'app-section-account', 'app-section-listing', 'app-section-membership');
+  document.body.classList.remove('auction-mode', 'browse-conveyor', 'chat-open', 'account-open', 'purchase-open', 'comments-open', 'listing-page', 'app-section-chat', 'app-section-account', 'app-section-listing', 'app-section-membership', 'app-section-purchase');
   document.body.classList.add('app-section-mode', `app-section-${kind}`); syncBrowseModeUi(); if (kind === 'chat') startJungleChatAmbience(); if (kind === 'account') startAccountVeniceAmbience(); if (kind === 'listing') startSellLavaAmbience(); if (observer) observer.disconnect(); sentinel.hidden = true;
-  const workspaceLabel = kind === 'account' ? 'Collector workspace' : kind === 'listing' ? 'Seller workspace' : kind === 'membership' ? 'Membership' : 'Social workspace';
+  const workspaceLabel = kind === 'account' ? 'Collector workspace' : kind === 'listing' ? 'Seller workspace' : kind === 'membership' ? 'Membership' : kind === 'purchase' ? 'Secure checkout' : 'Social workspace';
   stream.innerHTML = `<section class="app-section-page"><header class="app-section-intro"><span>${workspaceLabel}</span><h1>${title}</h1><p>${copy || ''}</p></header><div class="app-section-content">${content}${kind === 'account' ? '<div class="account-sailing-game-host" aria-label="Venice Cannon Run game"></div>' : ''}${kind === 'listing' ? '<div class="sell-lava-game-host" aria-label="Lava Dash Run game"></div>' : ''}</div></section>`;
   if (kind === 'account') { syncAccountVeniceControl(); mountVeniceSailingGame(); }
   if (kind === 'listing') mountSellLavaGame();
@@ -1684,6 +1684,32 @@ function updateFeeSummary() {
   const buyerMarketplaceFee = buyerValue * buyerRate; const buyerSubtotal = buyerValue + buyerMarketplaceFee + tax + courier; const minimumBuyerFee = buyerValue < 10 ? 10 : 0; const paypalFee = paypalProcessingFee(buyerSubtotal + minimumBuyerFee);
   document.querySelector('#fee-summary').innerHTML = type === 'trade' ? `<b>Trade valuation estimate</b><span>Buyer-side fee (${buyerRate * 100}%): ${money(buyerValue * buyerRate)}</span><span>Other-side fee (${sellerRate * 100}%): ${money(sellerValue * sellerRate)}</span><strong>Total valuation fees: ${money(buyerValue * buyerRate + sellerValue * sellerRate)}</strong>` : `<b>Purchase estimate</b><span>Payment method: ${safe(paymentMethod)}</span><span>Buyer marketplace fee (${buyerRate * 100}%): ${money(buyerMarketplaceFee)}</span><span>Seller marketplace fee (${sellerRate * 100}%): ${money(buyerValue * sellerRate)}</span><span>Calculated delivery fee: ${miles.toFixed(1)} mi · ${money(courier)}</span><span>Buyer tax: ${money(tax)} · Buyer shipping: ${money(courier)}</span>${minimumBuyerFee ? `<span>Minimum buyer fee (items under $10): ${money(minimumBuyerFee)}</span>` : ''}<span>PayPal processing (3.49% + $0.49): ${money(paypalFee)}</span><strong>Buyer due: ${money(buyerSubtotal + minimumBuyerFee + paypalFee)}</strong><strong>Seller fee: ${money(buyerValue * sellerRate)}</strong>`;
 }
+function openPurchasePage(item, shippingProfile = {}) {
+  if (!item) return;
+  openAppSection('purchase', `Buy ${safe(item.title)}`, 'A private, secure checkout with delivery details and payment in one place.', feeCalculator(item, 'purchase', shippingProfile));
+  const checkout = stream.querySelector('.purchase-checkout');
+  updateFeeSummary();
+  const zip = checkout?.querySelector('#shipping-zip');
+  if (zip?.value) calculateCheckoutDeliveryFromAddress(zip);
+  renderPayPalButtonForPurchase(checkout);
+}
+
+// Checkout used to be a constrained dialog. Intercept its action before the
+// shared click router so it consistently opens as a dedicated workspace.
+document.addEventListener('click', event => {
+  const purchase = event.target.closest('[data-purchase]');
+  if (!purchase) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  const item = listings.find(row => row.id === purchase.dataset.purchase);
+  if (!session) return openAuthPanel('login');
+  if (item?.ownerId === session.user.id) return openModal('Your own listing', 'You cannot buy your own listing. Use your account page to edit, archive, or manage it instead.');
+  const routeId = beginWorkspaceRoute('purchase');
+  api('/account/shipping-profile').catch(() => ({})).then(shippingProfile => {
+    if (routeId !== workspaceRouteId) return;
+    openPurchasePage(item, shippingProfile);
+  }).catch(showError);
+}, true);
 function setQuery(query) { activeQuery = query.trim(); search.value = activeQuery; document.querySelector('#clear-tags').hidden = !activeQuery; renderFeed(); }
 const tagSlug = tag => String(tag).toLowerCase().trim().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const tagPath = tag => `/${tagSlug(tag)}/`;

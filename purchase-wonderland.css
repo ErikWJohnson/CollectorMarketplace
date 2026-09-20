@@ -1,0 +1,133 @@
+/* Candy-wonderland checkout, deliberately scoped to the standalone purchase page. */
+body.app-section-purchase { background: #250a35; color: #fff7fb; }
+
+body.app-section-purchase .app-shell {
+  background:
+    radial-gradient(circle at 12% 16%, rgba(255, 115, 205, .32), transparent 28rem),
+    radial-gradient(circle at 90% 20%, rgba(111, 219, 255, .25), transparent 30rem),
+    linear-gradient(135deg, #21072d 0%, #531156 48%, #18255f 100%);
+}
+
+body.app-section-purchase .market-head,
+body.app-section-purchase .mode-tabs,
+body.app-section-purchase .discovery,
+body.app-section-purchase .ad,
+body.app-section-purchase #sentinel { display: none; }
+
+body.app-section-purchase .market-stage { display: block; min-height: calc(100vh - 148px); background: transparent; }
+body.app-section-purchase .listing-stream { width: 100%; max-width: none; overflow: visible; }
+
+body.app-section-purchase .app-section-page {
+  position: relative;
+  isolation: isolate;
+  min-height: calc(100vh - 148px);
+  overflow: hidden;
+  padding: clamp(26px, 4vw, 72px) clamp(18px, 5vw, 88px) 96px;
+  background: linear-gradient(135deg, rgba(56, 8, 76, .76), rgba(27, 24, 93, .76)), radial-gradient(circle at 50% -10%, rgba(255, 228, 247, .22), transparent 42rem);
+}
+
+body.app-section-purchase .app-section-page::before,
+body.app-section-purchase .app-section-page::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: -18% -8%;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 9% 84%, rgba(255,255,255,.76) 0 7px, rgba(255,183,228,.3) 8px 13px, transparent 14px),
+    radial-gradient(circle at 25% 70%, rgba(255,255,255,.6) 0 13px, rgba(120,230,255,.24) 14px 23px, transparent 24px),
+    radial-gradient(circle at 47% 95%, rgba(255,255,255,.68) 0 8px, rgba(255,207,87,.3) 9px 17px, transparent 18px),
+    radial-gradient(circle at 71% 80%, rgba(255,255,255,.64) 0 15px, rgba(255,106,194,.26) 16px 27px, transparent 28px),
+    radial-gradient(circle at 91% 68%, rgba(255,255,255,.55) 0 7px, rgba(126,194,255,.28) 8px 14px, transparent 15px);
+  background-size: 36rem 42rem, 44rem 54rem, 31rem 37rem, 54rem 58rem, 41rem 46rem;
+  background-repeat: repeat;
+  filter: blur(.15px) drop-shadow(0 0 13px rgba(255, 194, 238, .38));
+  opacity: .72;
+  animation: checkout-bubbles-rise 18s linear infinite;
+}
+
+body.app-section-purchase .app-section-page::after { opacity: .4; transform: scale(1.35) rotate(180deg); animation-duration: 28s; animation-direction: reverse; }
+
+@keyframes checkout-bubbles-rise {
+  from { background-position: 0 0, 8rem 14rem, 15rem 2rem, 24rem 18rem, 31rem 9rem; }
+  to { background-position: 8rem -44rem, 3rem -54rem, 25rem -36rem, 15rem -58rem, 44rem -46rem; }
+}
+
+body.app-section-purchase .app-section-intro,
+body.app-section-purchase .app-section-content { position: relative; z-index: 1; max-width: 1440px; margin-inline: auto; }
+
+body.app-section-purchase .app-section-intro {
+  padding: clamp(24px, 4vw, 52px);
+  border: 1px solid rgba(255, 235, 253, .56);
+  border-radius: 30px 30px 18px 18px;
+  color: #fff;
+  background: linear-gradient(115deg, rgba(255, 82, 177, .9), rgba(130, 55, 196, .86) 53%, rgba(47, 143, 225, .82));
+  box-shadow: 0 20px 55px rgba(14, 0, 33, .36), inset 0 1px rgba(255,255,255,.44);
+}
+
+body.app-section-purchase .app-section-intro span { color: #fff4a5; letter-spacing: .14em; }
+body.app-section-purchase .app-section-intro h1 { margin: .3rem 0 .65rem; font-size: clamp(2.2rem, 5vw, 4.65rem); color: #fff; text-shadow: 0 3px 0 rgba(103, 17, 98, .34); }
+body.app-section-purchase .app-section-intro p { max-width: 48rem; margin: 0; color: #fff7fc; font-size: 1.05rem; }
+body.app-section-purchase .app-section-content { padding-top: 24px; }
+
+body.app-section-purchase .purchase-checkout { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(330px, .85fr); align-items: start; gap: clamp(18px, 2.4vw, 34px); margin: 0; }
+body.app-section-purchase .purchase-fields,
+body.app-section-purchase .purchase-review {
+  border: 1px solid rgba(255, 238, 252, .5);
+  border-radius: 24px;
+  padding: clamp(18px, 2.2vw, 30px);
+  background: linear-gradient(155deg, rgba(54, 13, 73, .91), rgba(30, 30, 91, .86));
+  box-shadow: 0 20px 42px rgba(19, 0, 34, .28), inset 0 1px rgba(255,255,255,.16);
+  backdrop-filter: blur(15px);
+}
+
+body.app-section-purchase .purchase-review { position: sticky; top: 88px; background: linear-gradient(155deg, rgba(83, 19, 84, .94), rgba(25, 51, 111, .91)); }
+body.app-section-purchase .purchase-fields > header,
+body.app-section-purchase .purchase-review > header { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 24px; }
+body.app-section-purchase .purchase-fields > header > span,
+body.app-section-purchase .purchase-review > header > span { display:grid; place-items:center; width: 34px; height: 34px; flex: 0 0 auto; border-radius: 50%; background: #ffdc58; color: #6f1a69; font-weight: 900; box-shadow: 0 3px 0 #c06d19; }
+body.app-section-purchase .purchase-fields header b,
+body.app-section-purchase .purchase-review header b { display:block; color:#fff; font-size:1.22rem; }
+body.app-section-purchase .purchase-fields header small,
+body.app-section-purchase .purchase-review header small { display:block; margin-top:4px; color:#f8ddf2; line-height:1.45; }
+
+body.app-section-purchase .purchase-checkout label,
+body.app-section-purchase .purchase-checkout legend,
+body.app-section-purchase .shipping-address-fields h3 { color: #fff8fd; }
+body.app-section-purchase .purchase-checkout input,
+body.app-section-purchase .purchase-checkout select { border: 1px solid rgba(255, 211, 244, .64); border-radius: 12px; background: rgba(20, 8, 46, .78); color: #fff; box-shadow: inset 0 1px 7px rgba(0,0,0,.18); }
+body.app-section-purchase .purchase-checkout input:focus,
+body.app-section-purchase .purchase-checkout select:focus { outline: 3px solid rgba(255, 217, 91, .62); outline-offset: 2px; border-color: #fff0a0; }
+body.app-section-purchase .purchase-checkout input[readonly] { color: #ffeaa6; background: rgba(31, 11, 56, .76); }
+body.app-section-purchase .purchase-checkout option { background: #2d1352; color: #fff; }
+body.app-section-purchase .shipping-address-fields { border-color: rgba(255, 208, 243, .38); background: rgba(255, 113, 189, .08); border-radius: 18px; }
+body.app-section-purchase .shipping-address-fields p,
+body.app-section-purchase .purchase-checkout small,
+body.app-section-purchase .policy-note { color: #f4d9ee; }
+body.app-section-purchase .payment-methods { border-color: rgba(130, 225, 255, .54); border-radius: 18px; background: rgba(57, 145, 214, .12); }
+body.app-section-purchase .payment-method { border-color: rgba(255, 218, 111, .62); border-radius: 14px; background: linear-gradient(100deg, rgba(255, 193, 75, .24), rgba(255, 105, 199, .17)); }
+body.app-section-purchase .payment-method:has(input:checked) { border-color: #ffe760; box-shadow: 0 0 0 2px rgba(255, 218, 70, .25), 0 8px 18px rgba(255, 112, 196, .18); }
+
+body.app-section-purchase .purchase-item-summary { border: 1px solid rgba(255, 239, 164, .55); border-radius: 18px; background: rgba(42, 11, 65, .66); overflow: hidden; }
+body.app-section-purchase .purchase-item-summary img { background: #1d0a34; }
+body.app-section-purchase .purchase-item-summary b { color: #fff; }
+body.app-section-purchase .purchase-item-summary small { color: #ffdf79; }
+body.app-section-purchase .purchase-item-summary span { color: #d6f6ff; }
+body.app-section-purchase .fee-summary { border-color: rgba(109, 247, 205, .68); border-radius: 17px; background: linear-gradient(135deg, rgba(18, 96, 88, .64), rgba(43, 41, 111, .66)); color: #edfffa; }
+body.app-section-purchase .fee-summary b { color: #fff18d; }
+body.app-section-purchase .fee-summary strong { color: #a9ffda; }
+body.app-section-purchase .purchase-agreement { border-color: rgba(255, 219, 102, .65); border-radius: 14px; background: rgba(109, 54, 90, .42); }
+body.app-section-purchase .paypal-button-container { min-height: 48px; border-radius: 14px; overflow: hidden; }
+body.app-section-purchase .bottom-nav { background: rgba(31, 9, 51, .96); border-top-color: rgba(255, 179, 229, .34); }
+body.app-section-purchase .site-legal-links { background: rgba(30, 7, 48, .9); }
+
+@media (max-width: 900px) {
+  body.app-section-purchase .app-section-page { padding-inline: 14px; }
+  body.app-section-purchase .purchase-checkout { grid-template-columns: 1fr; }
+  body.app-section-purchase .purchase-review { position: static; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.app-section-purchase .app-section-page::before,
+  body.app-section-purchase .app-section-page::after { animation: none; }
+}
