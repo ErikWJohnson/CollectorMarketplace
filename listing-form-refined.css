@@ -244,14 +244,15 @@ body.app-section-listing.listing-page .app-section-page {
 }
 
 body.app-section-listing.listing-page .app-section-intro {
-  width: min(1580px, 100%);
-  margin: 0 auto 28px;
-  padding: clamp(28px, 4vw, 54px) 0 26px;
+  width: calc(100% + clamp(36px, 6vw, 108px));
+  margin: 0 0 28px;
+  margin-left: clamp(-54px, -3vw, -18px);
+  padding: clamp(28px, 4vw, 54px) clamp(22px, 3.7vw, 68px) 26px;
 }
 
 body.app-section-listing.listing-page .app-section-content {
-  width: min(1580px, 100%);
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
 }
 
 body.app-section-listing.listing-page .listing-form {
@@ -259,7 +260,7 @@ body.app-section-listing.listing-page .listing-form {
 }
 
 body.app-section-listing.listing-page .listing-editor-grid {
-  grid-template-columns: minmax(0, 1.3fr) minmax(390px, .7fr);
+  grid-template-columns: minmax(0, 1.45fr) minmax(410px, .55fr);
   align-items: start;
 }
 
@@ -273,14 +274,15 @@ body.app-section-listing.listing-page .listing-media-panel {
 }
 
 body.app-section-listing.listing-page .listing-publish-bar {
-  padding-right: max(22px, calc((100vw - 1580px) / 2));
-  padding-left: max(22px, calc((100vw - 1580px) / 2));
+  padding-right: clamp(22px, 3vw, 54px);
+  padding-left: clamp(22px, 3vw, 54px);
 }
 
 @media (max-width: 840px) {
   body.app-section-listing .listing-editor-grid { grid-template-columns: 1fr; }
   body.app-section-listing .listing-media-panel { position: static; order: -1; }
   body.app-section-listing.listing-page .app-section-page { padding-right: 16px; padding-left: 16px; }
+  body.app-section-listing.listing-page .app-section-intro { width: calc(100% + 32px); margin-left: -16px; padding-right: 22px; padding-left: 22px; }
 }
 
 @media (max-width: 580px) {
