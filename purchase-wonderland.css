@@ -164,25 +164,16 @@ body.app-section-purchase .app-shell { background: radial-gradient(circle at 50%
 body.app-section-purchase .app-section-page { background: linear-gradient(135deg, rgba(2, 5, 10, .8), rgba(10, 17, 29, .78)), radial-gradient(ellipse at 50% 0%, rgba(84, 104, 132, .2), transparent 50rem); }
 body.app-section-purchase .app-section-page::before,
 body.app-section-purchase .app-section-page::after {
-  inset: -10%;
-  background-image:
-    repeating-linear-gradient(104deg, transparent 0 26px, rgba(206, 224, 245, .28) 27px 28px, transparent 29px 69px),
-    repeating-linear-gradient(105deg, transparent 0 57px, rgba(235, 244, 255, .21) 58px 59px, transparent 60px 132px);
-  background-size: 220px 330px, 410px 590px;
-  filter: blur(.28px);
-  opacity: .38;
-  animation: gothic-rain 1.25s linear infinite;
+  display: none;
 }
-body.app-section-purchase .app-section-page::after { opacity: .16; transform: scale(1.22); animation-duration: 2.15s; animation-direction: reverse; }
-@keyframes gothic-rain { from { background-position: 0 -330px, 82px -590px; } to { background-position: 92px 330px, 176px 590px; } }
 
 body.app-section-purchase .gothic-checkout-scene { position:absolute; z-index:-1; inset:0; overflow:hidden; pointer-events:none; }
 body.app-section-purchase .gothic-checkout-scene {
   background:
-    linear-gradient(90deg, rgba(3,6,11,.24), rgba(3,6,11,.48) 45%, rgba(3,6,11,.3)),
+    linear-gradient(90deg, rgba(3,6,11,.15), rgba(3,6,11,.52) 46%, rgba(3,6,11,.2)),
     url('/public/gothic-checkout-castle.png') center / cover no-repeat;
-  opacity: .88;
-  filter: saturate(.78) contrast(1.08);
+  opacity: .96;
+  filter: saturate(.86) contrast(1.06);
 }
 body.app-section-purchase .gothic-checkout-scene > * { display: none; }
 body.app-section-purchase .moon { position:absolute; top:8%; left:46%; width:156px; height:156px; border-radius:50%; background:radial-gradient(circle at 34% 31%, #fff, #c8d3dd 62%, #748497); opacity:.23; box-shadow:0 0 70px 28px rgba(202,219,239,.2); }
@@ -195,13 +186,15 @@ body.app-section-purchase .gargoyle { position:absolute; bottom:27%; color:#1c26
 body.app-section-purchase .gargoyle-left { left:13%; } body.app-section-purchase .gargoyle-right { right:14%; transform:scaleX(-1); animation-delay:-2.4s; }
 @keyframes gargoyle-watch { to { translate:0 -7px; } }
 
-body.app-section-purchase .app-section-intro { border-color:rgba(163,181,202,.52); border-radius:7px; background:linear-gradient(110deg, rgba(17,24,35,.95), rgba(29,37,52,.91) 55%, rgba(16,22,31,.94)); box-shadow:0 22px 56px rgba(0,0,0,.5), inset 0 1px rgba(218,232,247,.16); }
+body.app-section-purchase .app-section-intro { border:1px solid #7d8b99; border-radius:4px; background:linear-gradient(110deg, rgba(15,20,29,.96), rgba(33,42,55,.93) 55%, rgba(13,18,26,.96)); box-shadow:0 22px 56px rgba(0,0,0,.56), inset 0 0 0 3px rgba(6,9,14,.62), inset 0 1px rgba(218,232,247,.18); }
+body.app-section-purchase .app-section-intro::before { content:'✦  SECURE COLLECTOR CHECKOUT  ✦'; display:block; width:max-content; max-width:100%; margin-bottom:14px; padding:6px 10px; color:#dec17c; border:1px solid rgba(201,171,99,.58); background:rgba(4,7,11,.6); font:700 .67rem/1.1 'DM Mono',monospace; letter-spacing:.12em; }
 body.app-section-purchase .app-section-intro span { color:#b5c9df; } body.app-section-purchase .app-section-intro h1 { color:#f0f2f4; text-shadow:0 3px 0 #06080d; } body.app-section-purchase .app-section-intro p { color:#c6d0dc; }
 body.app-section-purchase .purchase-fields,
-body.app-section-purchase .purchase-review { border-color:rgba(132,151,173,.5); border-radius:8px; background:linear-gradient(155deg, rgba(17,24,35,.95), rgba(27,36,49,.92)); box-shadow:0 20px 42px rgba(0,0,0,.48), inset 0 1px rgba(226,236,247,.1); }
-body.app-section-purchase .purchase-review { background:linear-gradient(155deg, rgba(25,31,42,.97), rgba(21,43,50,.94)); }
+body.app-section-purchase .purchase-review { border:1px solid rgba(136,151,168,.7); border-radius:4px; background:linear-gradient(155deg, rgba(15,22,31,.96), rgba(30,40,52,.94)); box-shadow:0 20px 42px rgba(0,0,0,.55), inset 0 0 0 3px rgba(3,6,10,.56), inset 0 1px rgba(226,236,247,.12); }
+body.app-section-purchase .purchase-fields { background:linear-gradient(155deg, rgba(18,25,35,.97), rgba(35,43,54,.94)); }
+body.app-section-purchase .purchase-review { background:linear-gradient(155deg, rgba(23,30,40,.98), rgba(18,45,51,.95)); }
 body.app-section-purchase .purchase-fields > header > span,
-body.app-section-purchase .purchase-review > header > span { border-radius:3px; background:#a9844b; color:#11141a; box-shadow:0 3px 0 #51402b; }
+body.app-section-purchase .purchase-review > header > span { border:1px solid #dec27b; border-radius:2px; background:linear-gradient(145deg,#e1c57d,#856435); color:#11141a; box-shadow:0 3px 0 #413321, inset 0 1px rgba(255,255,255,.46); }
 body.app-section-purchase .purchase-checkout label,
 body.app-section-purchase .purchase-checkout legend,
 body.app-section-purchase .shipping-address-fields h3 { color:#ecf0f5; }
@@ -216,11 +209,11 @@ body.app-section-purchase .shipping-address-fields p,
 body.app-section-purchase .purchase-checkout small,
 body.app-section-purchase .policy-note { color:#bbc6d2; }
 body.app-section-purchase .payment-methods { border-color:rgba(104,132,158,.58); border-radius:6px; background:rgba(42,66,83,.18); }
-body.app-section-purchase .payment-method { border-color:rgba(162,140,85,.58); border-radius:5px; background:linear-gradient(100deg, rgba(94,75,41,.28), rgba(50,71,88,.2)); }
+body.app-section-purchase .payment-method { border-color:rgba(162,140,85,.58); border-radius:3px; background:linear-gradient(100deg, rgba(94,75,41,.28), rgba(50,71,88,.2)); }
 body.app-section-purchase .payment-method:has(input:checked) { border-color:#d1b06a; box-shadow:0 0 0 2px rgba(198,159,83,.22), 0 8px 18px rgba(0,0,0,.24); }
-body.app-section-purchase .purchase-item-summary { border-color:rgba(174,150,89,.48); border-radius:6px; background:rgba(7,13,21,.69); }
+body.app-section-purchase .purchase-item-summary { border-color:rgba(174,150,89,.48); border-radius:3px; background:rgba(7,13,21,.78); }
 body.app-section-purchase .purchase-item-summary small { color:#ceb46e; }
-body.app-section-purchase .fee-summary { border-color:rgba(94,145,137,.68); border-radius:6px; background:linear-gradient(135deg, rgba(17,64,65,.7), rgba(25,42,55,.74)); }
+body.app-section-purchase .fee-summary { border-color:rgba(94,145,137,.68); border-radius:3px; background:linear-gradient(135deg, rgba(17,64,65,.7), rgba(25,42,55,.8)); box-shadow:inset 0 0 0 2px rgba(4,13,18,.45); }
 body.app-section-purchase .fee-summary b { color:#ddc37e; } body.app-section-purchase .fee-summary strong { color:#aae1ce; }
 body.app-section-purchase .purchase-agreement { border-color:rgba(177,145,77,.62); border-radius:5px; background:rgba(66,53,29,.38); }
 body.app-section-purchase .bottom-nav { background:rgba(7,10,15,.97); border-top-color:rgba(133,151,170,.34); } body.app-section-purchase .site-legal-links { background:rgba(7,10,15,.92); }
