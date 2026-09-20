@@ -233,9 +233,54 @@ body.app-section-listing .listing-publish-bar button {
 
 body.app-section-listing .listing-publish-bar button:hover { background: #ffdb65; transform: translateY(-1px); }
 
+/* The Create Listing flow is a full seller workspace, not a dialog stretched
+   into the page. Keep the working area generous while the actual fields stay
+   easy to scan. */
+body.app-section-listing.listing-page .app-section-page {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0 clamp(18px, 3vw, 54px) 146px;
+}
+
+body.app-section-listing.listing-page .app-section-intro {
+  width: min(1580px, 100%);
+  margin: 0 auto 28px;
+  padding: clamp(28px, 4vw, 54px) 0 26px;
+}
+
+body.app-section-listing.listing-page .app-section-content {
+  width: min(1580px, 100%);
+  margin: 0 auto;
+}
+
+body.app-section-listing.listing-page .listing-form {
+  gap: clamp(22px, 2vw, 32px);
+}
+
+body.app-section-listing.listing-page .listing-editor-grid {
+  grid-template-columns: minmax(0, 1.3fr) minmax(390px, .7fr);
+  align-items: start;
+}
+
+body.app-section-listing.listing-page .listing-details,
+body.app-section-listing.listing-page .listing-media-panel {
+  border-radius: 10px;
+}
+
+body.app-section-listing.listing-page .listing-media-panel {
+  top: 18px;
+}
+
+body.app-section-listing.listing-page .listing-publish-bar {
+  padding-right: max(22px, calc((100vw - 1580px) / 2));
+  padding-left: max(22px, calc((100vw - 1580px) / 2));
+}
+
 @media (max-width: 840px) {
   body.app-section-listing .listing-editor-grid { grid-template-columns: 1fr; }
   body.app-section-listing .listing-media-panel { position: static; order: -1; }
+  body.app-section-listing.listing-page .app-section-page { padding-right: 16px; padding-left: 16px; }
 }
 
 @media (max-width: 580px) {

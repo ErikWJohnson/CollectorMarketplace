@@ -1402,7 +1402,7 @@ function openAppSection(kind, title, copy, content = '') {
   document.querySelector('.conveyor-orbit-layer')?.remove();
   document.body.classList.remove('auction-mode', 'browse-conveyor', 'chat-open', 'account-open', 'purchase-open', 'comments-open', 'listing-page', 'app-section-chat', 'app-section-account', 'app-section-listing', 'app-section-membership');
   document.body.classList.add('app-section-mode', `app-section-${kind}`); syncBrowseModeUi(); if (kind === 'chat') startJungleChatAmbience(); if (kind === 'account') startAccountVeniceAmbience(); if (kind === 'listing') startSellLavaAmbience(); if (observer) observer.disconnect(); sentinel.hidden = true;
-  const workspaceLabel = kind === 'account' ? 'Collector workspace' : kind === 'membership' ? 'Membership' : 'Social workspace';
+  const workspaceLabel = kind === 'account' ? 'Collector workspace' : kind === 'listing' ? 'Seller workspace' : kind === 'membership' ? 'Membership' : 'Social workspace';
   stream.innerHTML = `<section class="app-section-page"><header class="app-section-intro"><span>${workspaceLabel}</span><h1>${title}</h1><p>${copy || ''}</p></header><div class="app-section-content">${content}${kind === 'account' ? '<div class="account-sailing-game-host" aria-label="Venice Cannon Run game"></div>' : ''}${kind === 'listing' ? '<div class="sell-lava-game-host" aria-label="Lava Dash Run game"></div>' : ''}</div></section>`;
   if (kind === 'account') { syncAccountVeniceControl(); mountVeniceSailingGame(); }
   if (kind === 'listing') mountSellLavaGame();
@@ -1548,7 +1548,9 @@ openListingForm = () => {
   openListingModal();
   const form = modalContent.querySelector('.listing-form');
   if (!form) return openModal('Create a listing', 'The listing form could not be prepared. Please try again.');
-  const markup = modalContent.innerHTML;
+  // The page already has its own heading. Move only the prepared form so the
+  // seller workspace stays clean instead of duplicating the dialog chrome.
+  const markup = form.outerHTML;
   restoringWorkspaceHistory = true;
   if (modal.open) modal.close();
   openAppSection('listing', 'Create a listing', 'Build a complete collector-ready listing with media, delivery details, and a saved draft.', markup);
