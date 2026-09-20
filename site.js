@@ -1469,9 +1469,9 @@ function openAppSection(kind, title, copy, content = '') {
   if (modal.open) modal.close(); stopAutoScroll(); stopConveyor(); stopAuctionWaterfall(); stopJungleChatGame(); stopJungleChatAmbience(); stopAccountVeniceAmbience(); stopSellLavaAmbience(); stopGothicCheckoutAmbience(); stopSellLavaGame(); stopVeniceSailingGame(); clearInterval(auctionClock); clearInterval(auctionFeedClock);
   document.querySelector('.conveyor-smog-layer')?.remove();
   document.querySelector('.conveyor-orbit-layer')?.remove();
-  document.body.classList.remove('auction-mode', 'browse-conveyor', 'chat-open', 'account-open', 'purchase-open', 'comments-open', 'listing-page', 'app-section-chat', 'app-section-account', 'app-section-listing', 'app-section-membership', 'app-section-purchase');
+  document.body.classList.remove('auction-mode', 'browse-conveyor', 'chat-open', 'account-open', 'purchase-open', 'comments-open', 'listing-page', 'app-section-chat', 'app-section-account', 'app-section-listing', 'app-section-membership', 'app-section-purchase', 'app-section-valuation');
   document.body.classList.add('app-section-mode', `app-section-${kind}`); syncBrowseModeUi(); if (kind === 'chat') startJungleChatAmbience(); if (kind === 'account') startAccountVeniceAmbience(); if (kind === 'listing') startSellLavaAmbience(); if (kind === 'purchase') startGothicCheckoutAmbience(); if (observer) observer.disconnect(); sentinel.hidden = true;
-  const workspaceLabel = kind === 'account' ? 'Collector workspace' : kind === 'listing' ? 'Seller workspace' : kind === 'membership' ? 'Membership' : kind === 'purchase' ? 'Secure checkout' : 'Social workspace';
+  const workspaceLabel = kind === 'account' ? 'Collector workspace' : kind === 'listing' ? 'Seller workspace' : kind === 'membership' ? 'Membership' : kind === 'purchase' ? 'Secure checkout' : kind === 'valuation' ? 'AI market value' : 'Social workspace';
   const purchaseDecor = kind === 'purchase' ? '<div class="gothic-checkout-scene" aria-hidden="true"><i class="castle castle-left"><b></b><b></b><b></b></i><i class="castle castle-right"><b></b><b></b></i><i class="gargoyle gargoyle-left">♜</i><i class="gargoyle gargoyle-right">♜</i><i class="moon"></i></div>' : '';
   stream.innerHTML = `<section class="app-section-page">${purchaseDecor}<header class="app-section-intro"><span>${workspaceLabel}</span><h1>${title}</h1><p>${copy || ''}</p></header><div class="app-section-content">${content}${kind === 'account' ? '<div class="account-sailing-game-host" aria-label="Venice Cannon Run game"></div>' : ''}${kind === 'listing' ? '<div class="sell-lava-game-host" aria-label="Lava Dash Run game"></div>' : ''}</div></section>`;
   if (kind === 'account') { syncAccountVeniceControl(); mountVeniceSailingGame(); }
@@ -1702,7 +1702,9 @@ function marketValueEstimate(item) {
 function openListingValuation(item) {
   if (!item) return;
   const estimate = marketValueEstimate(item);
-  openModal('AI market value estimate', 'A quick range derived from the listing’s asking price, title, category, condition, and collector signals. It is guidance—not a certified appraisal or a guarantee of sale price.', `<section class="valuation-report"><header><span>AI-ASSISTED</span><h3>${safe(item.title)}</h3><small>Estimated fair-market range</small></header><strong>${money(estimate.low)} — ${money(estimate.high)}</strong><p>Midpoint estimate: <b>${money(estimate.midpoint)}</b> · Confidence: <b>${estimate.confidence}</b></p><ul>${estimate.signals.map(signal => `<li>${safe(signal)}</li>`).join('')}</ul><small>For a higher-confidence value, compare recent sold listings, verify authenticity and provenance, and consult a qualified specialist for high-value items.</small></section>`);
+  const image = item.image || item.images?.[0] || '';
+  const content = `<section class="valuation-workspace"><article class="valuation-item"><img src="${safe(image)}" alt="${safe(item.title)}"><div><span>${safe(item.category || 'Collector item')}</span><h2>${safe(item.title)}</h2><p>Listed by @${safe(item.owner?.username || item.ownerName || 'collector')} · ${safe(item.condition || 'Condition not specified')}</p><b>Listed at ${money(item.price)}</b></div></article><article class="valuation-report"><header><span>AI-ASSISTED</span><h3>Estimated fair-market range</h3><small>Based on the information in this listing</small></header><strong>${money(estimate.low)} — ${money(estimate.high)}</strong><p>Midpoint estimate: <b>${money(estimate.midpoint)}</b> · Confidence: <b>${estimate.confidence}</b></p><ul>${estimate.signals.map(signal => `<li>${safe(signal)}</li>`).join('')}</ul><small>For a higher-confidence value, compare recent sold listings, verify authenticity and provenance, and consult a qualified specialist for high-value items.</small></article><footer class="valuation-actions"><button type="button" data-valuation-back>← Back to browse</button><button type="button" data-valuation-trade="${safe(item.id)}">⇄ Continue with trade</button><button type="button" data-purchase="${safe(item.id)}">Buy for ${money(item.price)}</button></footer></section>`;
+  openAppSection('valuation', `AI Market Value · ${safe(item.title)}`, 'Review the market estimate, then choose how you want to continue.', content);
 }
 function feeCalculator(item, type, shippingProfile = {}) {
   const trade = type === 'trade';
@@ -1768,6 +1770,20 @@ document.addEventListener('click', event => {
     openListingValuation(item);
     if (valuation.isConnected) { valuation.disabled = false; valuation.innerHTML = '✦ AI VALUE'; }
   }, 360);
+}, true);
+
+document.addEventListener('click', event => {
+  const back = event.target.closest('[data-valuation-back]');
+  const trade = event.target.closest('[data-valuation-trade]');
+  if (!back && !trade) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  if (back) { document.body.classList.remove('app-section-valuation'); return document.querySelector('.bottom-nav [data-home]')?.click(); }
+  const item = listings.find(row => row.id === trade.dataset.valuationTrade);
+  if (!session) return openAuthPanel('login');
+  document.body.classList.remove('app-section-mode', 'app-section-valuation');
+  renderFeed();
+  openTradeOfferChat(item);
 }, true);
 function setQuery(query) { activeQuery = query.trim(); search.value = activeQuery; document.querySelector('#clear-tags').hidden = !activeQuery; renderFeed(); }
 const tagSlug = tag => String(tag).toLowerCase().trim().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
