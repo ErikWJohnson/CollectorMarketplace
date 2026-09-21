@@ -20,7 +20,6 @@ const paypalProcessingFixed = 0.49;
 const paypalProcessingFee = amount => Math.round((Math.max(0, Number(amount) || 0) * paypalProcessingRate + paypalProcessingFixed) * 100) / 100;
 const calculatedDeliveryFee = (miles, packaging) => Math.round((Math.max(8, Math.max(0, Number(miles) || 0) * 0.10) + Math.max(0, Number(packaging) || 0)) * 100) / 100;
 const developerPassUsername = 'collectormarketplace';
-const appraisalParrotUserId = 'system-appraisal-parrot';
 const hasDeveloperPass = user => user?.developerPass === true;
 const vipCuratorPrice = 150;
 const vipCuratorDays = 30;
@@ -85,7 +84,7 @@ const getArtifactLore = async (title, { strict = false } = {}) => {
 
 class Store {
   constructor() { fs.mkdirSync(dataDir, { recursive: true }); this.data = this.load(); this.ensureData(); this.removeDemoContent(); this.pool = null; this.writeQueue = Promise.resolve(); }
-  ensureData() { ['users', 'listings', 'comments', 'trades', 'notifications', 'activities', 'deliveries', 'conversations', 'communityPosts', 'memberships'].forEach(key => { if (!Array.isArray(this.data[key])) this.data[key] = []; }); this.data.users.forEach(user => { if (!Array.isArray(user.profileTags)) user.profileTags = []; if (String(user.username || '').trim().toLowerCase() === developerPassUsername) user.developerPass = true; }); const testAuction = this.data.listings.find(listing => listing.title === 'TEST' && listing.description === 'Internal payment-flow test listing. Do not purchase.'); if (testAuction) { testAuction.listingMode = 'auction_only'; testAuction.auctionEndless = true; testAuction.auctionEndAt = null; testAuction.auctionStartPrice = Number.isFinite(Number(testAuction.auctionStartPrice)) ? Number(testAuction.auctionStartPrice) : 0; } const testUser = this.data.users.find(user => String(user.username || '').trim().toLowerCase() === 'test'); if (testUser && !this.data.listings.some(listing => listing.ownerId === testUser.id && listing.title === 'TEST 2')) this.data.listings.unshift({ id: id(), ownerId: testUser.id, title: 'TEST 2', description: 'Internal browsing-flow test listing. Do not purchase.', category: 'Memorabilia', condition: 'New', tags: ['Memorabilia', 'New', 'Test', 'Browsing Test', 'US City/Town: San Diego, CA'], location: 'San Diego, CA 92106', sellerCity: 'San Diego, CA', sellerZip: '92106', locationCoordinates: null, pickupRadiusMiles: 0, fulfillment: 'pickup_delivery', upsPackagingCost: 0, listingMode: 'marketplace', auctionStartPrice: null, auctionEndAt: null, auctionBids: 0, price: 1, tradeOffer: false, images: ['https://collectormarketplace.net/public/logo-three-cards.png'], videos: [], status: 'active', likes: [], createdAt: now() }); }
+  ensureData() { ['users', 'listings', 'comments', 'trades', 'notifications', 'activities', 'deliveries', 'conversations', 'communityPosts', 'memberships'].forEach(key => { if (!Array.isArray(this.data[key])) this.data[key] = []; }); this.data.conversations = this.data.conversations.filter(conversation => !(conversation.participantIds || []).includes('system-appraisal-parrot')); this.data.users = this.data.users.filter(user => user.id !== 'system-appraisal-parrot'); this.data.users.forEach(user => { if (!Array.isArray(user.profileTags)) user.profileTags = []; if (String(user.username || '').trim().toLowerCase() === developerPassUsername) user.developerPass = true; }); const testAuction = this.data.listings.find(listing => listing.title === 'TEST' && listing.description === 'Internal payment-flow test listing. Do not purchase.'); if (testAuction) { testAuction.listingMode = 'auction_only'; testAuction.auctionEndless = true; testAuction.auctionEndAt = null; testAuction.auctionStartPrice = Number.isFinite(Number(testAuction.auctionStartPrice)) ? Number(testAuction.auctionStartPrice) : 0; } const testUser = this.data.users.find(user => String(user.username || '').trim().toLowerCase() === 'test'); if (testUser && !this.data.listings.some(listing => listing.ownerId === testUser.id && listing.title === 'TEST 2')) this.data.listings.unshift({ id: id(), ownerId: testUser.id, title: 'TEST 2', description: 'Internal browsing-flow test listing. Do not purchase.', category: 'Memorabilia', condition: 'New', tags: ['Memorabilia', 'New', 'Test', 'Browsing Test', 'US City/Town: San Diego, CA'], location: 'San Diego, CA 92106', sellerCity: 'San Diego, CA', sellerZip: '92106', locationCoordinates: null, pickupRadiusMiles: 0, fulfillment: 'pickup_delivery', upsPackagingCost: 0, listingMode: 'marketplace', auctionStartPrice: null, auctionEndAt: null, auctionBids: 0, price: 1, tradeOffer: false, images: ['https://collectormarketplace.net/public/logo-three-cards.png'], videos: [], status: 'active', likes: [], createdAt: now() }); }
   load() {
     if (fs.existsSync(dataFile)) {
       try { return JSON.parse(fs.readFileSync(dataFile, 'utf8')); } catch { console.warn('Ignoring unreadable local marketplace data.'); }
@@ -168,10 +167,6 @@ const marketplaceFeeRate = user => {
   if (hasActiveCuratorMembership(user)) return Math.max(0, .01 - proGamerDiscount - grandCuratorDiscount);
   return Math.max(0, .04 - awards.filter(award => award.earned).reduce((total, award) => total + award.discount, 0));
 };
-if (!store.data.users.some(user => user.id === appraisalParrotUserId)) {
-  store.data.users.push({ id: appraisalParrotUserId, username: 'Appraisal Parrot', email: 'appraisal-parrot@collector.local', password: null, avatar: '🦜', bio: 'A collector research companion. Shares appraisal leads, not authentication or formal valuations.', reputation: 0, following: [], profileTags: ['Appraisal', 'Research', 'Collector Help'], systemAccount: true, createdAt: now() });
-  store.save();
-}
 // Voice audio stays peer-to-peer. These short-lived rooms only carry WebRTC
 // signaling and presence, so no microphone audio is stored by the marketplace.
 const voiceRooms = new Map();
@@ -311,54 +306,10 @@ app.put('/account/shipping-profile', required, (req, res) => { try { const profi
 app.post('/user/:id/follow', required, (req, res) => { if (req.user.id === req.params.id) return res.status(400).json({ error: 'You cannot follow yourself' }); if (!store.data.users.some(u => u.id === req.params.id)) return res.status(404).json({ error: 'User not found' }); const following = req.user.following; const index = following.indexOf(req.params.id); index < 0 ? following.push(req.params.id) : following.splice(index, 1); store.save(); res.json({ following: index < 0 }); });
 app.get('/user/:id/connections', required, (req, res) => { if (req.user.id !== req.params.id) return res.status(403).json({ error: 'Not allowed' }); const following = store.data.users.filter(user => req.user.following.includes(user.id)); const friends = following.filter(user => user.following.includes(req.user.id)); res.json({ following: following.map(publicUser), friends: friends.map(publicUser) }); });
 function conversationView(conversation, userId) { const other = store.data.users.find(user => user.id === conversation.participantIds.find(id => id !== userId)); return { ...conversation, otherUser: publicUser(other) }; }
-app.get('/conversations', required, (req, res) => {
-  let parrotConversation = store.data.conversations.find(conversation => conversation.participantIds.includes(req.user.id) && conversation.participantIds.includes(appraisalParrotUserId) && conversation.participantIds.length === 2);
-  if (!parrotConversation) {
-    parrotConversation = { id: id(), participantIds: [req.user.id, appraisalParrotUserId], messages: [{ id: id(), senderId: appraisalParrotUserId, body: 'Squawk! I’m Appraisal Parrot. Send an item description, a link, or an image, and I’ll help you build a collector research checklist.', createdAt: now() }], createdAt: now(), updatedAt: now() };
-    store.data.conversations.unshift(parrotConversation);
-    store.save();
-  }
-  res.json(store.data.conversations.filter(conversation => conversation.participantIds.includes(req.user.id)).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).map(conversation => conversationView(conversation, req.user.id)));
-});
+app.get('/conversations', required, (req, res) => res.json(store.data.conversations.filter(conversation => conversation.participantIds.includes(req.user.id)).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).map(conversation => conversationView(conversation, req.user.id))));
 app.post('/conversations', required, (req, res) => { const recipientId = req.body.recipientId; if (!recipientId || recipientId === req.user.id || !store.data.users.some(user => user.id === recipientId)) return res.status(400).json({ error: 'Choose another collector to message.' }); let conversation = store.data.conversations.find(row => row.participantIds.includes(req.user.id) && row.participantIds.includes(recipientId) && row.participantIds.length === 2); if (!conversation) { conversation = { id: id(), participantIds: [req.user.id, recipientId], messages: [], createdAt: now(), updatedAt: now() }; store.data.conversations.unshift(conversation); store.save(); } res.status(201).json(conversationView(conversation, req.user.id)); });
 app.get('/conversation/:id', required, (req, res) => { const conversation = store.data.conversations.find(row => row.id === req.params.id && row.participantIds.includes(req.user.id)); if (!conversation) return res.status(404).json({ error: 'Conversation not found' }); res.json(conversationView(conversation, req.user.id)); });
-const offensiveChatMessage = value => /\b(?:fuck|shit|bitch|asshole|dick|cunt|retard|kill yourself)\b/i.test(String(value || ''));
-const appraisalParrotReply = async ({ body, imageUrl }) => {
-  if (offensiveChatMessage(body)) return { body: "Squawk! Your wasting my time, so I don't l like you." };
-  const text = String(body || '').trim();
-  const details = [
-    /signed|autograph/i.test(text) && 'a clear close-up of every signature and any certificate',
-    /first edition|edition/i.test(text) && 'the copyright page, printing line, and edition statement',
-    /watch|jewelry|gem|gold|silver/i.test(text) && 'maker marks, hallmarks, weight, dimensions, and close-up photos',
-    /game|console|toy|figure/i.test(text) && 'the exact release, packaging details, completeness, and condition',
-    /art|painting|sculpture|print/i.test(text) && 'artist signature, medium, dimensions, provenance, and any labels'
-  ].filter(Boolean);
-  const imageNote = imageUrl ? ' I received the image reference; I can use it alongside your description, but it is not authentication or a pixel-level identification.' : '';
-  if (!text) return { body: `Squawk! I received your image.${imageNote} Tell me the maker, material, era, measurements, condition, and any markings so I can check public collector references for a better lead.` };
-
-  const searchTerms = text
-    .replace(/https?:\/\/\S+/gi, ' ')
-    .replace(/\b(?:can you|please|what is|how much|worth|value|appraise|estimate|this|item|is|the|a|an|of|for|and|with)\b/gi, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  const queries = [...new Set([text.slice(0, 160), searchTerms.slice(0, 120)].filter(query => query.length >= 3))];
-  let reference = null;
-  for (const query of queries) {
-    reference = await getArtifactLore(query, { strict: true });
-    if (reference) break;
-  }
-
-  const nextStep = details.length ? `For this item, please share ${details[0]}.` : 'Share any visible marks, dates, edition information, measurements, and provenance.';
-  if (!reference) return { body: `Squawk! I checked live public-reference searches but did not find a close match for that wording.${imageNote} My first appraisal lead is to identify the exact maker, era, material, and condition before trusting a value. ${nextStep} I can then search again with the stronger details.` };
-
-  const excerpt = String(reference.extract || reference.description || 'This is a useful starting point for collector research.').replace(/\s+/g, ' ').trim().slice(0, 520);
-  return {
-    body: `Squawk! I checked a live public reference for “${reference.title}.” ${excerpt} This is a collector research lead, not authentication or a formal appraisal.${imageNote} ${nextStep}`,
-    sourceUrl: reference.url,
-    sourceTitle: reference.title
-  };
-};
-app.post('/conversation/:id/messages', required, async (req, res) => {
+app.post('/conversation/:id/messages', required, (req, res) => {
   const conversation = store.data.conversations.find(row => row.id === req.params.id && row.participantIds.includes(req.user.id));
   if (!conversation) return res.status(404).json({ error: 'Conversation not found' });
   const body = String(req.body.body || '').trim();
@@ -368,11 +319,7 @@ app.post('/conversation/:id/messages', required, async (req, res) => {
   const message = { id: id(), senderId: req.user.id, body, imageUrl, createdAt: now() };
   conversation.messages.push(message); conversation.updatedAt = now();
   const recipientId = conversation.participantIds.find(userId => userId !== req.user.id);
-  if (recipientId === appraisalParrotUserId) {
-    const reply = await appraisalParrotReply(message);
-    conversation.messages.push({ id: id(), senderId: appraisalParrotUserId, body: reply.body, sourceUrl: reply.sourceUrl || '', sourceTitle: reply.sourceTitle || '', createdAt: now() });
-  }
-  else notify(recipientId, 'collector_message', `${req.user.username} sent you a message`, `/conversation/${conversation.id}`);
+  notify(recipientId, 'collector_message', `${req.user.username} sent you a message`, `/conversation/${conversation.id}`);
   store.save(); res.status(201).json(message);
 });
 
@@ -488,19 +435,19 @@ app.get('/listing/:id/artifact-lore', async (req, res) => {
       tags.length && `Tags: ${tags.join(', ')}`,
       hasImageReference ? 'Listing photo: included as a visual reference' : 'Listing photo: not provided'
     ].filter(Boolean);
-    const candidateQueries = [...new Set([query, listing.title, [listing.category, ...tags.slice(0, 2)].filter(Boolean).join(' ')].filter(value => String(value).trim()))];
+    const candidateQueries = [...new Set([listing.title, query, [listing.category, ...tags.slice(0, 2)].filter(Boolean).join(' ')].filter(value => String(value).trim()))];
     let lore = null;
     let matchedQuery = '';
     for (const candidate of candidateQueries) {
-      lore = await getArtifactLore(candidate);
+      lore = await getArtifactLore(candidate, { strict: true });
       if (lore) { matchedQuery = candidate; break; }
     }
     const metadataDescription = [listing.condition, listing.category, tags.slice(0, 3).join(', ')].filter(Boolean).join(' · ') || 'Collector item';
     const metadataExcerpt = `This listing is described as ${metadataDescription}. ${listing.description ? `Seller notes: ${String(listing.description).slice(0, 420)}` : 'No seller description was supplied.'} ${hasImageReference ? 'A listing photo is available as a visual reference, but this research does not authenticate or identify image pixels.' : 'No listing photo was supplied.'}`;
     const metadataFallback = { title: `${listing.title} — metadata research lead`, description: 'Metadata-based research guess', extract: metadataExcerpt, url: '' };
     const guess = lore
-      ? `Closest public-reference lead: ${lore.title}. This is a research guess based on the listing metadata, its photo reference, and public web results. Confirm maker, era, material, condition, and provenance before relying on it.`
-      : `No close public-reference match was found, so Artifact Lore produced a metadata-based research lead from the title, category, condition, tags, seller notes, and photo availability.`;
+      ? `Closest relevant public-reference lead: ${lore.title}. Artifact Lore only uses this source when multiple meaningful listing terms match its title. Confirm maker, era, material, condition, and provenance before relying on it.`
+      : `No sufficiently relevant public-reference match was found. Artifact Lore kept this as a metadata research lead instead of attaching a broad or unrelated web source.`;
     res.json({ listingId: listing.id, lore: lore || metadataFallback, source: lore ? `Wikipedia public reference data · matched from “${matchedQuery}”` : 'Listing metadata research lead · no close public-reference match', research: { query, metadataSignals, hasImageReference, guess, resultType: lore ? 'public-reference' : 'metadata' } });
   } catch (error) {
     res.status(502).json({ error: error.message || 'Artifact Lore research is temporarily unavailable.' });

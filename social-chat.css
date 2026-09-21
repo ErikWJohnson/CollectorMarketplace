@@ -267,22 +267,3 @@ dialog.trade-dialog{display:block!important;overflow-x:hidden!important;overflow
   .trade-live-fees>p,.trade-fee-receipt>small { grid-column:1; }
   .trade-item-list { max-height:320px; }
 }
-.chat-research-source {
-  display: inline-flex;
-  align-self: flex-start;
-  margin-top: 0.55rem;
-  padding: 0.38rem 0.55rem;
-  border: 1px solid #4f9879;
-  border-radius: 0.35rem;
-  color: #bcf1d7;
-  background: rgba(18, 68, 49, 0.42);
-  font: 700 0.72rem/1.2 var(--mono, monospace);
-  text-decoration: none;
-}
-
-.chat-research-source:hover,
-.chat-research-source:focus-visible {
-  color: #fff;
-  border-color: #d9b454;
-  background: rgba(96, 72, 17, 0.55);
-}
