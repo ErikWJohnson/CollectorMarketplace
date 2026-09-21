@@ -48,17 +48,26 @@ const getArtifactLore = async title => {
   if (!query) return null;
   const cached = artifactLoreCache.get(query.toLowerCase());
   if (cached && Date.now() - cached.savedAt < 86400000) return cached.value;
-  const search = await fetch(`https://en.wikipedia.org/w/rest.php/v1/search/title?q=${encodeURIComponent(query)}&limit=1`, { headers: { 'User-Agent': 'CollectorMarketplace ArtifactLore/1.0' } });
-  if (!search.ok) throw new Error('Public reference search is temporarily unavailable.');
-  const searchData = await search.json();
-  const result = searchData.pages?.[0];
-  if (!result?.key) return null;
-  const summaryResponse = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(result.key)}`, { headers: { 'User-Agent': 'CollectorMarketplace ArtifactLore/1.0' } });
-  if (!summaryResponse.ok) return null;
-  const summary = await summaryResponse.json();
-  const value = { title: summary.title || result.title, description: summary.description || result.description || '', extract: summary.extract || '', url: summary.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodeURIComponent(result.key)}` };
-  artifactLoreCache.set(query.toLowerCase(), { savedAt: Date.now(), value });
-  return value;
+  const headers = { 'User-Agent': 'CollectorMarketplace ArtifactLore/1.0' };
+  try {
+    const search = await fetch(`https://en.wikipedia.org/w/rest.php/v1/search/title?q=${encodeURIComponent(query)}&limit=1`, { headers });
+    const searchData = search.ok ? await search.json() : {};
+    let result = searchData.pages?.[0];
+    if (!result?.key) {
+      const fallback = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=1&format=json`, { headers });
+      const fallbackData = fallback.ok ? await fallback.json() : {};
+      const row = fallbackData.query?.search?.[0];
+      result = row ? { key: row.title.replace(/ /g, '_'), title: row.title, description: '', snippet: String(row.snippet || '').replace(/<[^>]+>/g, '') } : null;
+    }
+    if (!result?.key) return null;
+    const summaryResponse = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(result.key)}`, { headers });
+    const summary = summaryResponse.ok ? await summaryResponse.json() : {};
+    const value = { title: summary.title || result.title, description: summary.description || result.description || '', extract: summary.extract || result.snippet || '', url: summary.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodeURIComponent(result.key)}` };
+    artifactLoreCache.set(query.toLowerCase(), { savedAt: Date.now(), value });
+    return value;
+  } catch {
+    return null;
+  }
 };
 
 class Store {
@@ -402,11 +411,20 @@ app.get('/listing/:id/artifact-lore', async (req, res) => {
       tags.length && `Tags: ${tags.join(', ')}`,
       hasImageReference ? 'Listing photo: included as a visual reference' : 'Listing photo: not provided'
     ].filter(Boolean);
-    const lore = await getArtifactLore(query);
+    const candidateQueries = [...new Set([query, listing.title, [listing.category, ...tags.slice(0, 2)].filter(Boolean).join(' ')].filter(value => String(value).trim()))];
+    let lore = null;
+    let matchedQuery = '';
+    for (const candidate of candidateQueries) {
+      lore = await getArtifactLore(candidate);
+      if (lore) { matchedQuery = candidate; break; }
+    }
+    const metadataDescription = [listing.condition, listing.category, tags.slice(0, 3).join(', ')].filter(Boolean).join(' · ') || 'Collector item';
+    const metadataExcerpt = `This listing is described as ${metadataDescription}. ${listing.description ? `Seller notes: ${String(listing.description).slice(0, 420)}` : 'No seller description was supplied.'} ${hasImageReference ? 'A listing photo is available as a visual reference, but this research does not authenticate or identify image pixels.' : 'No listing photo was supplied.'}`;
+    const metadataFallback = { title: `${listing.title} — metadata research lead`, description: 'Metadata-based research guess', extract: metadataExcerpt, url: '' };
     const guess = lore
       ? `Closest public-reference lead: ${lore.title}. This is a research guess based on the listing metadata, its photo reference, and public web results. Confirm maker, era, material, condition, and provenance before relying on it.`
-      : 'No reliable public-reference match was found. Add a maker, era, edition, material, or provenance detail to make the next research guess more specific.';
-    res.json({ listingId: listing.id, lore, source: lore ? 'Wikipedia public reference data' : 'No matching public reference found', research: { query, metadataSignals, hasImageReference, guess } });
+      : `No close public-reference match was found, so Artifact Lore produced a metadata-based research lead from the title, category, condition, tags, seller notes, and photo availability.`;
+    res.json({ listingId: listing.id, lore: lore || metadataFallback, source: lore ? `Wikipedia public reference data · matched from “${matchedQuery}”` : 'Listing metadata research lead · no close public-reference match', research: { query, metadataSignals, hasImageReference, guess, resultType: lore ? 'public-reference' : 'metadata' } });
   } catch (error) {
     res.status(502).json({ error: error.message || 'Artifact Lore research is temporarily unavailable.' });
   }
