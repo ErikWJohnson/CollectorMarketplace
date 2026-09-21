@@ -311,8 +311,8 @@ app.get('/conversations', required, (req, res) => {
 app.post('/conversations', required, (req, res) => { const recipientId = req.body.recipientId; if (!recipientId || recipientId === req.user.id || !store.data.users.some(user => user.id === recipientId)) return res.status(400).json({ error: 'Choose another collector to message.' }); let conversation = store.data.conversations.find(row => row.participantIds.includes(req.user.id) && row.participantIds.includes(recipientId) && row.participantIds.length === 2); if (!conversation) { conversation = { id: id(), participantIds: [req.user.id, recipientId], messages: [], createdAt: now(), updatedAt: now() }; store.data.conversations.unshift(conversation); store.save(); } res.status(201).json(conversationView(conversation, req.user.id)); });
 app.get('/conversation/:id', required, (req, res) => { const conversation = store.data.conversations.find(row => row.id === req.params.id && row.participantIds.includes(req.user.id)); if (!conversation) return res.status(404).json({ error: 'Conversation not found' }); res.json(conversationView(conversation, req.user.id)); });
 const offensiveChatMessage = value => /\b(?:fuck|shit|bitch|asshole|dick|cunt|retard|kill yourself)\b/i.test(String(value || ''));
-const appraisalParrotReply = ({ body, imageUrl }) => {
-  if (offensiveChatMessage(body)) return "Squawk! Your wasting my time, so I don't l like you.";
+const appraisalParrotReply = async ({ body, imageUrl }) => {
+  if (offensiveChatMessage(body)) return { body: "Squawk! Your wasting my time, so I don't l like you." };
   const text = String(body || '').trim();
   const details = [
     /signed|autograph/i.test(text) && 'a clear close-up of every signature and any certificate',
@@ -322,10 +322,31 @@ const appraisalParrotReply = ({ body, imageUrl }) => {
     /art|painting|sculpture|print/i.test(text) && 'artist signature, medium, dimensions, provenance, and any labels'
   ].filter(Boolean);
   const imageNote = imageUrl ? ' I received the image reference; I can use it alongside your description, but it is not authentication or a pixel-level identification.' : '';
-  if (!text) return `Squawk! I received your image.${imageNote} Tell me the maker, material, era, measurements, condition, and any markings so I can give you a better research lead.`;
-  return `Squawk! My first appraisal lead is to identify the exact maker, era, material, and condition before trusting a value.${imageNote} ${details.length ? `For this item, please share ${details[0]}.` : 'Share any visible marks, dates, edition information, measurements, and provenance.'} I can help turn those details into a research checklist and a realistic value range.`;
+  if (!text) return { body: `Squawk! I received your image.${imageNote} Tell me the maker, material, era, measurements, condition, and any markings so I can check public collector references for a better lead.` };
+
+  const searchTerms = text
+    .replace(/https?:\/\/\S+/gi, ' ')
+    .replace(/\b(?:can you|please|what is|how much|worth|value|appraise|estimate|this|item|is|the|a|an|of|for|and|with)\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const queries = [...new Set([text.slice(0, 160), searchTerms.slice(0, 120)].filter(query => query.length >= 3))];
+  let reference = null;
+  for (const query of queries) {
+    reference = await getArtifactLore(query);
+    if (reference) break;
+  }
+
+  const nextStep = details.length ? `For this item, please share ${details[0]}.` : 'Share any visible marks, dates, edition information, measurements, and provenance.';
+  if (!reference) return { body: `Squawk! I checked live public-reference searches but did not find a close match for that wording.${imageNote} My first appraisal lead is to identify the exact maker, era, material, and condition before trusting a value. ${nextStep} I can then search again with the stronger details.` };
+
+  const excerpt = String(reference.extract || reference.description || 'This is a useful starting point for collector research.').replace(/\s+/g, ' ').trim().slice(0, 520);
+  return {
+    body: `Squawk! I checked a live public reference for “${reference.title}.” ${excerpt} This is a collector research lead, not authentication or a formal appraisal.${imageNote} ${nextStep}`,
+    sourceUrl: reference.url,
+    sourceTitle: reference.title
+  };
 };
-app.post('/conversation/:id/messages', required, (req, res) => {
+app.post('/conversation/:id/messages', required, async (req, res) => {
   const conversation = store.data.conversations.find(row => row.id === req.params.id && row.participantIds.includes(req.user.id));
   if (!conversation) return res.status(404).json({ error: 'Conversation not found' });
   const body = String(req.body.body || '').trim();
@@ -335,7 +356,10 @@ app.post('/conversation/:id/messages', required, (req, res) => {
   const message = { id: id(), senderId: req.user.id, body, imageUrl, createdAt: now() };
   conversation.messages.push(message); conversation.updatedAt = now();
   const recipientId = conversation.participantIds.find(userId => userId !== req.user.id);
-  if (recipientId === appraisalParrotUserId) conversation.messages.push({ id: id(), senderId: appraisalParrotUserId, body: appraisalParrotReply(message), createdAt: now() });
+  if (recipientId === appraisalParrotUserId) {
+    const reply = await appraisalParrotReply(message);
+    conversation.messages.push({ id: id(), senderId: appraisalParrotUserId, body: reply.body, sourceUrl: reply.sourceUrl || '', sourceTitle: reply.sourceTitle || '', createdAt: now() });
+  }
   else notify(recipientId, 'collector_message', `${req.user.username} sent you a message`, `/conversation/${conversation.id}`);
   store.save(); res.status(201).json(message);
 });
