@@ -1,0 +1,31 @@
+/* Every minigame owns a sealed drawing surface. Particles, sprites, and
+   transforms are clipped to that surface instead of bleeding into controls,
+   listings, or another page theme. */
+.rocket-game-playfield,
+.rocket-game-layer,
+.puppy-game-playfield,
+.puppy-game-layer,
+.sell-lava-field,
+.sailing-battlefield,
+.auction-block-grid,
+.jungle-run-field {
+  isolation: isolate;
+  contain: layout paint style;
+  overflow: hidden !important;
+  clip-path: inset(0);
+}
+
+.rocket-game-playfield > *,
+.puppy-game-playfield > *,
+.sell-lava-field > *,
+.sailing-battlefield > *,
+.jungle-run-field > * {
+  max-width: 100%;
+}
+
+/* Keep animated effects in their game layer even when a theme uses blend
+   modes or accelerated transforms. */
+.rocket-game-layer,
+.puppy-game-layer { z-index: 1; }
+.conveyor-rocket,
+.puppy-game-pup { z-index: 2; }

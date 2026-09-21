@@ -778,10 +778,12 @@ function updatePuppyJump() {
   if (puppyJump.keys.has('BracketRight')) puppyJump.vx += .022;
   puppyJump.vx *= .9; puppyJump.vx = Math.max(-.38, Math.min(.38, puppyJump.vx));
   puppyJump.vy += .039;
-  puppyJump.x = (puppyJump.x + puppyJump.vx + 100) % 100;
+  // Keep the puppy inside its visible game field. The old wrap-around could
+  // make its hitbox cross from one edge/layer into the other.
+  puppyJump.x = Math.max(4, Math.min(96, puppyJump.x + puppyJump.vx));
   puppyJump.y += puppyJump.vy;
   const cloudFall = .022 + Math.min(.04, game.score / 120000);
-  game.platforms.forEach(platform => { platform.x += platform.vx; platform.y += cloudFall; if (platform.x < platform.width / 2 + 3 || platform.x > 97 - platform.width / 2) platform.vx *= -1; });
+  game.platforms.forEach(platform => { platform.x += platform.vx; platform.y += cloudFall; if (platform.x < platform.width / 2 + 3 || platform.x > 97 - platform.width / 2) { platform.x = Math.max(platform.width / 2 + 3, Math.min(97 - platform.width / 2, platform.x)); platform.vx *= -1; } });
   if (puppyJump.vy > 0) {
     const landing = game.platforms.find(platform => {
       const acrossSeam = Math.min(Math.abs(puppyJump.x - platform.x), 100 - Math.abs(puppyJump.x - platform.x));
@@ -806,7 +808,7 @@ function updatePuppyJump() {
   }
   const now = Date.now();
   if (now - game.lastAngry > 4600 && game.angries.length < 2) { spawnPuppyAnger(); game.lastAngry = now; }
-  game.angries.forEach(angry => { angry.x += angry.vx; angry.y += cloudFall * 1.25 + angry.drift; if (angry.x < 7 || angry.x > 93) angry.vx *= -1; });
+  game.angries.forEach(angry => { angry.x += angry.vx; angry.y += cloudFall * 1.25 + angry.drift; if (angry.x < 7 || angry.x > 93) { angry.x = Math.max(7, Math.min(93, angry.x)); angry.vx *= -1; } });
   game.angries = game.angries.filter(angry => angry.y < 109);
   game.lasers.forEach(laser => { laser.y += laser.vy; });
   game.lasers = game.lasers.filter(laser => laser.y > -7);
