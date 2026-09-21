@@ -44,27 +44,39 @@ const chatRoomCatalog = [
   { id: 'watch-club', name: 'Watch Club', description: 'A room for timepieces, jewelry, luxury, and craftsmanship.', tags: ['Watches', 'Fine Jewelry', 'Luxury'], members: 29 }
 ];
 const artifactLoreCache = new Map();
-const getArtifactLore = async title => {
+const getArtifactLore = async (title, { strict = false } = {}) => {
   const query = String(title || '').replace(/[^\w\s&'’-]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
   if (!query) return null;
-  const cached = artifactLoreCache.get(query.toLowerCase());
+  const cacheKey = `${strict ? 'strict:' : ''}${query.toLowerCase()}`;
+  const cached = artifactLoreCache.get(cacheKey);
   if (cached && Date.now() - cached.savedAt < 86400000) return cached.value;
   const headers = { 'User-Agent': 'CollectorMarketplace ArtifactLore/1.0' };
+  const ignoredResearchWords = new Set(['about', 'appraise', 'check', 'condition', 'could', 'find', 'from', 'good', 'have', 'help', 'item', 'items', 'know', 'like', 'more', 'need', 'price', 'quality', 'really', 'search', 'should', 'that', 'this', 'value', 'want', 'what', 'when', 'with', 'worth', 'would']);
+  const researchTerms = [...new Set(query.toLowerCase().match(/[a-z0-9]{3,}/g)?.filter(word => !ignoredResearchWords.has(word)) || [])];
+  const scoreResult = result => {
+    const resultTitle = String(result.title || '').toLowerCase();
+    const detail = `${result.description || ''} ${result.snippet || ''}`.toLowerCase();
+    const titleMatches = researchTerms.filter(term => resultTitle.includes(term));
+    const detailMatches = researchTerms.filter(term => detail.includes(term));
+    return { result, titleMatches, score: titleMatches.length * 4 + detailMatches.filter(term => !titleMatches.includes(term)).length };
+  };
   try {
-    const search = await fetch(`https://en.wikipedia.org/w/rest.php/v1/search/title?q=${encodeURIComponent(query)}&limit=1`, { headers });
+    const search = await fetch(`https://en.wikipedia.org/w/rest.php/v1/search/title?q=${encodeURIComponent(query)}&limit=10`, { headers });
     const searchData = search.ok ? await search.json() : {};
-    let result = searchData.pages?.[0];
-    if (!result?.key) {
-      const fallback = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=1&format=json`, { headers });
+    let candidates = Array.isArray(searchData.pages) ? searchData.pages : [];
+    if (!candidates.length) {
+      const fallback = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=10&format=json`, { headers });
       const fallbackData = fallback.ok ? await fallback.json() : {};
-      const row = fallbackData.query?.search?.[0];
-      result = row ? { key: row.title.replace(/ /g, '_'), title: row.title, description: '', snippet: String(row.snippet || '').replace(/<[^>]+>/g, '') } : null;
+      candidates = (fallbackData.query?.search || []).map(row => ({ key: row.title.replace(/ /g, '_'), title: row.title, description: '', snippet: String(row.snippet || '').replace(/<[^>]+>/g, '') }));
     }
+    const rankedCandidates = candidates.filter(result => result?.key).map(scoreResult).sort((left, right) => right.score - left.score);
+    let result = rankedCandidates[0]?.result;
+    if (strict && (!rankedCandidates[0] || rankedCandidates[0].titleMatches.length < Math.min(2, researchTerms.length))) result = null;
     if (!result?.key) return null;
     const summaryResponse = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(result.key)}`, { headers });
     const summary = summaryResponse.ok ? await summaryResponse.json() : {};
     const value = { title: summary.title || result.title, description: summary.description || result.description || '', extract: summary.extract || result.snippet || '', url: summary.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodeURIComponent(result.key)}` };
-    artifactLoreCache.set(query.toLowerCase(), { savedAt: Date.now(), value });
+    artifactLoreCache.set(cacheKey, { savedAt: Date.now(), value });
     return value;
   } catch {
     return null;
@@ -332,7 +344,7 @@ const appraisalParrotReply = async ({ body, imageUrl }) => {
   const queries = [...new Set([text.slice(0, 160), searchTerms.slice(0, 120)].filter(query => query.length >= 3))];
   let reference = null;
   for (const query of queries) {
-    reference = await getArtifactLore(query);
+    reference = await getArtifactLore(query, { strict: true });
     if (reference) break;
   }
 
