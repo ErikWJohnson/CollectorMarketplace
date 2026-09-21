@@ -1,10 +1,12 @@
 const express = require('express');
 const crypto = require('crypto');
+const argon2 = require('argon2');
 const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
 
 const app = express();
+app.disable('x-powered-by');
 // Render terminates TLS before requests reach this server. Trust that proxy so
 // PayPal return URLs keep the public HTTPS scheme.
 app.set('trust proxy', 1);
@@ -13,6 +15,27 @@ const dataDir = path.join(__dirname, 'data');
 const dataFile = path.join(dataDir, 'store.json');
 const id = () => crypto.randomUUID();
 const now = () => new Date().toISOString();
+const sessions = new Map();
+const loginAttempts = new Map();
+const twoFactorChallenges = new Map();
+const securityEvents = [];
+const blockedIpHashes = new Set(String(process.env.BLOCKED_IP_HASHES || '').split(',').map(value => value.trim()).filter(Boolean));
+const sessionLifetimeMs = 1000 * 60 * 60 * 24 * 14;
+const encryptionKey = process.env.DATA_ENCRYPTION_KEY ? crypto.createHash('sha256').update(process.env.DATA_ENCRYPTION_KEY).digest() : null;
+const securityLog = (type, req, details = {}) => {
+  const event = { id: id(), type, at: now(), userId: details.userId || null, ipHash: crypto.createHash('sha256').update(String(req?.ip || '')).digest('hex').slice(0, 16), details: { ...details, userId: undefined } };
+  securityEvents.unshift(event); if (securityEvents.length > 5000) securityEvents.length = 5000;
+  if (typeof store !== 'undefined' && Array.isArray(store.data?.securityEvents)) { store.data.securityEvents.unshift(event); if (store.data.securityEvents.length > 5000) store.data.securityEvents.length = 5000; }
+};
+const encryptPrivate = value => { if (value === undefined || value === null || value === '') return value; if (!encryptionKey) throw new Error('Private-data encryption is not configured. Set DATA_ENCRYPTION_KEY in the deployment environment.'); const iv = crypto.randomBytes(12); const cipher = crypto.createCipheriv('aes-256-gcm', encryptionKey, iv); const ciphertext = Buffer.concat([cipher.update(JSON.stringify(value), 'utf8'), cipher.final()]); return { encrypted: true, iv: iv.toString('base64'), tag: cipher.getAuthTag().toString('base64'), data: ciphertext.toString('base64') }; };
+const decryptPrivate = value => { if (!value?.encrypted) return value; if (!encryptionKey) throw new Error('Private-data encryption is not configured.'); const decipher = crypto.createDecipheriv('aes-256-gcm', encryptionKey, Buffer.from(value.iv, 'base64')); decipher.setAuthTag(Buffer.from(value.tag, 'base64')); return JSON.parse(Buffer.concat([decipher.update(Buffer.from(value.data, 'base64')), decipher.final()]).toString('utf8')); };
+const createSession = userId => { const token = crypto.randomBytes(32).toString('base64url'); sessions.set(token, { userId, expiresAt: Date.now() + sessionLifetimeMs }); return token; };
+const revokeUserSessions = userId => { for (const [token, session] of sessions) if (session.userId === userId) sessions.delete(token); };
+const base32Alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+const base32Secret = () => Array.from(crypto.randomBytes(20)).map(byte => base32Alphabet[byte % base32Alphabet.length]).join('');
+const decodeBase32 = secret => { let bits = ''; for (const char of String(secret).toUpperCase().replace(/=+$/g, '')) { const index = base32Alphabet.indexOf(char); if (index >= 0) bits += index.toString(2).padStart(5, '0'); } return Buffer.from((bits.match(/.{1,8}/g) || []).filter(byte => byte.length === 8).map(byte => parseInt(byte, 2))); };
+const totpCode = (secret, at = Date.now()) => { const step = Math.floor(at / 30000); const counter = Buffer.alloc(8); counter.writeBigUInt64BE(BigInt(step)); const digest = crypto.createHmac('sha1', decodeBase32(secret)).update(counter).digest(); const offset = digest[digest.length - 1] & 15; return String(((digest.readUInt32BE(offset) & 0x7fffffff) % 1000000)).padStart(6, '0'); };
+const verifyTotp = (secret, code) => { const normalized = String(code || '').replace(/\D/g, '').slice(0, 6).padStart(6, '0'); return [-1, 0, 1].some(offset => crypto.timingSafeEqual(Buffer.from(totpCode(secret, Date.now() + offset * 30000)), Buffer.from(normalized))); };
 const deliveryProviders = { 'UPS Priority': { type: 'carrier', trackingRequired: true } };
 const paymentMethods = new Set(['PayPal']);
 const paypalProcessingRate = 0.0349;
@@ -84,7 +107,7 @@ const getArtifactLore = async (title, { strict = false } = {}) => {
 
 class Store {
   constructor() { fs.mkdirSync(dataDir, { recursive: true }); this.data = this.load(); this.ensureData(); this.removeDemoContent(); this.pool = null; this.writeQueue = Promise.resolve(); }
-  ensureData() { ['users', 'listings', 'comments', 'trades', 'notifications', 'activities', 'deliveries', 'conversations', 'communityPosts', 'memberships'].forEach(key => { if (!Array.isArray(this.data[key])) this.data[key] = []; }); this.data.conversations = this.data.conversations.filter(conversation => !(conversation.participantIds || []).includes('system-appraisal-parrot')); this.data.users = this.data.users.filter(user => user.id !== 'system-appraisal-parrot'); this.data.users.forEach(user => { if (!Array.isArray(user.profileTags)) user.profileTags = []; if (String(user.username || '').trim().toLowerCase() === developerPassUsername) user.developerPass = true; }); const testAuction = this.data.listings.find(listing => listing.title === 'TEST' && listing.description === 'Internal payment-flow test listing. Do not purchase.'); if (testAuction) { testAuction.listingMode = 'auction_only'; testAuction.auctionEndless = true; testAuction.auctionEndAt = null; testAuction.auctionStartPrice = Number.isFinite(Number(testAuction.auctionStartPrice)) ? Number(testAuction.auctionStartPrice) : 0; } const testUser = this.data.users.find(user => String(user.username || '').trim().toLowerCase() === 'test'); if (testUser && !this.data.listings.some(listing => listing.ownerId === testUser.id && listing.title === 'TEST 2')) this.data.listings.unshift({ id: id(), ownerId: testUser.id, title: 'TEST 2', description: 'Internal browsing-flow test listing. Do not purchase.', category: 'Memorabilia', condition: 'New', tags: ['Memorabilia', 'New', 'Test', 'Browsing Test', 'US City/Town: San Diego, CA'], location: 'San Diego, CA 92106', sellerCity: 'San Diego, CA', sellerZip: '92106', locationCoordinates: null, pickupRadiusMiles: 0, fulfillment: 'pickup_delivery', upsPackagingCost: 0, listingMode: 'marketplace', auctionStartPrice: null, auctionEndAt: null, auctionBids: 0, price: 1, tradeOffer: false, images: ['https://collectormarketplace.net/public/logo-three-cards.png'], videos: [], status: 'active', likes: [], createdAt: now() }); }
+  ensureData() { ['users', 'listings', 'comments', 'trades', 'notifications', 'activities', 'deliveries', 'conversations', 'communityPosts', 'memberships', 'securityEvents'].forEach(key => { if (!Array.isArray(this.data[key])) this.data[key] = []; }); this.data.conversations = this.data.conversations.filter(conversation => !(conversation.participantIds || []).includes('system-appraisal-parrot')); this.data.users = this.data.users.filter(user => user.id !== 'system-appraisal-parrot'); this.data.users.forEach(user => { if (!Array.isArray(user.profileTags)) user.profileTags = []; if (String(user.username || '').trim().toLowerCase() === developerPassUsername) user.developerPass = true; }); const testAuction = this.data.listings.find(listing => listing.title === 'TEST' && listing.description === 'Internal payment-flow test listing. Do not purchase.'); if (testAuction) { testAuction.listingMode = 'auction_only'; testAuction.auctionEndless = true; testAuction.auctionEndAt = null; testAuction.auctionStartPrice = Number.isFinite(Number(testAuction.auctionStartPrice)) ? Number(testAuction.auctionStartPrice) : 0; } const testUser = this.data.users.find(user => String(user.username || '').trim().toLowerCase() === 'test'); if (testUser && !this.data.listings.some(listing => listing.ownerId === testUser.id && listing.title === 'TEST 2')) this.data.listings.unshift({ id: id(), ownerId: testUser.id, title: 'TEST 2', description: 'Internal browsing-flow test listing. Do not purchase.', category: 'Memorabilia', condition: 'New', tags: ['Memorabilia', 'New', 'Test', 'Browsing Test', 'US City/Town: San Diego, CA'], location: 'San Diego, CA 92106', sellerCity: 'San Diego, CA', sellerZip: '92106', locationCoordinates: null, pickupRadiusMiles: 0, fulfillment: 'pickup_delivery', upsPackagingCost: 0, listingMode: 'marketplace', auctionStartPrice: null, auctionEndAt: null, auctionBids: 0, price: 1, tradeOffer: false, images: ['https://collectormarketplace.net/public/logo-three-cards.png'], videos: [], status: 'active', likes: [], createdAt: now() }); }
   load() {
     if (fs.existsSync(dataFile)) {
       try { return JSON.parse(fs.readFileSync(dataFile, 'utf8')); } catch { console.warn('Ignoring unreadable local marketplace data.'); }
@@ -171,15 +194,43 @@ const marketplaceFeeRate = user => {
 // signaling and presence, so no microphone audio is stored by the marketplace.
 const voiceRooms = new Map();
 const googleOAuthStates = new Map();
-app.use(express.json({ limit: '16mb' }));
+app.use((req, res, next) => {
+  const ipHash = crypto.createHash('sha256').update(String(req.ip || '')).digest('hex').slice(0, 16);
+  if (blockedIpHashes.has(ipHash)) { securityLog('blocked_ip_request', req); return res.status(403).json({ error: 'This network is unavailable for security reasons.' }); }
+  res.set({
+    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'camera=(), geolocation=(), payment=(self)',
+    'Cross-Origin-Opener-Policy': 'same-origin'
+  });
+  if (process.env.NODE_ENV === 'production' && !req.secure) return res.status(400).json({ error: 'HTTPS is required.' });
+  next();
+});
+app.use(express.json({ limit: '2mb' }));
 app.get('/healthz', (req, res) => res.status(200).json({ ok: true, service: 'CollectorMarketplace.net', database: store.pool ? 'collector-db' : 'local' }));
 
 function publicUser(user) { if (!user) return null; const { password, email, shippingProfile, lobbySong, ...safe } = user; return { ...safe, awards: accountAwards(user), marketplaceFeeRate: marketplaceFeeRate(user) }; }
 function directoryUser(user) { if (!user) return null; const { password, email, following, shippingProfile, lobbySong, ...safe } = user; return safe; }
-function currentUser(req) { const token = req.headers.authorization?.replace('Bearer ', ''); return store.data.users.find(u => u.id === token); }
-function required(req, res, next) { const user = currentUser(req); if (!user) return res.status(401).json({ error: 'Sign in required' }); req.user = user; next(); }
+function currentUser(req) { const token = req.headers.authorization?.replace('Bearer ', ''); const session = sessions.get(token); if (!session || session.expiresAt < Date.now()) { if (token) sessions.delete(token); return null; } return store.data.users.find(user => user.id === session.userId) || null; }
+function required(req, res, next) { const user = currentUser(req); if (!user || user.frozenAt) return res.status(user?.frozenAt ? 423 : 401).json({ error: user?.frozenAt ? 'This account is temporarily frozen while a safety review is open.' : 'Sign in required' }); req.user = user; next(); }
+function limitAuth(req, res, next) { const key = `${req.ip}:${req.path}`; const entry = loginAttempts.get(key) || { count: 0, resetAt: Date.now() + 15 * 60 * 1000 }; if (entry.resetAt < Date.now()) { entry.count = 0; entry.resetAt = Date.now() + 15 * 60 * 1000; } entry.count += 1; loginAttempts.set(key, entry); if (entry.count > 12) { securityLog('rate_limit', req); return res.status(429).json({ error: 'Too many attempts. Please wait 15 minutes before trying again.' }); } next(); }
+function recordDevice(user, req) {
+  const deviceId = String(req.headers['x-device-id'] || '').trim().slice(0, 160);
+  if (!deviceId) return false;
+  const hash = crypto.createHash('sha256').update(deviceId).digest('hex');
+  if (!Array.isArray(user.devices)) user.devices = [];
+  const known = user.devices.find(device => device.hash === hash);
+  if (known) { known.lastSeenAt = now(); return false; }
+  user.devices.push({ hash, firstSeenAt: now(), lastSeenAt: now() });
+  user.devices = user.devices.slice(-20);
+  securityLog('new_device_login', req, { userId: user.id });
+  return true;
+}
 function activity(type, userId, extra = {}) { store.data.activities.unshift({ id: id(), type, userId, createdAt: now(), ...extra }); }
 function notify(userId, type, message, link) { store.data.notifications.unshift({ id: id(), userId, type, message, link, read: false, createdAt: now() }); }
+function recordPaymentFailure(user, req, reason = '') { if (!user) return; const cutoff = Date.now() - 60 * 60 * 1000; user.paymentFailures = (user.paymentFailures || []).filter(at => new Date(at).valueOf() > cutoff); user.paymentFailures.push(now()); if (user.paymentFailures.length >= 5) user.paymentRestrictedAt = now(); securityLog('payment_failed', req, { userId: user.id, reason: String(reason).slice(0, 120), count: user.paymentFailures.length }); }
 const shippoReady = () => Boolean(process.env.SHIPPO_API_KEY);
 async function shippoRequest(pathname, body) { if (!shippoReady()) throw new Error('Shipping labels are not configured yet. Add SHIPPO_API_KEY in Render.'); const response = await fetch(`https://api.goshippo.com${pathname}`, { method: 'POST', headers: { Authorization: `ShippoToken ${process.env.SHIPPO_API_KEY}`, 'Content-Type': 'application/json', 'SHIPPO-API-VERSION': '2018-02-08' }, body: JSON.stringify(body) }); const payload = await response.json().catch(() => ({})); if (!response.ok) throw new Error(payload.detail || payload.messages?.[0]?.text || 'Shippo could not complete that request.'); return payload; }
 const paypalReady = () => Boolean(process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_SECRET);
@@ -246,7 +297,8 @@ app.get('/auth/google/callback', async (req, res) => {
       activity('signup', user.id, { provider: 'google' });
     }
     store.save();
-    res.redirect(`/#${new URLSearchParams({ google_token: user.id, google_login: '1' })}`);
+    securityLog('google_login', req, { userId: user.id });
+    res.redirect(`/#${new URLSearchParams({ google_token: createSession(user.id), google_login: '1' })}`);
   } catch (error) {
     console.error('Google sign-in failed:', error.message);
     res.redirect('/#google-auth-error');
@@ -260,14 +312,28 @@ function usCityTownTag(location) {
   return place ? `US City/Town: ${place}` : '';
 }
 
-app.post('/signup', (req, res) => {
-  const { username, email, password } = req.body;
-  if (!username || !email || !password) return res.status(400).json({ error: 'username, email, and password are required' });
-  if (store.data.users.some(u => u.email === email || u.username === username)) return res.status(409).json({ error: 'Email or username already in use' });
-  const user = { id: id(), username, email, password, avatar: username.slice(0, 2).toUpperCase(), bio: '', reputation: 0, following: [], developerPass: username.trim().toLowerCase() === developerPassUsername, createdAt: now() };
-  store.data.users.push(user); store.save(); res.status(201).json({ token: user.id, user: publicUser(user) });
+app.post('/signup', limitAuth, async (req, res) => {
+  const username = String(req.body.username || '').trim(); const email = String(req.body.email || '').trim().toLowerCase(); const password = String(req.body.password || '');
+  if (!req.body.acceptedTerms) return res.status(400).json({ error: 'Accept the User Agreement and Privacy Policy to create an account.' });
+  if (!/^[a-z0-9_]{3,32}$/i.test(username) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 12) return res.status(400).json({ error: 'Use a 3–32 character name, a valid email, and a password of at least 12 characters.' });
+  if (store.data.users.some(user => String(user.email || '').toLowerCase() === email || user.username.toLowerCase() === username.toLowerCase())) return res.status(409).json({ error: 'Email or username already in use' });
+  const user = { id: id(), username, email, password: await argon2.hash(password, { type: argon2.argon2id, memoryCost: 19456, timeCost: 2, parallelism: 1 }), avatar: username.slice(0, 2).toUpperCase(), bio: '', reputation: 0, following: [], developerPass: username.toLowerCase() === developerPassUsername, termsAcceptedAt: now(), createdAt: now() };
+  recordDevice(user, req); store.data.users.push(user); store.save(); securityLog('signup', req, { userId: user.id }); res.status(201).json({ token: createSession(user.id), user: publicUser(user) });
 });
-app.post('/login', (req, res) => { const user = store.data.users.find(u => u.email === req.body.email && u.password === req.body.password); if (!user) return res.status(401).json({ error: 'Invalid email or password' }); res.json({ token: user.id, user: publicUser(user) }); });
+app.post('/login', limitAuth, async (req, res) => { const email = String(req.body.email || '').trim().toLowerCase(); const password = String(req.body.password || ''); const user = store.data.users.find(entry => String(entry.email || '').toLowerCase() === email); const storedPassword = String(user?.password || ''); const valid = storedPassword.startsWith('$argon2') ? await argon2.verify(storedPassword, password).catch(() => false) : Boolean(user && Buffer.byteLength(storedPassword) === Buffer.byteLength(password) && crypto.timingSafeEqual(Buffer.from(storedPassword), Buffer.from(password))); if (!valid) { securityLog('login_failed', req); return res.status(401).json({ error: 'Invalid email or password' }); } if (!storedPassword.startsWith('$argon2')) user.password = await argon2.hash(password, { type: argon2.argon2id, memoryCost: 19456, timeCost: 2, parallelism: 1 }); if (user.twoFactorEnabled) { const challenge = crypto.randomBytes(24).toString('base64url'); twoFactorChallenges.set(challenge, { userId: user.id, expiresAt: Date.now() + 5 * 60 * 1000 }); securityLog('two_factor_challenge', req, { userId: user.id }); return res.json({ requiresTwoFactor: true, challenge }); } const unfamiliarDevice = recordDevice(user, req); store.save(); securityLog('login', req, { userId: user.id, unfamiliarDevice }); res.json({ token: createSession(user.id), user: publicUser(user), unfamiliarDevice }); });
+app.post('/login/2fa', limitAuth, (req, res) => { const challenge = twoFactorChallenges.get(String(req.body.challenge || '')); twoFactorChallenges.delete(String(req.body.challenge || '')); const user = challenge && challenge.expiresAt > Date.now() && store.data.users.find(row => row.id === challenge.userId); if (!user || !user.twoFactorEnabled || !verifyTotp(user.twoFactorSecret, req.body.code)) { securityLog('two_factor_failed', req, { userId: user?.id }); return res.status(401).json({ error: 'The verification code is invalid or expired.' }); } const unfamiliarDevice = recordDevice(user, req); store.save(); securityLog('login_2fa', req, { userId: user.id, unfamiliarDevice }); res.json({ token: createSession(user.id), user: publicUser(user), unfamiliarDevice }); });
+app.get('/auth/session', required, (req, res) => res.json({ user: publicUser(req.user) }));
+app.post('/auth/logout', required, (req, res) => { sessions.delete(req.headers.authorization?.replace('Bearer ', '')); securityLog('logout', req, { userId: req.user.id }); res.status(204).end(); });
+app.put('/account/password', required, async (req, res) => {
+  const currentPassword = String(req.body.currentPassword || ''); const password = String(req.body.password || '');
+  if (!req.user.password) return res.status(400).json({ error: 'This Google-connected account does not have an email password to change.' });
+  if (password.length < 12) return res.status(400).json({ error: 'Use a password with at least 12 characters.' });
+  if (!await argon2.verify(req.user.password, currentPassword).catch(() => false)) { securityLog('password_change_failed', req, { userId: req.user.id }); return res.status(401).json({ error: 'Current password is incorrect.' }); }
+  req.user.password = await argon2.hash(password, { type: argon2.argon2id, memoryCost: 19456, timeCost: 2, parallelism: 1 });
+  revokeUserSessions(req.user.id); const token = createSession(req.user.id); securityLog('password_changed', req, { userId: req.user.id }); await store.save(); res.json({ token, user: publicUser(req.user) });
+});
+app.post('/account/2fa/setup', required, (req, res) => { const secret = base32Secret(); req.user.pendingTwoFactorSecret = secret; securityLog('two_factor_setup_started', req, { userId: req.user.id }); store.save(); res.json({ secret, issuer: 'CollectorMarketplace.net', account: req.user.username, otpauthUrl: `otpauth://totp/${encodeURIComponent(`CollectorMarketplace.net:${req.user.username}`)}?secret=${secret}&issuer=CollectorMarketplace.net&period=30&digits=6` }); });
+app.post('/account/2fa/enable', required, (req, res) => { if (!req.user.pendingTwoFactorSecret || !verifyTotp(req.user.pendingTwoFactorSecret, req.body.code)) return res.status(400).json({ error: 'Enter the current six-digit code from your authenticator app.' }); req.user.twoFactorSecret = req.user.pendingTwoFactorSecret; delete req.user.pendingTwoFactorSecret; req.user.twoFactorEnabled = true; revokeUserSessions(req.user.id); const token = createSession(req.user.id); securityLog('two_factor_enabled', req, { userId: req.user.id }); store.save(); res.json({ token, user: publicUser(req.user) }); });
 app.get('/user/:id', (req, res) => { const user = store.data.users.find(u => u.id === req.params.id); if (!user) return res.status(404).json({ error: 'User not found' }); const listings = store.data.listings.filter(l => l.ownerId === user.id); const history = store.data.trades.filter(t => (t.senderId === user.id || t.receiverId === user.id) && t.status === 'completed'); res.json({ ...publicUser(user), lobbySong: user.lobbySong || '', activeListings: listings.filter(l => l.status === 'active'), tradeHistory: history }); });
 app.post('/scoreboard/score', required, (req, res) => {
   const game = String(req.body.game || '').trim();
@@ -301,8 +367,8 @@ app.get('/community/:type/:entityId', (req, res) => { const entity = communityEn
 app.post('/community/:type/:entityId', required, (req, res) => { const entity = communityEntity(req.params.type, req.params.entityId); const title = String(req.body.title || '').trim(); const body = String(req.body.body || '').trim(); if (!entity) return res.status(404).json({ error: 'Discussion space not found.' }); if (!title || !body || title.length > 140 || body.length > 2000) return res.status(400).json({ error: 'Use a title up to 140 characters and a post up to 2,000 characters.' }); const post = { id: id(), type: req.params.type, entityId: req.params.entityId, authorId: req.user.id, title, body, replies: [], createdAt: now() }; store.data.communityPosts.unshift(post); activity('community_post', req.user.id, { communityType: post.type, communityId: post.entityId }); store.save(); res.status(201).json(communityPostView(post)); });
 app.post('/community/:type/:entityId/:postId/replies', required, (req, res) => { const post = store.data.communityPosts.find(row => row.id === req.params.postId && row.type === req.params.type && row.entityId === req.params.entityId); const body = String(req.body.body || '').trim(); if (!post) return res.status(404).json({ error: 'Discussion post not found.' }); if (!body || body.length > 2000) return res.status(400).json({ error: 'Use a reply up to 2,000 characters.' }); const reply = { id: id(), authorId: req.user.id, body, createdAt: now() }; post.replies.push(reply); store.save(); res.status(201).json({ ...reply, author: directoryUser(req.user) }); });
 app.put('/user/:id', required, (req, res) => { if (req.user.id !== req.params.id) return res.status(403).json({ error: 'Not allowed' }); ['username','avatar','bio'].forEach(k => { if (req.body[k] !== undefined) req.user[k] = req.body[k]; }); if (req.body.lobbySong !== undefined) { const song = String(req.body.lobbySong || ''); if (song && (!/^data:audio\/(mpeg|mp3)(?:;[a-z0-9=._-]+)*;base64,[a-z0-9+/=]+$/i.test(song) || song.length > 5500000)) return res.status(400).json({ error: 'Use an MP3 lobby song under 4 MB.' }); req.user.lobbySong = song; } if (req.body.profileTags !== undefined) { if (!Array.isArray(req.body.profileTags)) return res.status(400).json({ error: 'Profile tags must be a list.' }); const tags = [...new Set(req.body.profileTags.map(tag => String(tag).replace(/^#/, '').trim()).filter(tag => tag && tag.length <= 48))].slice(0, 20); req.user.profileTags = tags; } activity('profile', req.user.id); store.save(); res.json({ ...publicUser(req.user), lobbySong: req.user.lobbySong || '' }); });
-app.get('/account/shipping-profile', required, (req, res) => res.json(req.user.shippingProfile || {}));
-app.put('/account/shipping-profile', required, (req, res) => { try { const profile = shippoAddress(req.body, 'shipping profile'); if (profile.name.length > 120 || profile.street1.length > 160 || profile.street2.length > 120 || profile.city.length > 80 || !/^[A-Z]{2}$/i.test(profile.state) || !/^\d{5}(?:-\d{4})?$/.test(profile.zip)) return res.status(400).json({ error: 'Use a complete US name, street, city, two-letter state, and ZIP code.' }); req.user.shippingProfile = profile; store.save(); res.json(profile); } catch (error) { res.status(400).json({ error: error.message }); } });
+app.get('/account/shipping-profile', required, (req, res) => { try { res.json(decryptPrivate(req.user.shippingProfile) || {}); } catch (error) { res.status(503).json({ error: 'Private shipping data is temporarily unavailable.' }); } });
+app.put('/account/shipping-profile', required, (req, res) => { try { const profile = shippoAddress(req.body, 'shipping profile'); if (profile.name.length > 120 || profile.street1.length > 160 || profile.street2.length > 120 || profile.city.length > 80 || !/^[A-Z]{2}$/i.test(profile.state) || !/^\d{5}(?:-\d{4})?$/.test(profile.zip)) return res.status(400).json({ error: 'Use a complete US name, street, city, two-letter state, and ZIP code.' }); req.user.shippingProfile = encryptPrivate(profile); store.save(); securityLog('shipping_profile_updated', req, { userId: req.user.id }); res.json(profile); } catch (error) { res.status(400).json({ error: error.message }); } });
 app.post('/user/:id/follow', required, (req, res) => { if (req.user.id === req.params.id) return res.status(400).json({ error: 'You cannot follow yourself' }); if (!store.data.users.some(u => u.id === req.params.id)) return res.status(404).json({ error: 'User not found' }); const following = req.user.following; const index = following.indexOf(req.params.id); index < 0 ? following.push(req.params.id) : following.splice(index, 1); store.save(); res.json({ following: index < 0 }); });
 app.get('/user/:id/connections', required, (req, res) => { if (req.user.id !== req.params.id) return res.status(403).json({ error: 'Not allowed' }); const following = store.data.users.filter(user => req.user.following.includes(user.id)); const friends = following.filter(user => user.following.includes(req.user.id)); res.json({ following: following.map(publicUser), friends: friends.map(publicUser) }); });
 function conversationView(conversation, userId) { const other = store.data.users.find(user => user.id === conversation.participantIds.find(id => id !== userId)); return { ...conversation, otherUser: publicUser(other) }; }
@@ -384,6 +450,16 @@ app.get('/auctions', (req, res) => {
   res.json(userLots);
 });
 const listingConditions = new Set(['New', 'New with Tags', 'Sealed', 'Like New', 'Mint', 'Near Mint', 'Excellent', 'Very Good', 'Good', 'Fair', 'Poor', 'For Parts or Repair', 'Graded', 'Ungraded', 'Authenticated', 'Restored']);
+const prohibitedListingTerms = /\b(counterfeit|replica\s+as\s+authentic|stolen|gray[- ]?market|wholesale\s+lot|unlicensed\s+weapon|explosive)\b/i;
+function listingRiskFlags(ownerId, listing, previousPrice = null) {
+  const flags = [];
+  const text = `${listing.title || ''} ${listing.description || ''} ${(listing.tags || []).join(' ')}`;
+  if (prohibitedListingTerms.test(text)) flags.push('restricted_or_misrepresented_item');
+  const recentlyCreated = store.data.listings.filter(row => row.ownerId === ownerId && Date.now() - new Date(row.createdAt || 0).valueOf() < 60 * 60 * 1000).length;
+  if (recentlyCreated >= 5) flags.push('rapid_listing_creation');
+  if (previousPrice !== null && Math.max(Number(previousPrice) || 0, Number(listing.price) || 0) >= 50 && (Number(listing.price) || 0) / Math.max(1, Number(previousPrice) || 1) >= 3) flags.push('sudden_price_change');
+  return flags;
+}
 app.post('/listing', required, (req, res) => {
   const { title, description, category, condition, tags = [], price, tradeOffer, images = [], videos = [], sellerCity, sellerZip, locationCoordinates, pickupRadiusMiles, fulfillment, shippingPackagingCost, listingMode = 'marketplace', auctionStartPrice, auctionDurationHours } = req.body;
   const validImages = Array.isArray(images) && images.length > 0 && images.length <= 5 && images.every(image => typeof image === 'string' && image.length <= 2_000_000 && (/^https?:\/\//i.test(image) || /^data:image\/(jpeg|png|webp);base64,/i.test(image)));
@@ -418,6 +494,7 @@ app.post('/listing', required, (req, res) => {
   const publicLocation = `${publicCity} ${publicZip}`;
   const locationTag = `US City/Town: ${publicCity}`;
   const listing = { id: id(), ownerId: req.user.id, title: title.trim(), description: description.trim(), category: category.trim(), condition: itemCondition, tags: [...submittedTags, locationTag], location: publicLocation, sellerCity: publicCity, sellerZip: publicZip, locationCoordinates: coordinates, pickupRadiusMiles: pickupRadius, fulfillment, upsPackagingCost, listingMode, auctionStartPrice: listingMode === 'marketplace' ? null : startingBid, auctionEndAt: listingMode === 'marketplace' ? null : new Date(Date.now() + auctionHours * 3600000).toISOString(), auctionBids: 0, price: Number(price) || 0, tradeOffer: Boolean(tradeOffer), images, videos, status: 'active', likes: [], createdAt: now() };
+  listing.riskFlags = listingRiskFlags(req.user.id, listing); if (listing.riskFlags.length) { listing.reviewStatus = 'flagged'; securityLog('listing_flagged', req, { userId: req.user.id, listingId: listing.id, flags: listing.riskFlags }); }
   store.data.listings.unshift(listing); activity('listing', req.user.id, { listingId: listing.id }); store.save(); res.status(201).json(listing);
 });
 app.get('/listing/:id', (req, res) => { const listing = store.data.listings.find(l => l.id === req.params.id); if (!listing) return res.status(404).json({ error: 'Listing not found' }); res.json({ ...listing, owner: publicUser(store.data.users.find(u => u.id === listing.ownerId)), likeCount: listing.likes.length }); });
@@ -469,12 +546,14 @@ app.put('/listing/:id', required, (req, res) => {
   if (req.body.upsPackagingCost !== undefined) { const packaging = Math.round(Math.max(0, Number(req.body.upsPackagingCost) || 0) * 100) / 100; if (packaging > 1000) return res.status(400).json({ error: 'UPS packaging cost must be $1,000 or less.' }); listing.upsPackagingCost = packaging; }
   if (req.body.status !== undefined && !['active', 'archived'].includes(req.body.status)) return res.status(400).json({ error: 'Listings can only be set to active or archived here.' });
   if (req.body.condition !== undefined && !listingConditions.has(String(req.body.condition))) return res.status(400).json({ error: 'Choose a valid item condition.' });
+  const priorPrice = listing.price;
   ['title', 'description', 'category', 'condition', 'tags', 'price', 'tradeOffer', 'images', 'videos', 'status'].forEach(key => {
     if (req.body[key] !== undefined) listing[key] = req.body[key];
   });
   const manualTags = [...new Set([listing.category, ...(Array.isArray(listing.tags) ? listing.tags : [])].map(tag => typeof tag === 'string' ? tag.trim().replace(/^#/, '') : '').filter(tag => tag && !tag.startsWith('US City/Town: ')))];
   const locationTag = usCityTownTag(listing.location);
   listing.tags = [...manualTags, ...(locationTag ? [locationTag] : [])];
+  const flags = listingRiskFlags(req.user.id, listing, priorPrice); if (flags.length) { listing.riskFlags = [...new Set([...(listing.riskFlags || []), ...flags])]; listing.reviewStatus = 'flagged'; securityLog('listing_flagged', req, { userId: req.user.id, listingId: listing.id, flags }); }
   store.save(); res.json(listing);
 });
 app.delete('/listing/:id', required, (req, res) => { const i = store.data.listings.findIndex(l => l.id === req.params.id && l.ownerId === req.user.id); if (i < 0) return res.status(404).json({ error: 'Listing not found' }); store.data.listings.splice(i, 1); store.save(); res.status(204).end(); });
@@ -605,7 +684,13 @@ app.put('/trade/:id', required, (req, res) => {
 });
 
 function deliveryView(delivery, userId) { const listing = store.data.listings.find(row => row.id === delivery.listingId); const buyer = store.data.users.find(row => row.id === delivery.buyerId); const seller = store.data.users.find(row => row.id === delivery.sellerId); return { ...delivery, listing, buyer: publicUser(buyer), seller: publicUser(seller), shippingAddress: delivery.buyerId === userId || delivery.sellerId === userId ? delivery.shippingAddress : undefined }; }
-function recordDeliveryUpdate(delivery, userId, status, note = '') { if (!Array.isArray(delivery.history)) delivery.history = []; delivery.history.push({ id: id(), userId, status, note, createdAt: now() }); delivery.updatedAt = now(); }
+function recordDeliveryUpdate(delivery, userId, status, note = '') {
+  if (!Array.isArray(delivery.history)) delivery.history = [];
+  const previousHash = delivery.history.at(-1)?.hash || '';
+  const record = { id: id(), userId, status, note: String(note).slice(0, 1000), createdAt: now(), previousHash };
+  record.hash = crypto.createHash('sha256').update(JSON.stringify(record)).digest('hex');
+  delivery.history.push(record); delivery.updatedAt = now();
+}
 function preparePurchase(user, body) {
   const { listingId, shippingAddress, recipientAddress, deliveryProvider, deliveryMiles, paymentMethod } = body;
   const listing = store.data.listings.find(row => row.id === listingId && row.status === 'active');
@@ -696,6 +781,7 @@ app.post('/membership/vip-curator/:membershipId/paypal/cancel', required, (req, 
 });
 app.post('/paypal/orders', required, async (req, res) => {
   let purchase; let delivery;
+  if (req.user.paymentRestrictedAt) return res.status(423).json({ error: 'Payments are temporarily restricted after repeated failed attempts. Contact support if this was unexpected.' });
   try {
     purchase = preparePurchase(req.user, req.body);
     if (purchase.method !== 'PayPal') throw new Error('PayPal is the only checkout method currently available.');
@@ -711,6 +797,7 @@ app.post('/paypal/orders', required, async (req, res) => {
     store.save(); res.status(201).json({ approvalUrl, deliveryId: delivery.id, orderId: order.id, environment: paypalEnvironment() });
   } catch (error) {
     if (delivery) { store.data.deliveries = store.data.deliveries.filter(row => row.id !== delivery.id); if (purchase?.listing?.status === 'pending_payment') purchase.listing.status = 'active'; store.save(); }
+    recordPaymentFailure(req.user, req, error.code || error.message); store.save();
     res.status(400).json({ error: error.message });
   }
 });
@@ -789,12 +876,29 @@ app.get('/paypal/cancel', (req, res) => {
 app.get('/deliveries', required, (req, res) => res.json(store.data.deliveries.filter(row => row.buyerId === req.user.id || row.sellerId === req.user.id).map(row => deliveryView(row, req.user.id))));
 app.get('/delivery/providers', (req, res) => res.json(Object.entries(deliveryProviders).map(([name, details]) => ({ name, ...details }))));
 app.get('/delivery/:id', required, (req, res) => { const delivery = store.data.deliveries.find(row => row.id === req.params.id); if (!delivery || (delivery.buyerId !== req.user.id && delivery.sellerId !== req.user.id)) return res.status(404).json({ error: 'Delivery not found' }); res.json(deliveryView(delivery, req.user.id)); });
+app.post('/delivery/:id/evidence', required, (req, res) => {
+  const delivery = store.data.deliveries.find(row => row.id === req.params.id);
+  const type = String(req.body.type || 'condition').trim(); const url = String(req.body.url || '').trim(); const note = String(req.body.note || '').trim();
+  if (!delivery || (delivery.buyerId !== req.user.id && delivery.sellerId !== req.user.id)) return res.status(404).json({ error: 'Delivery not found' });
+  if (!['condition', 'shipment', 'pickup', 'delivery'].includes(type) || !(/^(https:\/\/|data:image\/(jpeg|png|webp);base64,)/i.test(url)) || url.length > 2_000_000) return res.status(400).json({ error: 'Upload a valid proof image and choose a proof type.' });
+  if (!Array.isArray(delivery.evidence)) delivery.evidence = [];
+  delivery.evidence.push({ id: id(), type, url, note: note.slice(0, 500), submittedBy: req.user.id, createdAt: now() });
+  recordDeliveryUpdate(delivery, req.user.id, `proof_${type}_submitted`, `Proof of ${type} submitted.`); securityLog('delivery_evidence_submitted', req, { userId: req.user.id, deliveryId: delivery.id, type }); store.save(); res.status(201).json(deliveryView(delivery, req.user.id));
+});
+app.post('/delivery/:id/dispute', required, (req, res) => {
+  const delivery = store.data.deliveries.find(row => row.id === req.params.id); const reason = String(req.body.reason || '').trim();
+  if (!delivery || (delivery.buyerId !== req.user.id && delivery.sellerId !== req.user.id)) return res.status(404).json({ error: 'Delivery not found' });
+  if (reason.length < 10 || reason.length > 1000) return res.status(400).json({ error: 'Describe the dispute in 10 to 1,000 characters.' });
+  delivery.status = 'dispute_open'; delivery.dispute = { openedBy: req.user.id, reason, openedAt: now(), status: 'investigating' };
+  [delivery.buyerId, delivery.sellerId].forEach(userId => { const user = store.data.users.find(row => row.id === userId); if (user) user.frozenAt = now(); });
+  recordDeliveryUpdate(delivery, req.user.id, 'dispute_open', 'Account activity frozen pending dispute review.'); securityLog('dispute_opened', req, { userId: req.user.id, deliveryId: delivery.id }); store.save(); res.status(201).json(deliveryView(delivery, req.user.id));
+});
 app.put('/delivery/:id', required, (req, res) => {
   const delivery = store.data.deliveries.find(row => row.id === req.params.id); if (!delivery || (delivery.buyerId !== req.user.id && delivery.sellerId !== req.user.id)) return res.status(404).json({ error: 'Delivery not found' });
   const sellerStatuses = ['packed', 'picked_up', 'in_transit']; const { status, courier, trackingNumber, note = '' } = req.body;
   if (delivery.status === 'completed') return res.status(400).json({ error: 'This delivery is already completed.' });
   if (delivery.buyerId === req.user.id && status === 'issue_reported') { delivery.status = status; recordDeliveryUpdate(delivery, req.user.id, status, String(note).trim() || 'Buyer reported an issue'); }
-  else if (delivery.sellerId === req.user.id && sellerStatuses.includes(status)) { const order = ['awaiting_seller_dispatch', 'packed', 'picked_up', 'in_transit']; const current = order.indexOf(delivery.status); const next = order.indexOf(status); if (next !== current + 1) return res.status(400).json({ error: 'Update the delivery one step at a time.' }); const provider = delivery.deliveryProvider || String(courier || delivery.courier || '').trim(); const providerDetails = deliveryProviders[provider] || { trackingRequired: true }; const chosenCourier = String(courier ?? delivery.courier ?? provider).trim() || provider; if (delivery.deliveryProvider && chosenCourier !== delivery.deliveryProvider) return res.status(400).json({ error: `Use the buyer-selected delivery option: ${delivery.deliveryProvider}.` }); if (['picked_up', 'in_transit'].includes(status) && providerDetails.trackingRequired && !String(trackingNumber || delivery.trackingNumber).trim()) return res.status(400).json({ error: 'A tracking number is required for this delivery option once it is picked up.' }); delivery.courier = chosenCourier; if (trackingNumber !== undefined) delivery.trackingNumber = String(trackingNumber).trim(); delivery.status = status; recordDeliveryUpdate(delivery, req.user.id, status, String(note).trim()); }
+  else if (delivery.sellerId === req.user.id && sellerStatuses.includes(status)) { const order = ['awaiting_seller_dispatch', 'packed', 'picked_up', 'in_transit']; const current = order.indexOf(delivery.status); const next = order.indexOf(status); if (next !== current + 1) return res.status(400).json({ error: 'Update the delivery one step at a time.' }); const provider = delivery.deliveryProvider || String(courier || delivery.courier || '').trim(); const providerDetails = deliveryProviders[provider] || { trackingRequired: true }; const chosenCourier = String(courier ?? delivery.courier ?? provider).trim() || provider; if (delivery.deliveryProvider && chosenCourier !== delivery.deliveryProvider) return res.status(400).json({ error: `Use the buyer-selected delivery option: ${delivery.deliveryProvider}.` }); if (status === 'packed' && !(delivery.evidence || []).some(item => item.type === 'condition' && item.submittedBy === req.user.id)) return res.status(400).json({ error: 'Upload proof-of-condition before marking an item packed.' }); if (['picked_up', 'in_transit'].includes(status) && providerDetails.trackingRequired && !String(trackingNumber || delivery.trackingNumber).trim()) return res.status(400).json({ error: 'A tracking number is required for this delivery option once it is picked up.' }); if (status === 'picked_up' && !(delivery.evidence || []).some(item => item.type === 'shipment' && item.submittedBy === req.user.id)) return res.status(400).json({ error: 'Upload proof-of-shipment before confirming carrier pickup.' }); delivery.courier = chosenCourier; if (trackingNumber !== undefined) delivery.trackingNumber = String(trackingNumber).trim(); delivery.status = status; recordDeliveryUpdate(delivery, req.user.id, status, String(note).trim()); }
   else return res.status(403).json({ error: 'This delivery update is not allowed.' });
   const otherUser = delivery.buyerId === req.user.id ? delivery.sellerId : delivery.buyerId; notify(otherUser, 'delivery', `${req.user.username} updated delivery status to ${delivery.status.replaceAll('_', ' ')}`, `/delivery/${delivery.id}`); store.save(); res.json(deliveryView(delivery, req.user.id));
 });

@@ -19,6 +19,12 @@ Dark, collector-first marketplace for buying, selling, and trading objects with 
 
 Render injects `DATABASE_URL` from the existing `collector-db` Postgres instance. The server stores account, listing, comment, trade, notification, and feed API state in that database. Local development falls back to `data/store.json` when no `DATABASE_URL` is set.
 
+## Security configuration required before public launch
+
+Set a long, random `DATA_ENCRYPTION_KEY` in Render (at least 32 random bytes, stored only as a Render secret). It enables AES-256-GCM encryption for private shipping profiles. Keep `NODE_ENV=production` so the app rejects plain HTTP at the origin; Render/custom-domain TLS must be configured to serve HTTPS (and should be verified for TLS 1.3 in Render's domain settings). Do not commit any secrets to this repository.
+
+The app uses Argon2id for new password hashes, opaque expiring sessions, login throttling, 2FA enrollment, hashed device identifiers, and event auditing. `BLOCKED_IP_HASHES` is an optional comma-separated denylist of the app's truncated IP hashes; a real IP-reputation service and durable SIEM/logging should be added before relying on automated IP blocking at scale. Licensed escrow/custody is not implemented: PayPal capture is a payment flow, not escrow.
+
 ## Repository layout
 
 - `index.html`, `site.css`, and `site.js` — complete marketplace website served by Express.
