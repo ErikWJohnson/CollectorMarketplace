@@ -20,6 +20,7 @@ const paypalProcessingFixed = 0.49;
 const paypalProcessingFee = amount => Math.round((Math.max(0, Number(amount) || 0) * paypalProcessingRate + paypalProcessingFixed) * 100) / 100;
 const calculatedDeliveryFee = (miles, packaging) => Math.round((Math.max(8, Math.max(0, Number(miles) || 0) * 0.10) + Math.max(0, Number(packaging) || 0)) * 100) / 100;
 const developerPassUsername = 'collectormarketplace';
+const appraisalParrotUserId = 'system-appraisal-parrot';
 const hasDeveloperPass = user => user?.developerPass === true;
 const vipCuratorPrice = 150;
 const vipCuratorDays = 30;
@@ -155,6 +156,10 @@ const marketplaceFeeRate = user => {
   if (hasActiveCuratorMembership(user)) return Math.max(0, .01 - proGamerDiscount - grandCuratorDiscount);
   return Math.max(0, .04 - awards.filter(award => award.earned).reduce((total, award) => total + award.discount, 0));
 };
+if (!store.data.users.some(user => user.id === appraisalParrotUserId)) {
+  store.data.users.push({ id: appraisalParrotUserId, username: 'Appraisal Parrot', email: 'appraisal-parrot@collector.local', password: null, avatar: '🦜', bio: 'A collector research companion. Shares appraisal leads, not authentication or formal valuations.', reputation: 0, following: [], profileTags: ['Appraisal', 'Research', 'Collector Help'], systemAccount: true, createdAt: now() });
+  store.save();
+}
 // Voice audio stays peer-to-peer. These short-lived rooms only carry WebRTC
 // signaling and presence, so no microphone audio is stored by the marketplace.
 const voiceRooms = new Map();
@@ -294,10 +299,46 @@ app.put('/account/shipping-profile', required, (req, res) => { try { const profi
 app.post('/user/:id/follow', required, (req, res) => { if (req.user.id === req.params.id) return res.status(400).json({ error: 'You cannot follow yourself' }); if (!store.data.users.some(u => u.id === req.params.id)) return res.status(404).json({ error: 'User not found' }); const following = req.user.following; const index = following.indexOf(req.params.id); index < 0 ? following.push(req.params.id) : following.splice(index, 1); store.save(); res.json({ following: index < 0 }); });
 app.get('/user/:id/connections', required, (req, res) => { if (req.user.id !== req.params.id) return res.status(403).json({ error: 'Not allowed' }); const following = store.data.users.filter(user => req.user.following.includes(user.id)); const friends = following.filter(user => user.following.includes(req.user.id)); res.json({ following: following.map(publicUser), friends: friends.map(publicUser) }); });
 function conversationView(conversation, userId) { const other = store.data.users.find(user => user.id === conversation.participantIds.find(id => id !== userId)); return { ...conversation, otherUser: publicUser(other) }; }
-app.get('/conversations', required, (req, res) => res.json(store.data.conversations.filter(conversation => conversation.participantIds.includes(req.user.id)).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).map(conversation => conversationView(conversation, req.user.id))));
+app.get('/conversations', required, (req, res) => {
+  let parrotConversation = store.data.conversations.find(conversation => conversation.participantIds.includes(req.user.id) && conversation.participantIds.includes(appraisalParrotUserId) && conversation.participantIds.length === 2);
+  if (!parrotConversation) {
+    parrotConversation = { id: id(), participantIds: [req.user.id, appraisalParrotUserId], messages: [{ id: id(), senderId: appraisalParrotUserId, body: 'Squawk! I’m Appraisal Parrot. Send an item description, a link, or an image, and I’ll help you build a collector research checklist.', createdAt: now() }], createdAt: now(), updatedAt: now() };
+    store.data.conversations.unshift(parrotConversation);
+    store.save();
+  }
+  res.json(store.data.conversations.filter(conversation => conversation.participantIds.includes(req.user.id)).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).map(conversation => conversationView(conversation, req.user.id)));
+});
 app.post('/conversations', required, (req, res) => { const recipientId = req.body.recipientId; if (!recipientId || recipientId === req.user.id || !store.data.users.some(user => user.id === recipientId)) return res.status(400).json({ error: 'Choose another collector to message.' }); let conversation = store.data.conversations.find(row => row.participantIds.includes(req.user.id) && row.participantIds.includes(recipientId) && row.participantIds.length === 2); if (!conversation) { conversation = { id: id(), participantIds: [req.user.id, recipientId], messages: [], createdAt: now(), updatedAt: now() }; store.data.conversations.unshift(conversation); store.save(); } res.status(201).json(conversationView(conversation, req.user.id)); });
 app.get('/conversation/:id', required, (req, res) => { const conversation = store.data.conversations.find(row => row.id === req.params.id && row.participantIds.includes(req.user.id)); if (!conversation) return res.status(404).json({ error: 'Conversation not found' }); res.json(conversationView(conversation, req.user.id)); });
-app.post('/conversation/:id/messages', required, (req, res) => { const conversation = store.data.conversations.find(row => row.id === req.params.id && row.participantIds.includes(req.user.id)); if (!conversation) return res.status(404).json({ error: 'Conversation not found' }); const body = req.body.body?.trim(); if (!body || body.length > 1000) return res.status(400).json({ error: 'Message must be between 1 and 1000 characters.' }); const message = { id: id(), senderId: req.user.id, body, createdAt: now() }; conversation.messages.push(message); conversation.updatedAt = now(); const recipientId = conversation.participantIds.find(userId => userId !== req.user.id); notify(recipientId, 'collector_message', `${req.user.username} sent you a message`, `/conversation/${conversation.id}`); store.save(); res.status(201).json(message); });
+const offensiveChatMessage = value => /\b(?:fuck|shit|bitch|asshole|dick|cunt|retard|kill yourself)\b/i.test(String(value || ''));
+const appraisalParrotReply = ({ body, imageUrl }) => {
+  if (offensiveChatMessage(body)) return "Squawk! Your wasting my time, so I don't l like you.";
+  const text = String(body || '').trim();
+  const details = [
+    /signed|autograph/i.test(text) && 'a clear close-up of every signature and any certificate',
+    /first edition|edition/i.test(text) && 'the copyright page, printing line, and edition statement',
+    /watch|jewelry|gem|gold|silver/i.test(text) && 'maker marks, hallmarks, weight, dimensions, and close-up photos',
+    /game|console|toy|figure/i.test(text) && 'the exact release, packaging details, completeness, and condition',
+    /art|painting|sculpture|print/i.test(text) && 'artist signature, medium, dimensions, provenance, and any labels'
+  ].filter(Boolean);
+  const imageNote = imageUrl ? ' I received the image reference; I can use it alongside your description, but it is not authentication or a pixel-level identification.' : '';
+  if (!text) return `Squawk! I received your image.${imageNote} Tell me the maker, material, era, measurements, condition, and any markings so I can give you a better research lead.`;
+  return `Squawk! My first appraisal lead is to identify the exact maker, era, material, and condition before trusting a value.${imageNote} ${details.length ? `For this item, please share ${details[0]}.` : 'Share any visible marks, dates, edition information, measurements, and provenance.'} I can help turn those details into a research checklist and a realistic value range.`;
+};
+app.post('/conversation/:id/messages', required, (req, res) => {
+  const conversation = store.data.conversations.find(row => row.id === req.params.id && row.participantIds.includes(req.user.id));
+  if (!conversation) return res.status(404).json({ error: 'Conversation not found' });
+  const body = String(req.body.body || '').trim();
+  const imageUrl = String(req.body.imageUrl || '').trim();
+  const validImage = !imageUrl || (/^https:\/\/[\w.-]+\//i.test(imageUrl) || /^data:image\/(jpeg|png|webp);base64,[a-z0-9+/=]+$/i.test(imageUrl));
+  if ((!body && !imageUrl) || body.length > 1000 || imageUrl.length > 5500000 || !validImage) return res.status(400).json({ error: 'Send a message up to 1,000 characters and an optional valid image under 4 MB.' });
+  const message = { id: id(), senderId: req.user.id, body, imageUrl, createdAt: now() };
+  conversation.messages.push(message); conversation.updatedAt = now();
+  const recipientId = conversation.participantIds.find(userId => userId !== req.user.id);
+  if (recipientId === appraisalParrotUserId) conversation.messages.push({ id: id(), senderId: appraisalParrotUserId, body: appraisalParrotReply(message), createdAt: now() });
+  else notify(recipientId, 'collector_message', `${req.user.username} sent you a message`, `/conversation/${conversation.id}`);
+  store.save(); res.status(201).json(message);
+});
 
 function voiceRoomAllowed(roomId, userId) {
   const [kind, targetId] = String(roomId || '').split(':');

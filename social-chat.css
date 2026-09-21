@@ -247,6 +247,7 @@ body.chat-open .app-shell { height: auto; min-height: 100dvh; overflow: visible 
 .trade-paypal-payment p { margin: 0; color: #d2d0c8; font-size: .82rem; line-height: 1.5; }
 .trade-paypal-payment small { color: #aaa69c; font-size: .7rem; line-height: 1.45; }
 .trade-paypal-button-container { width: min(360px, 100%); min-height: 42px; }
+.chat-message{display:grid!important;gap:8px;max-width:min(560px,88%)}.chat-message img{max-width:min(360px,100%);max-height:340px;border:1px solid #596273;background:#111;object-fit:contain}.collector-message-form{grid-template-columns:minmax(0,1fr) auto auto!important;align-items:end}.collector-message-form textarea{grid-column:1/-1}.chat-image-upload{display:inline-flex!important;align-items:center;justify-content:center;min-height:38px;border:1px solid #5f6871;padding:0 10px;background:#1a2028;color:#d7e0e8;font:700 .65rem "DM Mono",monospace;cursor:pointer}.chat-image-upload input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}.chat-image-status{align-self:center;color:#9eb2c5;font:.68rem/1.2 "DM Mono",monospace}.appraisal-parrot-badge{border:1px solid #7fbd70;padding:5px 7px;background:#183124;color:#bdf3a6;font:800 .58rem "DM Mono",monospace;letter-spacing:.08em}@media(max-width:600px){.collector-message-form{grid-template-columns:1fr auto!important}.chat-image-status{grid-column:1/-1}.chat-message img{max-width:100%}}
 
 /* One predictable full-page scroll surface for the trade builder. */
 dialog.trade-dialog:not([open]){display:none!important}
