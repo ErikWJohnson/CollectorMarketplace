@@ -123,6 +123,8 @@ const distanceToVeniceShotPath = (shot, target) => {
   return Math.hypot(target.x - (startX + segmentX * progress), target.y - (startY + segmentY * progress));
 };
 const sellLavaGame = { host: null, frame: 0, restartTimer: 0, started: false, playerX: 24, playerY: 43, velocityY: 0, grounded: true, movingLeft: false, movingRight: false, platforms: [], obstacles: [], enemies: [], shots: [], blasts: [], score: 0, best: Number(localStorage.getItem('collector-marketplace-lava-run-high-score') || 0), lastFrame: 0, lastSpawn: 0, lastEnemy: 0, lastShot: 0, message: 'Press Play to enter the lava platforms.' };
+const platformWorldwideHighScores = Object.create(null);
+const platformWorldwideHighScore = game => Number(platformWorldwideHighScores[game] || 0);
 const gothicHuntGame = { host: null, frame: 0, restartTimer: 0, started: false, playerX: 18, playerY: 0, velocityY: 0, grounded: true, swimming: false, movingLeft: false, movingRight: false, aimDirection: 1, platforms: [], ramps: [], ladders: [], hearts: [], boostPads: [], barrels: [], waters: [], swimZones: [], enemies: [], shots: [], enemyShots: [], room: 1, camera: 0, cameraY: 0, generatedRoom: 0, score: 0, highestAltitude: 0, highestScoredLevel: 1, distance: 0, health: 3, maxHealth: 3, level: 1, xp: 0, xpToNext: 100, invulnerableUntil: 0, best: Number(localStorage.getItem('collector-marketplace-gargoyle-hunt-high-score') || 0), lastFrame: 0, lastEnemyShot: 0, lastBarrel: 0, lastShot: 0, lastSwimKick: 0, message: 'Press Play to climb the castle.' };
 function buildGothicRoom(game, room) {
   const baseY = room * 140;
@@ -151,9 +153,22 @@ function buildGothicRoom(game, room) {
 function gothicScreenX(game, x) { return x - game.camera; }
 function gothicScreenY(game, y) { return y - game.cameraY; }
 function awardGothicXp(amount) { const game=gothicHuntGame; game.xp+=amount; while(game.xp>=game.xpToNext){game.xp-=game.xpToNext;game.level++;game.maxHealth++;game.health=Math.min(game.maxHealth,game.health+1);game.xpToNext=Math.round(game.xpToNext*1.35);playVeniceGameSound(gameLaserAudio,.28);} }
-function renderGothicHuntGame() { const game=gothicHuntGame;if(!game.host?.isConnected)return;const visible=item=>gothicScreenX(game,item.x)>-18&&gothicScreenX(game,item.x)<118;const y=item=>gothicScreenY(game,item.y||0);const platformMarkup=game.platforms.filter(visible).map(p=>`<i class="gothic-hunt-platform${p.ground?' is-ground':''}" style="--x:${gothicScreenX(game,p.x)}%;--y:${y(p)}px;--width:${p.w}%"></i>`).join('');const boostMarkup=game.boostPads.filter(visible).map(p=>`<i class="gothic-hunt-boost" style="--x:${gothicScreenX(game,p.x)}%;--y:${y(p)}px">⇧</i>`).join('');const heartMarkup=game.hearts.filter(h=>!h.collected&&visible(h)).map(h=>`<i class="gothic-hunt-heart" style="--x:${gothicScreenX(game,h.x)}%;--y:${y(h)}px">♥</i>`).join('');const enemyMarkup=game.enemies.filter(visible).map(e=>`<i class="gothic-hunt-enemy${e.barrelThrower?' is-barrel-thrower':''}" style="--x:${gothicScreenX(game,e.x)}%;--y:${y(e)}px">${e.type}</i>`).join('');const wardMarkup=game.shots.filter(visible).map(s=>`<i class="gothic-hunt-shot" style="--x:${gothicScreenX(game,s.x)}%;--y:${y(s)}px">✦</i>`).join('');const curseMarkup=game.enemyShots.filter(visible).map(s=>`<i class="gothic-hunt-curse" style="--x:${gothicScreenX(game,s.x)}%;--y:${y(s)}px">●</i>`).join('');const barrelMarkup=game.barrels.filter(visible).map(b=>`<i class="gothic-hunt-barrel" style="--x:${gothicScreenX(game,b.x)}%;--y:${y(b)}px">🛢️</i>`).join('');const hearts='♥'.repeat(game.health)+'♡'.repeat(Math.max(0,game.maxHealth-game.health));game.host.innerHTML=`<section class="gothic-hunt-game"><header><b>GARGOYLE HUNT</b><span>${hearts} · LV ${game.level} · XP ${game.xp}/${game.xpToNext} · FLOOR ${Math.floor(game.cameraY/44)+1} · ${game.roomName||'Moonlit Courtyard'} · Score ${String(Math.floor(game.score)).padStart(4,'0')} · Aim ${game.aimDirection < 0 ? '←' : '→'}</span></header><div class="gothic-hunt-field" style="--run-scroll:${game.camera*.9}px;--tower-scroll:${game.cameraY}px"><i class="gothic-hunt-ground"></i>${platformMarkup}${boostMarkup}${heartMarkup}${enemyMarkup}${barrelMarkup}${wardMarkup}${curseMarkup}<i class="gothic-hunt-player${game.grounded?' is-grounded':''}${performance.now()<game.invulnerableUntil?' is-hit':''}" style="--x:${gothicScreenX(game,game.playerX)}%;--y:${gothicScreenY(game,game.playerY)}px;--facing:${game.aimDirection}" aria-label="Robot guardian" role="img">⚔</i>${!game.started?`<div class="gothic-hunt-toast"><span>${game.message}</span></div>`:''}</div><footer><small>Climb the castle · A/D or ←/→ move · [ ] move + aim · = leap · \` ward · 1 block / deflect</small><div><button type="button" data-gothic-hunt-left aria-label="Move left">←</button><button type="button" data-gothic-hunt-jump>Leap</button><button type="button" data-gothic-hunt-shoot>Ward</button><button type="button" data-gothic-hunt-right aria-label="Move right">→</button><button type="button" data-gothic-hunt-play>${game.started?'Restart':'Play'}</button></div></footer></section>`; }
+function renderGothicHuntGame() {
+  const game = gothicHuntGame; if (!game.host?.isConnected) return;
+  const visible = item => gothicScreenX(game, item.x) > -18 && gothicScreenX(game, item.x) < 118;
+  const y = item => gothicScreenY(game, item.y || 0);
+  const platformMarkup = game.platforms.filter(visible).map(p => `<i class="gothic-hunt-platform${p.ground ? ' is-ground' : ''}" style="--x:${gothicScreenX(game,p.x)}%;--y:${y(p)}px;--width:${p.w}%"></i>`).join('');
+  const boostMarkup = game.boostPads.filter(visible).map(p => `<i class="gothic-hunt-boost" style="--x:${gothicScreenX(game,p.x)}%;--y:${y(p)}px">⇧</i>`).join('');
+  const heartMarkup = game.hearts.filter(h => !h.collected && visible(h)).map(h => `<i class="gothic-hunt-heart" style="--x:${gothicScreenX(game,h.x)}%;--y:${y(h)}px">♥</i>`).join('');
+  const enemyMarkup = game.enemies.filter(visible).map(e => `<i class="gothic-hunt-enemy${e.barrelThrower ? ' is-barrel-thrower' : ''}" style="--x:${gothicScreenX(game,e.x)}%;--y:${y(e)}px">${e.type}</i>`).join('');
+  const wardMarkup = game.shots.filter(visible).map(s => `<i class="gothic-hunt-shot" style="--x:${gothicScreenX(game,s.x)}%;--y:${y(s)}px">✦</i>`).join('');
+  const curseMarkup = game.enemyShots.filter(visible).map(s => `<i class="gothic-hunt-curse" style="--x:${gothicScreenX(game,s.x)}%;--y:${y(s)}px">●</i>`).join('');
+  const barrelMarkup = game.barrels.filter(visible).map(b => `<i class="gothic-hunt-barrel" style="--x:${gothicScreenX(game,b.x)}%;--y:${y(b)}px">🛢️</i>`).join('');
+  const hearts = '♥'.repeat(game.health) + '♡'.repeat(Math.max(0, game.maxHealth - game.health));
+  game.host.innerHTML = `<section class="gothic-hunt-game"><header><b>GARGOYLE HUNT</b><span>${hearts} · LV ${game.level} · XP ${game.xp}/${game.xpToNext} · FLOOR ${Math.floor(game.cameraY/44)+1} · ${game.roomName || 'Moonlit Courtyard'} · Score ${String(Math.floor(game.score)).padStart(4,'0')} · Aim ${game.aimDirection < 0 ? '←' : '→'}</span><em class="gothic-hunt-world-score">WORLD ${String(platformWorldwideHighScore('goblin-run')).padStart(4,'0')} · YOU ${String(game.best).padStart(4,'0')}</em></header><div class="gothic-hunt-field" style="--run-scroll:${game.camera*.9}px;--tower-scroll:${game.cameraY}px"><i class="gothic-hunt-ground"></i>${platformMarkup}${boostMarkup}${heartMarkup}${enemyMarkup}${barrelMarkup}${wardMarkup}${curseMarkup}<i class="gothic-hunt-player${game.grounded ? ' is-grounded' : ''}${performance.now() < game.invulnerableUntil ? ' is-hit' : ''}" style="--x:${gothicScreenX(game,game.playerX)}%;--y:${gothicScreenY(game,game.playerY)}px;--facing:${game.aimDirection}" aria-label="Robot guardian" role="img">⚔</i>${!game.started ? `<div class="gothic-hunt-toast"><span>${game.message}</span></div>` : ''}</div><footer><small>Climb the castle · A/D or ←/→ move · [ ] move + aim · = leap · \` ward · 1 block / deflect</small><div><button type="button" data-gothic-hunt-left aria-label="Move left">←</button><button type="button" data-gothic-hunt-jump>Leap</button><button type="button" data-gothic-hunt-shoot>Ward</button><button type="button" data-gothic-hunt-right aria-label="Move right">→</button><button type="button" data-gothic-hunt-play>${game.started ? 'Restart' : 'Play'}</button></div></footer></section>`;
+}
 function resetGothicHuntGame() { const game = gothicHuntGame; game.playerX = 18; game.playerY = 0; game.velocityY = 0; game.grounded = true; game.swimming = false; game.movingLeft = false; game.movingRight = false; game.aimDirection=1; game.platforms = []; game.ramps=[]; game.ladders=[]; game.hearts=[]; game.boostPads=[]; game.barrels=[]; game.waters=[]; game.swimZones=[]; game.enemies = []; game.shots = []; game.enemyShots = []; game.room = 1; game.camera = 0; game.cameraY=0; game.generatedRoom = -1; game.score = 0; game.highestAltitude=0; game.highestScoredLevel=1; game.distance = 0; game.health = 3; game.maxHealth=3; game.level=1; game.xp=0; game.xpToNext=100; game.invulnerableUntil = 0; game.lastFrame = performance.now(); game.lastEnemyShot = performance.now(); game.lastBarrel=performance.now(); game.lastShot = 0; game.lastSwimKick=0; game.message = 'Press Play to climb the castle.'; buildGothicRoom(game,0); buildGothicRoom(game,1); buildGothicRoom(game,2); buildGothicRoom(game,3); }
-function endGothicHuntGame(message) { const game = gothicHuntGame; game.started = false; game.movingLeft = false; game.movingRight = false; game.best = Math.max(game.best, Math.floor(game.score)); localStorage.setItem('collector-marketplace-gargoyle-hunt-high-score', String(game.best)); game.message = `${message} Restarting…`; renderGothicHuntGame(); clearTimeout(game.restartTimer); game.restartTimer = window.setTimeout(() => { if (game.host?.isConnected && document.body.classList.contains('app-section-purchase')) launchGothicHuntGame(); }, 1400); }
+function endGothicHuntGame(message) { const game = gothicHuntGame; game.started = false; game.movingLeft = false; game.movingRight = false; game.best = Math.max(game.best, Math.floor(game.score)); localStorage.setItem('collector-marketplace-gargoyle-hunt-high-score', String(game.best)); submitPlatformScore('goblin-run', game.best); game.message = `${message} Restarting…`; renderGothicHuntGame(); clearTimeout(game.restartTimer); game.restartTimer = window.setTimeout(() => { if (game.host?.isConnected && document.body.classList.contains('app-section-purchase')) launchGothicHuntGame(); }, 1400); }
 function leapGothicHunter() { const game = gothicHuntGame; const stamp=performance.now(); if (!game.started || (!game.grounded && !game.swimming) || (game.swimming && stamp-game.lastSwimKick<230)) return; game.velocityY = game.swimming ? .30 : .44; game.grounded = false; game.lastSwimKick=stamp; playVeniceGameSound(gameLaserAudio, .16); }
 function fireGothicWard() { const game = gothicHuntGame; const stamp = performance.now(); if (!game.started || stamp - game.lastShot < 260) return; game.lastShot = stamp; game.shots.push({ x: game.playerX + game.aimDirection * 4, y: game.playerY + 17, direction: game.aimDirection }); playVeniceGameSound(gameLaserAudio, .22); }
 function blockGothicHunter() { const game = gothicHuntGame; const stamp = performance.now(); if (!game.started || stamp < (game.blockCooldownUntil || 0)) return; game.blockCooldownUntil = stamp + 650; game.blockUntil = stamp + 430; game.invulnerableUntil = Math.max(game.invulnerableUntil, game.blockUntil); const deflected = game.enemyShots.filter(shot => Math.abs(shot.x - game.playerX) < 18 && Math.abs(shot.y - (game.playerY + 17)) < 34); game.enemyShots = game.enemyShots.filter(shot => !deflected.includes(shot)); deflected.forEach(() => game.shots.push({ x: game.playerX + game.aimDirection * 5, y: game.playerY + 17, direction: game.aimDirection })); game.host?.classList.add('is-blocking'); window.setTimeout(() => game.host?.classList.remove('is-blocking'), 440); playVeniceGameSound(gameLaserAudio, .14); }
@@ -200,7 +215,7 @@ document.addEventListener('keydown', event => { if (!gothicHuntGame.started || !
 document.addEventListener('keyup', event => { if (event.code === 'KeyA' || event.code === 'ArrowLeft' || event.code === 'BracketLeft') gothicHuntGame.movingLeft = false; if (event.code === 'KeyD' || event.code === 'ArrowRight' || event.code === 'BracketRight') gothicHuntGame.movingRight = false; });
 document.addEventListener('keydown', event => { if (event.code !== 'Digit1' || !gothicHuntGame.started || !gothicHuntGame.host?.isConnected || !canUseAutoScroll(event.target)) return; event.preventDefault(); if (!event.repeat) blockGothicHunter(); });
 function renderSellLavaGame() {
-  const game = sellLavaGame; if (!game.host?.isConnected) return;
+  const game = sellLavaGame; if (!game.host?.isConnected) return; game.host.dataset.worldScore = String(platformWorldwideHighScore('lava-run'));
   const platform = item => `<i class="sell-lava-platform" style="--platform-x:${item.x}%;--platform-y:${item.y}px;--platform-width:${item.width}%;--platform-height:${item.height}px" aria-hidden="true"></i>`;
   const obstacle = item => item.type === 'block' ? `<i class="sell-lava-block" style="--obstacle-x:${item.x}%;--obstacle-y:${item.y}px;--obstacle-height:${item.height}px" aria-hidden="true"></i>` : `<i class="sell-lava-spike" style="--obstacle-x:${item.x}%;--obstacle-y:${item.y}px" aria-hidden="true"></i>`;
   const enemy = item => `<i class="sell-lava-enemy" style="--enemy-x:${item.x}%;--enemy-y:${item.y}px" aria-label="Lava drone" role="img">🛸</i>`;
@@ -242,7 +257,7 @@ document.addEventListener('click', event => { if (event.target.closest('[data-se
 document.addEventListener('keydown', event => { if (!sellLavaGame.started || !document.body.classList.contains('app-section-listing') || !canUseAutoScroll(event.target)) return; if (event.code === 'Equal') { event.preventDefault(); if (!event.repeat) jumpSellLavaRunner(); } if (event.code === 'Backquote') { event.preventDefault(); if (!event.repeat) shootSellLavaRunner(); } if (event.code === 'BracketLeft') { event.preventDefault(); sellLavaGame.movingLeft = true; } if (event.code === 'BracketRight') { event.preventDefault(); sellLavaGame.movingRight = true; } });
 document.addEventListener('keyup', event => { if (event.code === 'BracketLeft') sellLavaGame.movingLeft = false; if (event.code === 'BracketRight') sellLavaGame.movingRight = false; });
 function renderVeniceSailingGame() {
-  const game = veniceSailingGame; if (!game.host?.isConnected) return;
+  const game = veniceSailingGame; if (!game.host?.isConnected) return; game.host.dataset.worldScore = String(platformWorldwideHighScore('venice-cannon'));
   const player = veniceOrbitPoint(game.playerAngle); const enemy = veniceOrbitPoint(game.enemyAngle);
   const ship = (className, point, emoji, label) => `<div class="sailing-emoji-ship ${className}" style="left:${point.x}%;top:${point.y}%" aria-label="${label}" role="img">${emoji}</div>`;
   const shot = (item, enemyShot = false) => `<i class="sailing-cannonball${enemyShot ? ' enemy' : ''}" style="left:${item.x}%;top:${item.y}%;transform:rotate(${item.angle}deg)"></i>`;
@@ -671,7 +686,7 @@ function startRocketGame(node) {
   renderRocketGameHud();
 }
 function renderRocketGameHud() {
-  const game = conveyorRocketGame; if (!game.hud) return;
+  const game = conveyorRocketGame; if (!game.hud) return; game.hud.dataset.worldScore = String(platformWorldwideHighScore('star-run'));
   if (!game.started) { game.hud.innerHTML = `<button type="button" data-star-run-play title="Press Play to launch STAR RUN">▶ STAR RUN · PLAY</button><small>HIGH ${String(game.highScore).padStart(6, '0')}</small>`; return; }
   game.hud.innerHTML = `<b>STAR RUN</b><span>SCORE ${String(game.score).padStart(6, '0')} · HIGH ${String(game.highScore).padStart(6, '0')}</span><small>HULL ${'●'.repeat(game.hull)}${'○'.repeat(3 - game.hull)}</small><em><strong>[</strong> <strong>]</strong> TURN · <strong>=</strong> BOOST · <strong>\`</strong> LASER</em>`;
 }
@@ -779,7 +794,7 @@ function puppyStartingPlatforms() {
   ];
 }
 function renderPuppyJumpHud() {
-  const game = puppyJumpGame; if (!game.hud) return;
+  const game = puppyJumpGame; if (!game.hud) return; game.hud.dataset.worldScore = String(platformWorldwideHighScore('puppy-jump'));
   if (game.restarting) {
     game.hud.innerHTML = `<b>PUPPY JUMP</b><span>RUN COMPLETE · ${String(game.score).padStart(6, '0')}</span><small>NEW CLOUD RUN STARTING…</small>`;
     return;
@@ -934,7 +949,7 @@ function auctionBlocksCollide(piece = auctionBlocks.piece, x = auctionBlocks.x, 
   return piece.some((row, rowIndex) => row.some((filled, colIndex) => filled && (x + colIndex < 0 || x + colIndex >= 10 || y + rowIndex >= 16 || (y + rowIndex >= 0 && auctionBlocks.board[y + rowIndex][x + colIndex]))));
 }
 function renderAuctionBlocks() {
-  const game = auctionBlocks; if (!game.host?.isConnected) return;
+  const game = auctionBlocks; if (!game.host?.isConnected) return; game.host.dataset.worldScore = String(platformWorldwideHighScore('auction-falls'));
   const display = game.board.map(row => [...row]);
   if (game.piece) game.piece.forEach((row, rowIndex) => row.forEach((filled, colIndex) => { const y = game.y + rowIndex; const x = game.x + colIndex; if (filled && y >= 0 && y < 16 && x >= 0 && x < 10) display[y][x] = 2; }));
   const status = game.settling ? 'Gravity is settling loose blocks…' : game.started ? '[ ] move · = rotate · ` drops · row bombs appear' : game.gameOver ? 'Water swept the stack away · Play again' : '[ ] move · = rotate · ` drops · row bombs appear';
@@ -1050,7 +1065,7 @@ document.addEventListener('keydown', event => {
 // Its controls mirror the other site games without capturing normal typing.
 const jungleChatGame = { host: null, timer: 0, started: false, lane: 1, jump: 0, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-canopy-run-high-score') || 0), hazards: [], lastHazard: 0, lastTick: 0, gameOver: false };
 function renderJungleChatGame() {
-  const game = jungleChatGame; if (!game.host?.isConnected) return;
+  const game = jungleChatGame; if (!game.host?.isConnected) return; game.host.dataset.worldScore = String(platformWorldwideHighScore('canopy-run'));
   const status = game.started ? '[ ] move · = leap · ` swipe' : game.gameOver ? 'Caught in the vines · Play again' : 'Run the canopy between messages';
   game.host.innerHTML = `<section class="jungle-chat-game"><header><b>CANOPY RUN</b><span>${String(game.score).padStart(4, '0')} · HI ${String(game.highScore).padStart(4, '0')}</span></header><div class="jungle-run-field"><i class="jungle-runner ${game.jump ? 'is-jumping' : ''}" style="--lane:${game.lane}">🦜</i>${game.hazards.map(hazard => `<i class="jungle-hazard" style="--lane:${hazard.lane};--y:${hazard.y}%">${hazard.type}</i>`).join('')}</div><footer>${game.started ? '<button type="button" data-jungle-game-stop>Pause</button>' : '<button type="button" data-jungle-game-play>▶ Play</button>'}<small>${status}</small></footer></section>`;
 }
@@ -1349,10 +1364,19 @@ function submitPlatformScore(game, score) {
   if (!session?.token || !Number.isFinite(Number(score)) || Number(score) <= 0) return;
   api('/scoreboard/score', { method: 'POST', body: JSON.stringify({ game, score: Math.floor(Number(score)) }) }).then(result => {
     if (!result?.user) return;
+    platformWorldwideHighScores[game] = Math.max(platformWorldwideHighScore(game), Number(result.highScore || 0));
     session = { ...session, user: { ...session.user, ...result.user } };
     accounts = accounts.map(account => account.id === result.user.id ? { ...account, ...result.user } : account);
     saveSession(session);
+    renderGothicHuntGame(); renderSellLavaGame(); renderVeniceSailingGame(); renderAuctionBlocks(); renderJungleChatGame(); renderRocketGameHud(); renderPuppyJumpHud();
   }).catch(() => {});
+}
+async function refreshPlatformWorldwideHighScores() {
+  try {
+    const data = await fetch('/scoreboard').then(response => response.ok ? response.json() : null);
+    for (const game of data?.games || []) platformWorldwideHighScores[game.id] = Number(game.leaderboard?.[0]?.score || 0);
+    renderGothicHuntGame(); renderSellLavaGame(); renderVeniceSailingGame(); renderAuctionBlocks(); renderJungleChatGame(); renderRocketGameHud(); renderPuppyJumpHud();
+  } catch { /* Scoreboards remain available from the next refresh. */ }
 }
 let paypalSdkPromise;
 async function ensurePayPalSdk() {
@@ -2266,6 +2290,7 @@ async function handleGoogleLoginResult() {
   openAccountPanel();
 }
 Promise.all([loadMarket(), Promise.all([fetch('data/auctions.json').then(response => response.json()), fetch('/auctions').then(response => response.ok ? response.json() : [])]), fetch('/users').then(response => response.ok ? response.json() : []), fetch('/collectives').then(response => response.ok ? response.json() : []), fetch('/brands').then(response => response.ok ? response.json() : []), fetch('/couriers').then(response => response.ok ? response.json() : []), fetch('/chatrooms').then(response => response.ok ? response.json() : [])]).then(async ([, [featuredLots, userLots], accountDirectory, collectiveDirectory, brandDirectory, courierDirectory, chatroomDirectory]) => { accounts = accountDirectory; collectives = collectiveDirectory; brands = brandDirectory; couriers = courierDirectory; chatrooms = chatroomDirectory; auctions = [...featuredLots, ...userLots].map(lot => { const [hours = 0, minutes = 0, seconds = 0] = String(lot.ends || '').split(':').map(Number); const configuredEnd = lot.endAt ? new Date(lot.endAt).valueOf() : 0; return { ...lot, endAt: lot.auctionEndless ? Infinity : Number.isFinite(configuredEnd) && configuredEnd > Date.now() ? configuredEnd : Date.now() + ((hours * 3600 + minutes * 60 + seconds) * 1000) }; }); applyTagRoute(); applyHashLocation(); observer = new IntersectionObserver(entries => { if (entries[0].isIntersecting && page * 4 < filtered().length) { page++; renderFeed(false); } }, { rootMargin: '250px' }); observer.observe(sentinel); await handlePayPalCheckoutResult(); await handleGoogleLoginResult(); }).catch(() => { stream.innerHTML = '<p class="load-state">The marketplace feed could not load. Please refresh the page.</p>'; });
+refreshPlatformWorldwideHighScores();
 window.addEventListener('popstate', () => {
   restoringWorkspaceHistory = true;
   if (modal.open) modal.close();

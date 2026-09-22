@@ -274,7 +274,12 @@ body.app-section-purchase .paypal-button-container { border:1px solid rgba(180,1
 .gothic-hunt-game footer small::after { content:'Climb the castle · A/D or ←/→ move · [ ] move + aim · = leap · ` ward · 1 block / deflect'; color:#d5eff8; font-size:.64rem; }
 .gothic-hunt-water { display:none; }
 .gothic-hunt-game-host { position:relative; }
-.gothic-hunt-game-host::before { content:'HIGH SCORE ' attr(data-high-score); position:absolute; z-index:7; top:10px; right:13px; color:#f3d67c; font:700 .62rem/1 "DM Mono",monospace; letter-spacing:.08em; text-shadow:0 1px 1px #000; }
+.gothic-hunt-game-host::before { display:none; }
+.gothic-hunt-game header { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; min-height:42px; }
+.gothic-hunt-game header span { text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.gothic-hunt-world-score { color:#f3d67c; font:700 .62rem/1 "DM Mono",monospace; font-style:normal; letter-spacing:.06em; white-space:nowrap; text-align:right; }
+.sell-lava-game-host,.account-sailing-game-host,.auction-block-game-host,.jungle-chat-game-host,.rocket-game-hud,.puppy-game-hud { position:relative; }
+.sell-lava-game-host[data-world-score]::after,.account-sailing-game-host[data-world-score]::after,.auction-block-game-host[data-world-score]::after,.jungle-chat-game-host[data-world-score]::after,.rocket-game-hud[data-world-score]::after,.puppy-game-hud[data-world-score]::after { content:'WORLD ' attr(data-world-score); position:absolute; z-index:8; right:10px; top:9px; color:#f3d67c; font:700 .58rem/1 "DM Mono",monospace; letter-spacing:.07em; text-shadow:0 1px 2px #000; pointer-events:none; }
 .gothic-hunt-game-host[data-aim="left"] .gothic-hunt-player::after { transform:scaleX(-1); }
 .gothic-hunt-boost,.gothic-hunt-barrel { position:absolute; z-index:4; left:var(--x); bottom:calc(32px + var(--y)); translate:-50% 0; font-style:normal; }
 .gothic-hunt-boost { color:#b6f9ff; font:900 22px/1 sans-serif; text-shadow:0 0 5px #1ed9ff,0 0 14px #1f8ca9; animation:gothic-hunt-boost-pulse .6s ease-in-out infinite alternate; }

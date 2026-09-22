@@ -178,7 +178,7 @@ class Store {
   }
 }
 const store = new Store();
-const platformGames = new Set(['star-run', 'puppy-jump', 'auction-falls', 'canopy-run', 'venice-cannon', 'lava-run']);
+const platformGames = new Set(['star-run', 'puppy-jump', 'auction-falls', 'canopy-run', 'venice-cannon', 'lava-run', 'goblin-run']);
 const completedItemCount = user => store.data.deliveries.filter(delivery => delivery.status === 'completed' && (delivery.buyerId === user?.id || delivery.sellerId === user?.id)).length;
 const platformScoreboard = game => store.data.users.map(user => ({ user, score: Math.max(0, Number(user.platformScores?.[game]) || 0) })).filter(row => row.score > 0);
 const isLeaderboardChampion = user => [...platformGames].some(game => {
