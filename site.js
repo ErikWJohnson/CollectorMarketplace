@@ -128,16 +128,22 @@ const platformWorldwideHighScore = game => Number(platformWorldwideHighScores[ga
 const gothicHuntGame = { host: null, frame: 0, restartTimer: 0, started: false, playerX: 18, playerY: 0, velocityY: 0, grounded: true, swimming: false, movingLeft: false, movingRight: false, aimDirection: 1, platforms: [], ramps: [], ladders: [], hearts: [], boostPads: [], barrels: [], waters: [], swimZones: [], enemies: [], boss: null, shots: [], enemyShots: [], room: 1, camera: 0, cameraY: 0, generatedRoom: 0, score: 0, highestAltitude: 0, highestScoredLevel: 1, distance: 0, health: 3, maxHealth: 3, level: 1, xp: 0, xpToNext: 100, invulnerableUntil: 0, best: Number(localStorage.getItem('collector-marketplace-gargoyle-hunt-high-score') || 0), lastFrame: 0, lastEnemyShot: 0, lastBarrel: 0, lastShot: 0, lastSwimKick: 0, message: 'Press Play to climb the castle.' };
 function buildGothicRoom(game, room) {
   const baseY = room * 140;
-  [0, 44, 88, 132].forEach((offset,index) => {
-    const y = baseY + offset;
-    game.platforms.push({x:0,y,w:150,starter:!room && !index});
-    // Full-width floors make every climb reachable.  Boost pads must remain
-    // optional, otherwise landing on any floor instantly launches the player
-    // again and leaves the game uncontrollable.
-    if (index === 3) game.boostPads.push({x:64,y,w:22});
-    if (index === 1 || (room + index) % 3 === 0) game.hearts.push({x:75,y:y + 25,collected:false});
-    if (index === 2) game.enemies.push({x:126,y,type:room % 3 === 0 ? '♞' : '☠',speed:.5 + Math.random() * .24,left:12,right:138,direction:Math.random() > .5 ? 1 : -1});
-    if (index === 3) game.enemies.push({x:18,y,type:'🐄',barrelThrower:true,speed:0,left:18,right:18,direction:0});
+  const routes = [
+    [{ x:16, y:44, w:36 }, { x:58, y:88, w:32 }, { x:98, y:132, w:38 }],
+    [{ x:96, y:44, w:36 }, { x:56, y:88, w:32 }, { x:16, y:132, w:38 }]
+  ];
+  const route = routes[room % routes.length];
+  if (!room) game.platforms.push({ x:0, y:0, w:52, starter:true });
+  route.forEach((platform, index) => {
+    const x = platform.x;
+    const y = baseY + platform.y;
+    game.platforms.push({ x, y, w:platform.w });
+    if (index === 1 || (room + index) % 3 === 0) game.hearts.push({ x:x + platform.w / 2, y:y + 25, collected:false });
+    if (index === 1) game.enemies.push({ x:x + platform.w - 8, y, type:room % 3 === 0 ? '♞' : '☠', speed:.5 + Math.random() * .24, left:x + 4, right:x + platform.w - 4, direction:Math.random() > .5 ? 1 : -1 });
+    if (index === 2) {
+      game.boostPads.push({ x:x + platform.w / 2 - 6, y, w:12 });
+      game.enemies.push({ x:x + 8, y, type:'🐄', barrelThrower:true, speed:0, left:x + 8, right:x + 8, direction:0 });
+    }
   });
   game.generatedRoom = room;
 }
