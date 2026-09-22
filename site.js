@@ -143,7 +143,7 @@ function buildGothicRoom(game, room) {
     game.enemies.push({x:x + platform.w - 8,y,type:room % 3 === 0 ? '♞' : '☠',speed:.5 + Math.random() * .24,left:x + 4,right:x + platform.w - 4,direction:Math.random() > .5 ? 1 : -1});
     if (index === 2) {
       game.boostPads.push({x:x + platform.w / 2,y});
-      game.enemies.push({x:x + 8,y,type:'🦍',barrelThrower:true,speed:0,left:x + 8,right:x + 8,direction:0});
+      game.enemies.push({x:x + 8,y,type:'🐄',barrelThrower:true,speed:0,left:x + 8,right:x + 8,direction:0});
     }
   });
   game.generatedRoom = room;
