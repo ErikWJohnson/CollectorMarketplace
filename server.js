@@ -527,24 +527,19 @@ app.get('/listing/:id/artifact-lore', async (req, res) => {
   const listing = store.data.listings.find(row => row.id === req.params.id);
   if (!listing) return res.status(404).json({ error: 'Listing not found' });
   try {
-    const tags = Array.isArray(listing.tags) ? listing.tags.filter(Boolean).slice(0, 5) : [];
-    const query = [listing.title, listing.category, listing.condition, ...tags].filter(Boolean).join(' ');
-    const hasImageReference = Boolean(listing.image || listing.images?.length);
-    const metadataSignals = [
-      `Title: ${listing.title}`,
-      listing.category && `Category: ${listing.category}`,
-      listing.condition && `Condition: ${listing.condition}`,
-      tags.length && `Tags: ${tags.join(', ')}`,
-      hasImageReference ? 'Listing photo: included as a visual reference' : 'Listing photo: not provided'
-    ].filter(Boolean);
-    const candidateQueries = [...new Set([listing.title, query, [listing.category, ...tags.slice(0, 2)].filter(Boolean).join(' ')].filter(value => String(value).trim()))];
+    const imageUrl = String(listing.image || listing.images?.[0] || '');
+    const imageCue = imageUrl ? decodeURIComponent(imageUrl.split('?')[0].split('/').pop() || '').replace(/\.[a-z0-9]{2,5}$/i, '').replace(/[-_]+/g, ' ').replace(/\b(image|img|photo|upload|copy|final|edited)\b/gi, '').replace(/\s+/g, ' ').trim() : '';
+    const query = String(listing.title || '').trim();
+    // Artifact Lore deliberately ignores tags, category, condition, and seller copy.
+    // A meaningful image filename is used only as a secondary public-reference cue.
+    const candidateQueries = [...new Set([query, imageCue.length >= 3 ? imageCue : ''].filter(value => String(value).trim()))];
     let lore = null;
     let matchedQuery = '';
     for (const candidate of candidateQueries) {
       lore = await getArtifactLore(candidate, { strict: true });
       if (lore) { matchedQuery = candidate; break; }
     }
-    res.json({ listingId: listing.id, lore, source: lore ? `${lore.provider || 'Public'} historical reference · matched from “${matchedQuery}”` : 'No sufficiently relevant public historical summary was found.', research: { query, resultType: lore ? 'historical-summary' : 'none', provider: lore?.provider || null } });
+    res.json({ listingId: listing.id, lore, source: lore ? `${lore.provider || 'Public'} historical reference · matched from ${matchedQuery === imageCue ? 'image metadata' : 'item name'} “${matchedQuery}”` : 'No sufficiently relevant public historical summary was found.', research: { query, imageCue: imageCue || null, resultType: lore ? 'historical-summary' : 'none', provider: lore?.provider || null } });
   } catch (error) {
     res.status(502).json({ error: error.message || 'Artifact Lore research is temporarily unavailable.' });
   }
