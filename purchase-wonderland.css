@@ -266,7 +266,7 @@ body.app-section-purchase .paypal-button-container { border:1px solid rgba(180,1
 .gothic-hunt-game footer small { font-size:0; }.gothic-hunt-game footer small::after { content:'Castle platformer · [ ] run up/down ramps · = leap / swim · ` ward · 1 block / deflect'; font-size:.64rem; }
 .gothic-hunt-heart { position:absolute; z-index:4; bottom:calc(32px + var(--y)); left:var(--x); translate:-50% 0; color:#ff6c83; font:normal 21px serif; text-shadow:0 0 13px #ffbac5; animation:gothic-hunt-bob .75s ease-in-out infinite alternate; }
 .gothic-hunt-player.is-swimming { animation:gothic-hunt-swim .55s ease-in-out infinite alternate; }
-.gothic-hunt-player { font-size:0; border-color:#8ce8ff; background:linear-gradient(135deg,#6f8696,#142634); box-shadow:inset 0 0 0 4px #07131e,0 5px 0 #050709,0 0 15px rgba(103,221,255,.22); }
+.gothic-hunt-player { font-size:0; width:30px; height:30px; border:0; background:transparent; box-shadow:none; }
 .gothic-hunt-player::after { content:'🤖'; font-size:23px; filter:drop-shadow(0 0 4px #8ce8ff); }
 .gothic-hunt-game-host.is-blocking .gothic-hunt-player { border-color:#fff2a6; box-shadow:inset 0 0 0 4px #17202a,0 0 0 6px rgba(164,232,255,.28),0 0 25px #d6f8ff; }
 .gothic-hunt-game-host.is-blocking .gothic-hunt-player::before { content:'◈'; position:absolute; inset:-16px; display:grid; place-items:center; border:2px solid rgba(202,244,255,.9); border-radius:50%; color:#e6fbff; font-size:28px; animation:gothic-hunt-block .16s linear infinite alternate; }
