@@ -67,6 +67,30 @@ const chatRoomCatalog = [
   { id: 'watch-club', name: 'Watch Club', description: 'A room for timepieces, jewelry, luxury, and craftsmanship.', tags: ['Watches', 'Fine Jewelry', 'Luxury'], members: 29 }
 ];
 const artifactLoreCache = new Map();
+const fandomWikis = [
+  { terms: ['skylanders'], wiki: 'skylanders' }, { terms: ['diablo', 'blizzard'], wiki: 'diablo' },
+  { terms: ['pokemon', 'pokémon'], wiki: 'pokemon' }, { terms: ['minecraft'], wiki: 'minecraft' },
+  { terms: ['star wars'], wiki: 'starwars' }, { terms: ['marvel'], wiki: 'marvel' },
+  { terms: ['dc comics', 'batman', 'superman'], wiki: 'dc' }, { terms: ['lego'], wiki: 'lego' },
+  { terms: ['sonic'], wiki: 'sonic' }, { terms: ['transformers'], wiki: 'transformers' }
+];
+const getFandomArtifactLore = async (query, headers) => {
+  const normalized = String(query || '').toLowerCase();
+  const match = fandomWikis.find(candidate => candidate.terms.some(term => normalized.includes(term)));
+  if (!match) return null;
+  try {
+    const search = await fetch(`https://${match.wiki}.fandom.com/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=5&format=json&origin=*`, { headers });
+    const data = search.ok ? await search.json() : {};
+    const result = data.query?.search?.[0];
+    if (!result?.title) return null;
+    const page = await fetch(`https://${match.wiki}.fandom.com/api.php?action=query&prop=extracts&exintro=1&explaintext=1&titles=${encodeURIComponent(result.title)}&format=json&origin=*`, { headers });
+    const pageData = page.ok ? await page.json() : {};
+    const article = Object.values(pageData.query?.pages || {})[0] || {};
+    const extract = String(article.extract || result.snippet || '').replace(/<[^>]+>/g, '').trim();
+    if (!extract) return null;
+    return { title: article.title || result.title, description: `${match.wiki}.fandom.com community reference`, extract, url: `https://${match.wiki}.fandom.com/wiki/${encodeURIComponent(String(article.title || result.title).replace(/ /g, '_'))}`, provider: 'Fandom' };
+  } catch { return null; }
+};
 const getArtifactLore = async (title, { strict = false } = {}) => {
   const query = String(title || '').replace(/[^\w\s&'’-]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
   if (!query) return null;
@@ -95,14 +119,14 @@ const getArtifactLore = async (title, { strict = false } = {}) => {
     const rankedCandidates = candidates.filter(result => result?.key).map(scoreResult).sort((left, right) => right.score - left.score);
     let result = rankedCandidates[0]?.result;
     if (strict && (!rankedCandidates[0] || rankedCandidates[0].titleMatches.length < Math.min(2, researchTerms.length))) result = null;
-    if (!result?.key) return null;
+    if (!result?.key) return getFandomArtifactLore(query, headers);
     const summaryResponse = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(result.key)}`, { headers });
     const summary = summaryResponse.ok ? await summaryResponse.json() : {};
-    const value = { title: summary.title || result.title, description: summary.description || result.description || '', extract: summary.extract || result.snippet || '', url: summary.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodeURIComponent(result.key)}` };
+    const value = { title: summary.title || result.title, description: summary.description || result.description || '', extract: summary.extract || result.snippet || '', url: summary.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodeURIComponent(result.key)}`, provider: 'Wikipedia' };
     artifactLoreCache.set(cacheKey, { savedAt: Date.now(), value });
     return value;
   } catch {
-    return null;
+    return getFandomArtifactLore(query, headers);
   }
 };
 
@@ -526,7 +550,7 @@ app.get('/listing/:id/artifact-lore', async (req, res) => {
     const guess = lore
       ? `Closest relevant public-reference lead: ${lore.title}. Artifact Lore only uses this source when multiple meaningful listing terms match its title. Confirm maker, era, material, condition, and provenance before relying on it.`
       : `No sufficiently relevant public-reference match was found. Artifact Lore kept this as a metadata research lead instead of attaching a broad or unrelated web source.`;
-    res.json({ listingId: listing.id, lore: lore || metadataFallback, source: lore ? `Wikipedia public reference data · matched from “${matchedQuery}”` : 'Listing metadata research lead · no close public-reference match', research: { query, metadataSignals, hasImageReference, guess, resultType: lore ? 'public-reference' : 'metadata' } });
+    res.json({ listingId: listing.id, lore: lore || metadataFallback, source: lore ? `${lore.provider || 'Public'} reference data · matched from “${matchedQuery}”` : 'Listing metadata research lead · no close public-reference match', research: { query, metadataSignals, hasImageReference, guess, resultType: lore ? 'public-reference' : 'metadata', provider: lore?.provider || 'Metadata' } });
   } catch (error) {
     res.status(502).json({ error: error.message || 'Artifact Lore research is temporarily unavailable.' });
   }
