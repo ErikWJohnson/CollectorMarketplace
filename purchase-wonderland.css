@@ -276,6 +276,12 @@ body.app-section-purchase .paypal-button-container { border:1px solid rgba(180,1
 .gothic-hunt-game-host { position:relative; }
 .gothic-hunt-game-host::before { content:'HIGH SCORE ' attr(data-high-score); position:absolute; z-index:7; top:10px; right:13px; color:#f3d67c; font:700 .62rem/1 "DM Mono",monospace; letter-spacing:.08em; text-shadow:0 1px 1px #000; }
 .gothic-hunt-game-host[data-aim="left"] .gothic-hunt-player::after { transform:scaleX(-1); }
+.gothic-hunt-boost,.gothic-hunt-barrel { position:absolute; z-index:4; left:var(--x); bottom:calc(32px + var(--y)); translate:-50% 0; font-style:normal; }
+.gothic-hunt-boost { color:#b6f9ff; font:900 22px/1 sans-serif; text-shadow:0 0 5px #1ed9ff,0 0 14px #1f8ca9; animation:gothic-hunt-boost-pulse .6s ease-in-out infinite alternate; }
+.gothic-hunt-barrel { font-size:25px; filter:drop-shadow(0 3px 2px #020304); animation:gothic-hunt-barrel-roll .42s linear infinite; }
+.gothic-hunt-enemy.is-barrel-thrower { font-size:31px; filter:drop-shadow(0 4px 2px #180b04); }
+@keyframes gothic-hunt-boost-pulse { to { scale:1.23; filter:brightness(1.45); } }
+@keyframes gothic-hunt-barrel-roll { to { rotate:360deg; } }
 .gothic-hunt-game header b { font-size:0; }.gothic-hunt-game header b::after { content:'GOBLIN RUN'; font-size:.72rem; }
 @keyframes gothic-hunt-block { to { scale:1.1; opacity:.65; } }
 @keyframes gothic-hunt-water { to { background-position:28px 0; } } @keyframes gothic-hunt-swim { to { translate:-50% -4px; rotate:-7deg; } }
