@@ -1830,10 +1830,7 @@ async function loadArtifactLore(item) {
     const result = await api(`/listing/${encodeURIComponent(item.id)}/artifact-lore`);
     if (!host.isConnected || !document.body.classList.contains('app-section-valuation')) return;
     const lore = result.lore;
-    const research = result.research || {};
-    const inputs = Array.isArray(research.metadataSignals) ? `<aside class="artifact-lore-inputs"><b>Research inputs</b><ul>${research.metadataSignals.map(signal => `<li>${safe(signal)}</li>`).join('')}</ul></aside>` : '';
-    const guess = research.guess ? `<p class="artifact-lore-guess"><b>Artifact Lore guess</b>${safe(research.guess)}</p>` : '';
-    host.innerHTML = lore ? `<header><span>ARTIFACT LORE · ${research.resultType === 'metadata' ? 'METADATA RESEARCH' : 'WEB RESEARCH'}</span><h3>${safe(lore.title)}</h3><small>${safe(lore.description || 'Research lead')}</small></header>${guess}${inputs}<p>${safe(lore.extract || 'Artifact Lore assembled this research lead from the available listing data.')}</p><footer><small>Source: ${safe(result.source)}</small>${lore.url ? `<a href="${safe(lore.url)}" target="_blank" rel="noopener noreferrer">Open source ↗</a>` : ''}</footer>` : `<header><span>ARTIFACT LORE</span><h3>Metadata research lead</h3></header>${guess}${inputs}<footer><small>${safe(result.source)}</small></footer>`;
+    host.innerHTML = lore ? `<header><span>ARTIFACT LORE · HISTORICAL SUMMARY</span><h3>${safe(lore.title)}</h3><small>${safe(lore.description || 'Public historical reference')}</small></header><p>${safe(lore.extract || 'No historical summary is available for this item.')}</p><footer><small>Source: ${safe(result.source)}</small>${lore.url ? `<a href="${safe(lore.url)}" target="_blank" rel="noopener noreferrer">Read the source ↗</a>` : ''}</footer>` : `<header><span>ARTIFACT LORE · HISTORICAL SUMMARY</span><h3>No matching historical summary found</h3></header><p>Try adding a more specific maker, series, year, or edition to the listing title.</p>`;
   } catch (error) {
     if (host.isConnected) host.innerHTML = `<header><span>ARTIFACT LORE</span><h3>Research is unavailable right now</h3></header><p>${safe(error.message)}</p>`;
   }

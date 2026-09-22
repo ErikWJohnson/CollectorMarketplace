@@ -544,13 +544,7 @@ app.get('/listing/:id/artifact-lore', async (req, res) => {
       lore = await getArtifactLore(candidate, { strict: true });
       if (lore) { matchedQuery = candidate; break; }
     }
-    const metadataDescription = [listing.condition, listing.category, tags.slice(0, 3).join(', ')].filter(Boolean).join(' · ') || 'Collector item';
-    const metadataExcerpt = `This listing is described as ${metadataDescription}. ${listing.description ? `Seller notes: ${String(listing.description).slice(0, 420)}` : 'No seller description was supplied.'} ${hasImageReference ? 'A listing photo is available as a visual reference, but this research does not authenticate or identify image pixels.' : 'No listing photo was supplied.'}`;
-    const metadataFallback = { title: `${listing.title} — metadata research lead`, description: 'Metadata-based research guess', extract: metadataExcerpt, url: '' };
-    const guess = lore
-      ? `Closest relevant public-reference lead: ${lore.title}. Artifact Lore only uses this source when multiple meaningful listing terms match its title. Confirm maker, era, material, condition, and provenance before relying on it.`
-      : `No sufficiently relevant public-reference match was found. Artifact Lore kept this as a metadata research lead instead of attaching a broad or unrelated web source.`;
-    res.json({ listingId: listing.id, lore: lore || metadataFallback, source: lore ? `${lore.provider || 'Public'} reference data · matched from “${matchedQuery}”` : 'Listing metadata research lead · no close public-reference match', research: { query, metadataSignals, hasImageReference, guess, resultType: lore ? 'public-reference' : 'metadata', provider: lore?.provider || 'Metadata' } });
+    res.json({ listingId: listing.id, lore, source: lore ? `${lore.provider || 'Public'} historical reference · matched from “${matchedQuery}”` : 'No sufficiently relevant public historical summary was found.', research: { query, resultType: lore ? 'historical-summary' : 'none', provider: lore?.provider || null } });
   } catch (error) {
     res.status(502).json({ error: error.message || 'Artifact Lore research is temporarily unavailable.' });
   }
