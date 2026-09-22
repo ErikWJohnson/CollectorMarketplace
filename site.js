@@ -131,7 +131,10 @@ function buildGothicRoom(game, room) {
   [0, 44, 88, 132].forEach((offset,index) => {
     const y = baseY + offset;
     game.platforms.push({x:0,y,w:150,starter:!room && !index});
-    game.boostPads.push({x:0,y,w:150});
+    // Full-width floors make every climb reachable.  Boost pads must remain
+    // optional, otherwise landing on any floor instantly launches the player
+    // again and leaves the game uncontrollable.
+    if (index === 3) game.boostPads.push({x:64,y,w:22});
     if (index === 1 || (room + index) % 3 === 0) game.hearts.push({x:75,y:y + 25,collected:false});
     if (index === 2) game.enemies.push({x:126,y,type:room % 3 === 0 ? '♞' : '☠',speed:.5 + Math.random() * .24,left:12,right:138,direction:Math.random() > .5 ? 1 : -1});
     if (index === 3) game.enemies.push({x:18,y,type:'🐄',barrelThrower:true,speed:0,left:18,right:18,direction:0});
@@ -145,10 +148,11 @@ function renderGothicHuntGame() {
   const game = gothicHuntGame; if (!game.host?.isConnected) return;
   const visible = item => gothicScreenX(game, item.x) > -18 && gothicScreenX(game, item.x) < 118;
   const y = item => gothicScreenY(game, item.y || 0);
-  const platformMarkup = game.platforms.filter(visible).map(p => `<i class="gothic-hunt-platform${p.ground ? ' is-ground' : ''}" style="--x:${gothicScreenX(game,p.x)}%;--y:${y(p)}px;--width:${p.w}%"></i>`).join('');
-  const boostMarkup = game.boostPads.filter(visible).map(p => `<i class="gothic-hunt-boost" style="--x:${gothicScreenX(game,p.x)}%;--y:${y(p)}px">⇧</i>`).join('');
-  const heartMarkup = game.hearts.filter(h => !h.collected && visible(h)).map(h => `<i class="gothic-hunt-heart" style="--x:${gothicScreenX(game,h.x)}%;--y:${y(h)}px">♥</i>`).join('');
-  const enemyMarkup = game.enemies.filter(visible).map(e => `<i class="gothic-hunt-enemy${e.barrelThrower ? ' is-barrel-thrower' : ''}" style="--x:${gothicScreenX(game,e.x)}%;--y:${y(e)}px">${e.type}</i>`).join('');
+  const showWorld = game.started;
+  const platformMarkup = game.platforms.filter(p => visible(p) && (showWorld || p.starter)).map(p => `<i class="gothic-hunt-platform${p.ground ? ' is-ground' : ''}" style="--x:${gothicScreenX(game,p.x)}%;--y:${y(p)}px;--width:${p.w}%"></i>`).join('');
+  const boostMarkup = showWorld ? game.boostPads.filter(visible).map(p => `<i class="gothic-hunt-boost" style="--x:${gothicScreenX(game,p.x)}%;--y:${y(p)}px">⇧</i>`).join('') : '';
+  const heartMarkup = showWorld ? game.hearts.filter(h => !h.collected && visible(h)).map(h => `<i class="gothic-hunt-heart" style="--x:${gothicScreenX(game,h.x)}%;--y:${y(h)}px">♥</i>`).join('') : '';
+  const enemyMarkup = showWorld ? game.enemies.filter(visible).map(e => `<i class="gothic-hunt-enemy${e.barrelThrower ? ' is-barrel-thrower' : ''}" style="--x:${gothicScreenX(game,e.x)}%;--y:${y(e)}px">${e.type}</i>`).join('') : '';
   const wardMarkup = game.shots.filter(visible).map(s => `<i class="gothic-hunt-shot" style="--x:${gothicScreenX(game,s.x)}%;--y:${y(s)}px">✦</i>`).join('');
   const curseMarkup = game.enemyShots.filter(visible).map(s => `<i class="gothic-hunt-curse" style="--x:${gothicScreenX(game,s.x)}%;--y:${y(s)}px">●</i>`).join('');
   const barrelMarkup = game.barrels.filter(visible).map(b => `<i class="gothic-hunt-barrel" style="--x:${gothicScreenX(game,b.x)}%;--y:${y(b)}px">🛢️</i>`).join('');
