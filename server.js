@@ -523,27 +523,6 @@ app.post('/listing', required, (req, res) => {
   store.data.listings.unshift(listing); activity('listing', req.user.id, { listingId: listing.id }); store.save(); res.status(201).json(listing);
 });
 app.get('/listing/:id', (req, res) => { const listing = store.data.listings.find(l => l.id === req.params.id); if (!listing) return res.status(404).json({ error: 'Listing not found' }); res.json({ ...listing, owner: publicUser(store.data.users.find(u => u.id === listing.ownerId)), likeCount: listing.likes.length }); });
-app.get('/listing/:id/artifact-lore', async (req, res) => {
-  const listing = store.data.listings.find(row => row.id === req.params.id);
-  if (!listing) return res.status(404).json({ error: 'Listing not found' });
-  try {
-    const imageUrl = String(listing.image || listing.images?.[0] || '');
-    const imageCue = imageUrl ? decodeURIComponent(imageUrl.split('?')[0].split('/').pop() || '').replace(/\.[a-z0-9]{2,5}$/i, '').replace(/[-_]+/g, ' ').replace(/\b(image|img|photo|upload|copy|final|edited)\b/gi, '').replace(/\s+/g, ' ').trim() : '';
-    const query = String(listing.title || '').trim();
-    // Artifact Lore deliberately ignores tags, category, condition, and seller copy.
-    // A meaningful image filename is used only as a secondary public-reference cue.
-    const candidateQueries = [...new Set([query, imageCue.length >= 3 ? imageCue : ''].filter(value => String(value).trim()))];
-    let lore = null;
-    let matchedQuery = '';
-    for (const candidate of candidateQueries) {
-      lore = await getArtifactLore(candidate, { strict: true });
-      if (lore) { matchedQuery = candidate; break; }
-    }
-    res.json({ listingId: listing.id, lore, source: lore ? `${lore.provider || 'Public'} historical reference · matched from ${matchedQuery === imageCue ? 'image metadata' : 'item name'} “${matchedQuery}”` : 'No sufficiently relevant public historical summary was found.', research: { query, imageCue: imageCue || null, resultType: lore ? 'historical-summary' : 'none', provider: lore?.provider || null } });
-  } catch (error) {
-    res.status(502).json({ error: error.message || 'Artifact Lore research is temporarily unavailable.' });
-  }
-});
 app.put('/listing/:id', required, (req, res) => {
   const listing = store.data.listings.find(l => l.id === req.params.id);
   if (!listing) return res.status(404).json({ error: 'Listing not found' });
