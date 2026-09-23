@@ -241,6 +241,9 @@ body.app-section-purchase .purchase-agreement { border-color:rgba(177,145,77,.62
 body.app-section-purchase .purchase-agreement { padding:14px; line-height:1.45; }
 body.app-section-purchase .bottom-nav { background:rgba(7,10,15,.97); border-top-color:rgba(133,151,170,.34); } body.app-section-purchase .site-legal-links { background:rgba(7,10,15,.92); }
 body.app-section-purchase .paypal-button-container { border:1px solid rgba(180,151,86,.48); background:rgba(5,9,14,.44); padding:8px; }
+.paypal-sdk-target { min-height:45px; }
+.paypal-load-state { display:flex; align-items:center; flex-wrap:wrap; gap:7px 10px; margin-top:8px; padding:8px 10px; border:1px solid rgba(148,169,190,.34); background:rgba(7,13,20,.72); color:#c8d4df; font:600 .68rem/1.35 "DM Mono",monospace; }
+.paypal-load-state b { color:#e0c47d; }.paypal-load-state span { flex:1 1 170px; }.paypal-load-state button { border:1px solid #9f8350; background:#182530; color:#f0d887; padding:5px 8px; font:700 .62rem "DM Mono",monospace; cursor:pointer; }.paypal-load-state.is-error { border-color:#b56b6b; color:#f2c4c4; }
 
 @media (max-width: 900px) { body.app-section-purchase .gothic-checkout-scene { opacity:.45; } body.app-section-purchase .castle-right, body.app-section-purchase .gargoyle-right { display:none; } }
 @media (prefers-reduced-motion: reduce) { body.app-section-purchase .app-section-page::before, body.app-section-purchase .app-section-page::after, body.app-section-purchase .gargoyle, body.app-section-purchase .gothic-checkout-scene::before, body.app-section-purchase .gothic-checkout-scene::after { animation:none; } }

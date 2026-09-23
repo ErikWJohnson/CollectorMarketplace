@@ -1397,10 +1397,18 @@ async function ensurePayPalSdk() {
   return paypalSdkPromise;
 }
 const checkoutRecipientAddress = form => ({ name: form.querySelector('#shipping-name')?.value.trim(), street1: form.querySelector('#shipping-street1')?.value.trim(), street2: form.querySelector('#shipping-street2')?.value.trim(), city: form.querySelector('#shipping-city')?.value.trim(), state: form.querySelector('#shipping-state')?.value.trim(), zip: form.querySelector('#shipping-zip')?.value.trim(), country: 'US' });
+const preparePayPalContainer = (container, retryAction) => {
+  container.innerHTML = `<div class="paypal-sdk-target"></div><section class="paypal-load-state"><b>PayPal checkout</b><span>If the secure PayPal button does not appear, reload it below.</span><button type="button" data-paypal-retry="${retryAction}">Reload PayPal</button></section>`;
+  return container.querySelector('.paypal-sdk-target');
+};
+const showPayPalUnavailable = (container, retryAction, error) => {
+  container.dataset.ready = '';
+  container.innerHTML = `<section class="paypal-load-state is-error" role="alert"><b>PayPal is not available yet</b><span>${safe(error?.message || 'Reload PayPal or disable any content blocker, then try again.')}</span><button type="button" data-paypal-retry="${retryAction}">Retry PayPal</button></section>`;
+};
 async function renderPayPalButtonForPurchase(form) {
   const container = form.querySelector('.paypal-button-container');
   if (!container || container.dataset.ready) return;
-  container.dataset.ready = 'loading'; container.innerHTML = '<small>Loading PayPal securely…</small>';
+  container.dataset.ready = 'loading'; const target = preparePayPalContainer(container, 'purchase');
   let order; let blockedMessage = '';
   const showCheckoutError = message => { container.querySelectorAll('.listing-submit-error').forEach(node => node.remove()); container.insertAdjacentHTML('beforeend', `<p class="listing-submit-error" role="alert">${safe(message)}</p>`); };
   const validatePurchase = () => {
@@ -1420,12 +1428,12 @@ async function renderPayPalButtonForPurchase(form) {
       onError: error => { if (blockedMessage) return; showCheckoutError(`PayPal could not continue. No payment was captured.${error?.message ? ` ${error.message}` : ''}`); }
     });
     if (!buttons.isEligible()) throw new Error('PayPal checkout is not available in this browser.');
-    container.innerHTML = ''; await buttons.render(container); container.dataset.ready = 'true';
-  } catch (error) { container.dataset.ready = ''; container.innerHTML = `<p class="listing-submit-error" role="alert">${safe(error.message)}</p>`; }
+    await buttons.render(target); container.dataset.ready = 'true';
+  } catch (error) { showPayPalUnavailable(container, 'purchase', error); }
 }
 async function renderPayPalButtonForVipCurator(container) {
   if (!container || container.dataset.ready) return;
-  container.dataset.ready = 'loading'; container.innerHTML = '<small>Loading PayPal securely…</small>';
+  container.dataset.ready = 'loading'; const target = preparePayPalContainer(container, 'vip');
   let order;
   const showError = error => { container.querySelectorAll('.listing-submit-error').forEach(node => node.remove()); container.insertAdjacentHTML('beforeend', `<p class="listing-submit-error" role="alert">${safe(error)}</p>`); };
   try {
@@ -1437,13 +1445,13 @@ async function renderPayPalButtonForVipCurator(container) {
       onError: error => showError(`PayPal could not continue. No membership payment was captured.${error?.message ? ` ${error.message}` : ''}`)
     });
     if (!buttons.isEligible()) throw new Error('PayPal checkout is not available in this browser.');
-    container.innerHTML = ''; await buttons.render(container); container.dataset.ready = 'true';
-  } catch (error) { container.dataset.ready = ''; container.innerHTML = `<p class="listing-submit-error" role="alert">${safe(error.message)}</p>`; }
+    await buttons.render(target); container.dataset.ready = 'true';
+  } catch (error) { showPayPalUnavailable(container, 'vip', error); }
 }
 async function renderPayPalButtonForTrade(trade) {
   const container = modalContent.querySelector('.trade-paypal-button-container');
   if (!container || container.dataset.ready) return;
-  container.dataset.ready = 'loading'; container.innerHTML = '<small>Loading PayPal securely…</small>';
+  container.dataset.ready = 'loading'; container._paypalTrade = trade; const target = preparePayPalContainer(container, 'trade');
   let order;
   const showError = message => {
     container.querySelectorAll('.listing-submit-error').forEach(node => node.remove());
@@ -1458,9 +1466,19 @@ async function renderPayPalButtonForTrade(trade) {
       onError: error => { const detail = error?.message ? ` ${error.message}` : ''; showError(`PayPal could not continue. No payment was captured.${detail}`); }
     });
     if (!buttons.isEligible()) throw new Error('PayPal checkout is not available in this browser.');
-    container.innerHTML = ''; await buttons.render(container); container.dataset.ready = 'true';
-  } catch (error) { container.dataset.ready = ''; container.innerHTML = `<p class="listing-submit-error" role="alert">${safe(error.message)}</p>`; }
+    await buttons.render(target); container.dataset.ready = 'true';
+  } catch (error) { showPayPalUnavailable(container, 'trade', error); }
 }
+document.addEventListener('click', event => {
+  const retry = event.target.closest('[data-paypal-retry]');
+  if (!retry) return;
+  const container = retry.closest('.paypal-button-container, .vip-paypal-button-container, .trade-paypal-button-container');
+  if (!container) return;
+  container.dataset.ready = '';
+  if (retry.dataset.paypalRetry === 'purchase') return renderPayPalButtonForPurchase(container.closest('.fee-calculator'));
+  if (retry.dataset.paypalRetry === 'vip') return renderPayPalButtonForVipCurator(container);
+  if (retry.dataset.paypalRetry === 'trade' && container._paypalTrade) return renderPayPalButtonForTrade(container._paypalTrade);
+});
 function renderAccountButton() {
   const username = String(session?.user?.username || '').trim();
   const headerButton = document.querySelector('.header-nav [data-account]');
