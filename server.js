@@ -370,6 +370,21 @@ app.post('/scoreboard/score', required, (req, res) => {
   store.save();
   res.json({ user: publicUser(req.user), game, score: req.user.platformScores[game], highScore: Math.max(0, ...platformScoreboard(game).map(row => row.score)) });
 });
+app.delete('/scoreboard/score/:game', required, (req, res) => {
+  const game = String(req.params.game || '');
+  if (!platformGames.has(game)) return res.status(400).json({ error: 'Use a supported game.' });
+  if (req.user.platformScores) delete req.user.platformScores[game];
+  store.save(); securityLog('score_reset_personal', req, { userId: req.user.id, game });
+  res.status(204).end();
+});
+app.delete('/scoreboard/:game', required, (req, res) => {
+  const game = String(req.params.game || '');
+  if (!platformGames.has(game)) return res.status(400).json({ error: 'Use a supported game.' });
+  if (!hasDeveloperPass(req.user)) return res.status(403).json({ error: 'Developer access is required to reset a platform leaderboard.' });
+  store.data.users.forEach(user => { if (user.platformScores) delete user.platformScores[game]; });
+  store.save(); securityLog('score_reset_global', req, { userId: req.user.id, game });
+  res.status(204).end();
+});
 app.get('/scoreboard', (req, res) => {
   const viewer = currentUser(req);
   const games = [...platformGames].map(game => {
