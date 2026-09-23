@@ -943,13 +943,14 @@ app.post('/delivery/:id/shippo/label', required, async (req, res) => { try { con
 const xmlEscape = value => String(value ?? '').replace(/[<>&'\"]/g, character => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' })[character]);
 const htmlEscape = xmlEscape;
 const merchantCondition = value => ['New', 'New with Tags', 'Sealed', 'Mint'].includes(String(value || '')) ? 'new' : 'used';
-const googleShoppingEligible = listing => listing?.status === 'active' && listing.listingMode !== 'auction_only' && Number(listing.price) > 0 && !listing.riskFlags?.length && /^https:\/\//i.test(listing.images?.[0] || '');
+const listingImageUrl = (listing, index = 0) => { const image = String(listing?.images?.[index] || ''); if (/^data:image\/(jpeg|png|webp);base64,/i.test(image)) return `${publicSiteUrl}/listing-image/${encodeURIComponent(listing.id)}/${index}`; if (/^\//.test(image)) return `${publicSiteUrl}${image}`; return image; };
+const googleShoppingEligible = listing => listing?.status === 'active' && listing.listingMode !== 'auction_only' && Number(listing.price) > 0 && !listing.riskFlags?.length && Boolean(listingImageUrl(listing));
 const googleShoppingProduct = listing => ({
   id: `cm-${listing.id}`,
   title: listing.title,
   description: listing.description,
   link: `${publicSiteUrl}/product/${encodeURIComponent(listing.id)}`,
-  image: listing.images[0],
+  image: listingImageUrl(listing),
   price: `${Number(listing.price).toFixed(2)} USD`,
   availability: 'in_stock',
   condition: merchantCondition(listing.condition),
@@ -976,6 +977,14 @@ const rootSiteAssets = new Set([
 app.use('/public', express.static(path.join(__dirname, 'public'), { index: false }));
 app.get('/data/listings.json', (req, res) => res.sendFile(path.join(__dirname, 'data', 'listings.json')));
 app.get('/data/auctions.json', (req, res) => res.sendFile(path.join(__dirname, 'data', 'auctions.json')));
+app.get('/listing-image/:id/:index', (req, res) => {
+  const listing = store.data.listings.find(row => row.id === req.params.id && row.status === 'active');
+  const image = String(listing?.images?.[Number(req.params.index)] || '');
+  const match = /^data:image\/(jpeg|png|webp);base64,([a-z0-9+/=]+)$/i.exec(image);
+  if (!match) return res.status(404).end();
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.type(`image/${match[1].toLowerCase()}`).send(Buffer.from(match[2], 'base64'));
+});
 app.get('/privacy', (req, res) => res.sendFile(path.join(__dirname, 'privacy.html')));
 app.get('/terms', (req, res) => res.sendFile(path.join(__dirname, 'terms.html')));
 app.get('/google-shopping.xml', (req, res) => {
