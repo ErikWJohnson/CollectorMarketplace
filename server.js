@@ -187,12 +187,12 @@ const isLeaderboardChampion = user => [...platformGames].some(game => {
   return best > 0 && Number(user?.platformScores?.[game] || 0) === best;
 });
 const baseAccountAwards = user => {
-  const originalCollector = /^2026-/.test(String(user?.createdAt || ''));
+  const originalCollector = new Date(user?.createdAt || 0).valueOf() < new Date('2027-01-01T00:00:00.000Z').valueOf() || user?.originalCollectorPromo === true;
   const barterLord = completedItemCount(user) >= 5000;
   const leaderboardChampion = isLeaderboardChampion(user);
   const proGamer = Object.values(user?.platformScores || {}).some(score => Number(score) > 0);
   return [
-    { id: 'original-collector', name: 'Original Collector', earned: originalCollector, discount: .015, detail: 'Been here since 2026 · 1.5% lifetime fee reduction.' },
+    { id: 'original-collector', name: 'Original Collector', earned: originalCollector, discount: .015, detail: 'Joined before 2027 or earned through a promotional event · 1.5% lifetime fee reduction.' },
     { id: 'barter-lord', name: 'Barter Lord', earned: barterLord, discount: .005, detail: `${completedItemCount(user).toLocaleString()} of 5,000 completed items · 0.5% lifetime fee reduction.` },
     { id: 'leaderboard-champion', name: 'Leaderboard Champion', earned: leaderboardChampion, discount: .01, detail: 'Currently holds at least one platform-wide high score · 1% temporary fee reduction.' },
     { id: 'pro-gamer', name: 'Pro Gamer', earned: proGamer, discount: .0025, detail: 'Reached a platform scoreboard · 0.25% lifetime fee reduction.' }
