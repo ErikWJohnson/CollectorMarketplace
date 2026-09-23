@@ -1502,10 +1502,11 @@ const searchedTagTerms = () => (tagSearch.value.match(/#?[a-z0-9-]+/gi) || []).m
 const priceRangeValue = input => { const value = input?.value.trim(); if (!value) return null; const number = Number(value); return Number.isFinite(number) && number >= 0 ? number : null; };
 const distanceFromViewer = item => {
   const coordinates = item.locationCoordinates;
-  if (!viewerLocation || !coordinates || !Number.isFinite(Number(coordinates.lat)) || !Number.isFinite(Number(coordinates.lng))) return Infinity;
+  const origin = viewerLocation || checkoutPreferences.coordinates;
+  if (!origin || !coordinates || !Number.isFinite(Number(coordinates.lat)) || !Number.isFinite(Number(coordinates.lng))) return Infinity;
   const radians = value => value * Math.PI / 180;
-  const lat1 = radians(viewerLocation.lat); const lat2 = radians(Number(coordinates.lat));
-  const deltaLat = lat2 - lat1; const deltaLng = radians(Number(coordinates.lng) - viewerLocation.lng);
+  const lat1 = radians(origin.lat); const lat2 = radians(Number(coordinates.lat));
+  const deltaLat = lat2 - lat1; const deltaLng = radians(Number(coordinates.lng) - origin.lng);
   const a = Math.sin(deltaLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLng / 2) ** 2;
   return 3958.8 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
@@ -1514,8 +1515,10 @@ let checkoutAddressTimer = 0;
 const zipFromAddress = value => String(value || '').match(/\b(\d{5})(?:-\d{4})?\b/)?.[1] || '';
 const milesBetween = (from, to) => { const radians = value => value * Math.PI / 180; const lat1 = radians(Number(from.lat)); const lat2 = radians(Number(to.lat)); const deltaLat = lat2 - lat1; const deltaLng = radians(Number(to.lng) - Number(from.lng)); const a = Math.sin(deltaLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLng / 2) ** 2; return 3958.8 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); };
 const coordinatesForZip = async zip => { if (checkoutZipCache.has(zip)) return checkoutZipCache.get(zip); const response = await fetch(`https://api.zippopotam.us/us/${encodeURIComponent(zip)}`); if (!response.ok) throw new Error('ZIP code location unavailable'); const payload = await response.json(); const place = payload.places?.[0]; const coordinates = place ? { lat: Number(place.latitude), lng: Number(place.longitude) } : null; if (!coordinates || !Number.isFinite(coordinates.lat) || !Number.isFinite(coordinates.lng)) throw new Error('ZIP code location unavailable'); checkoutZipCache.set(zip, coordinates); return coordinates; };
+let listingDistanceHydrating = false;
+const hydrateListingDistances = async () => { if (listingDistanceHydrating || !(viewerLocation || checkoutPreferences.coordinates)) return; listingDistanceHydrating = true; let changed = false; try { await Promise.all(listings.map(async item => { const coordinates = item.locationCoordinates; if (coordinates && Number.isFinite(Number(coordinates.lat)) && Number.isFinite(Number(coordinates.lng))) return; const zip = zipFromAddress(item.sellerZip || item.location); if (!zip) return; try { item.locationCoordinates = await coordinatesForZip(zip); changed = true; } catch { /* A listing can still be browsed when its ZIP cannot be resolved. */ } })); } finally { listingDistanceHydrating = false; } if (changed) renderFeed(); };
 const calculateCheckoutDeliveryFromAddress = async field => { const form = field.closest('.purchase-checkout'); const miles = form?.querySelector('#delivery-miles'); const note = form?.querySelector('#delivery-distance-note'); const buyerZip = zipFromAddress(field.value); const sellerZip = zipFromAddress(form?.dataset.sellerZip); if (!form || !miles || !buyerZip || !sellerZip) { if (note) note.textContent = sellerZip ? 'Add a 5-digit ZIP to your address to calculate delivery.' : 'Seller location is unavailable; enter estimated miles.'; return; } try { if (note) note.textContent = 'Calculating delivery distance…'; const [buyer, seller] = await Promise.all([coordinatesForZip(buyerZip), coordinatesForZip(sellerZip)]); const calculatedMiles = milesBetween(buyer, seller); miles.value = calculatedMiles.toFixed(1); miles.readOnly = true; miles.setAttribute('aria-readonly', 'true'); if (note) note.textContent = `Distance calculated from ZIP codes: ${calculatedMiles.toFixed(1)} miles.`; updateFeeSummary(); } catch { miles.readOnly = false; miles.removeAttribute('aria-readonly'); if (note) note.textContent = 'Could not calculate distance automatically; enter estimated miles.'; } };
-const refreshCheckoutEstimates = async () => { const zip = zipFromAddress(checkoutPreferences.address); if (!zip) return renderFeed(); try { checkoutPreferences.coordinates = await coordinatesForZip(zip); saveCheckoutPreferences(); } catch { checkoutPreferences.coordinates = null; } renderFeed(); };
+const refreshCheckoutEstimates = async () => { const zip = zipFromAddress(checkoutPreferences.address); if (!zip) return renderFeed(); try { checkoutPreferences.coordinates = await coordinatesForZip(zip); saveCheckoutPreferences(); } catch { checkoutPreferences.coordinates = null; } renderFeed(); void hydrateListingDistances(); };
 const deliveryEstimate = miles => {
   if (!Number.isFinite(miles)) return 'Enable location for distance & ETA';
   if (miles <= 25) return 'Local delivery · about 1 day';
@@ -1525,7 +1528,7 @@ const deliveryEstimate = miles => {
 };
 const listingProximity = item => {
   const miles = distanceFromViewer(item);
-  if (!Number.isFinite(miles)) return '<span>Distance unavailable</span><span>Enable location for ETA</span>';
+  if (!Number.isFinite(miles)) return '<span>Set your ZIP or location to see distance</span><span>Distance updates automatically when enabled</span>';
   const radius = Math.max(0, Number(item.pickupRadiusMiles) || 0);
   const pickup = ['pickup', 'pickup_delivery', 'both'].includes(item.fulfillment) && miles <= radius;
   return `<span>${miles.toFixed(miles < 10 ? 1 : 0)} mi away</span><span>${safe(deliveryEstimate(miles))}</span>${pickup ? `<strong>Pickup available · within ${radius} mi</strong>` : radius ? `<span>Pickup radius · ${radius} mi</span>` : ''}`;
@@ -2052,7 +2055,7 @@ function showAuctionHouse() { if (observer) observer.disconnect(); clearInterval
 document.addEventListener('click', event => {
   if (event.target.closest('.delivery-update-form, .delivery-message-form, .trade-message-form')) return;
   if (event.target.closest('[data-checkout-location]')) { openModal('Delivery ZIP code', 'Save a US ZIP code, or use your current approximate location, to show estimated buy totals. This is kept only in this browser.', `<form class="modal-form checkout-preferences-form" data-preference="location"><input required name="address" inputmode="numeric" autocomplete="postal-code" pattern="[0-9]{5}(-[0-9]{4})?" maxlength="10" placeholder="ZIP code" value="${safe(zipFromAddress(checkoutPreferences.address))}"><button type="button" class="auth-switch" data-checkout-current-location>Use current location for estimates</button><button>Save ZIP code</button></form>`); return; }
-  if (event.target.closest('[data-checkout-current-location]')) { if (!navigator.geolocation) return openModal('Location unavailable', 'This browser cannot provide your current location. Enter an address with ZIP code instead.'); navigator.geolocation.getCurrentPosition(position => { checkoutPreferences.coordinates = { lat: Math.round(position.coords.latitude * 100) / 100, lng: Math.round(position.coords.longitude * 100) / 100 }; saveCheckoutPreferences(); renderCheckoutPreferenceButtons(); renderFeed(); modal.close(); }, () => openModal('Location permission needed', 'Allow location access in your browser, or enter an address with ZIP code instead.'), { enableHighAccuracy: false, maximumAge: 300000, timeout: 10000 }); return; }
+  if (event.target.closest('[data-checkout-current-location]')) { if (!navigator.geolocation) return openModal('Location unavailable', 'This browser cannot provide your current location. Enter an address with ZIP code instead.'); navigator.geolocation.getCurrentPosition(position => { checkoutPreferences.coordinates = { lat: Math.round(position.coords.latitude * 100) / 100, lng: Math.round(position.coords.longitude * 100) / 100 }; saveCheckoutPreferences(); renderCheckoutPreferenceButtons(); renderFeed(); void hydrateListingDistances(); modal.close(); }, () => openModal('Location permission needed', 'Allow location access in your browser, or enter an address with ZIP code instead.'), { enableHighAccuracy: false, maximumAge: 300000, timeout: 10000 }); return; }
   if (event.target.closest('[data-checkout-delivery]')) { openModal('Delivery option', 'Choose a delivery option for checkout. Nothing is selected until you choose it.', `<form class="modal-form checkout-preferences-form" data-preference="delivery"><fieldset class="payment-methods"><label class="payment-method"><input type="radio" name="deliveryProvider" value="UPS Priority" ${checkoutPreferences.deliveryProvider === 'UPS Priority' ? 'checked' : ''}><span><b>UPS Priority</b><small>Tracked carrier delivery</small></span></label></fieldset><button>Save delivery option</button></form>`); return; }
   if (event.target.closest('[data-checkout-estimate]')) { if (checkoutPreferences.estimateEnabled) { checkoutPreferences.estimateEnabled = false; saveCheckoutPreferences(); renderCheckoutPreferenceButtons(); renderFeed(); return; } if (!checkoutPreferences.deliveryProvider) return openModal('Choose delivery first', 'Select a delivery option before turning on buy estimates.'); if (!checkoutPreferences.coordinates) return openModal('Add a location first', 'Set a ZIP code or current location before turning on buy estimates.'); checkoutPreferences.estimateEnabled = true; saveCheckoutPreferences(); renderCheckoutPreferenceButtons(); renderFeed(); return; }
   if (event.target.closest('[data-checkout-payment]')) { openModal('Payment preference', 'The current marketplace payment option is PayPal.', '<form class="modal-form checkout-preferences-form" data-preference="payment"><input type="hidden" name="paymentMethod" value="PayPal"><p>PayPal is selected as your default payment method.</p><button>Save payment preference</button></form>'); return; }
@@ -2133,6 +2136,7 @@ const requestViewerLocation = () => {
     listingSort.title = 'Using your approximate device location for this browsing session.';
     const button = document.querySelector('[data-viewer-location]'); if (button) { button.textContent = '⌖ Location active'; button.setAttribute('aria-pressed', 'true'); }
     renderFeed();
+    void hydrateListingDistances();
   }, () => {
     sortMode = 'recent'; listingSort.value = 'recent'; listingSort.disabled = false;
     listingSort.title = 'Location permission was not granted, so closest sorting is unavailable.';
@@ -2293,6 +2297,7 @@ async function loadMarket() {
   renderMarketplaceMode();
   renderTags();
   renderCategories();
+  void hydrateListingDistances();
   // Data refreshes can happen from checkout, account tools, and page games.
   // Never replace an active full-page workspace with the browsing feed.
   if (!document.body.classList.contains('app-section-mode') && !document.body.classList.contains('auction-mode') && !modal.open) renderFeed();
