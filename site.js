@@ -1064,47 +1064,49 @@ document.addEventListener('keydown', event => {
   if (event.code === 'Backquote') settleAuctionPiece(); else renderAuctionBlocks();
 });
 
-// Jungle Wheel is a short risk-and-reward game for the Messages workspace.
-// A run lasts as long as the player avoids the single lose segment.
-const jungleChatGame = { host: null, started: false, spinning: false, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-canopy-run-high-score') || 0), round: 0, angle: 0, result: '', gameOver: false, spinTimer: 0 };
-const jungleWheelPrizes = [100, 150, 250, 400, 650, 1000, 1600, 'LOSE'];
+// Canopy Circuit is a compact jungle race that rewards distance and pickups.
+const jungleChatGame = { host: null, started: false, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-canopy-run-high-score') || 0), lane: 1, speed: 1, pickups: [], obstacles: [], tick: 0, lastSpawn: 0, result: '', gameOver: false, raceTimer: 0 };
 function renderJungleChatGame() {
   const game = jungleChatGame; if (!game.host?.isConnected) return; game.host.dataset.worldScore = String(platformWorldwideHighScore('canopy-run'));
-  const status = game.spinning ? 'The jungle wheel is spinning…' : game.gameOver ? `The wheel found the lose segment. Final score: ${game.score}.` : game.started ? (game.result || 'Spin again and build your score.') : 'Spin the wheel for points. Land on lose and the run ends.';
-  const labels = jungleWheelPrizes.map((prize, index) => `<i class="jungle-wheel-label label-${index}">${prize === 'LOSE' ? 'LOSE' : `+${prize}`}</i>`).join('');
-  const action = !game.started || game.gameOver ? '▶ Start run' : game.spinning ? 'Spinning…' : 'Spin the wheel';
-  game.host.innerHTML = `<section class="jungle-chat-game"><header><b>JUNGLE WHEEL</b><span>${String(game.score).padStart(4, '0')} · HI ${String(game.highScore).padStart(4, '0')} · WORLD ${String(platformWorldwideHighScore('canopy-run')).padStart(4, '0')}</span></header><div class="jungle-wheel-field"><i class="jungle-wheel-pointer">▼</i><div class="jungle-wheel ${game.spinning ? 'is-spinning' : ''}" style="--wheel-angle:${game.angle}deg"><div class="jungle-wheel-labels">${labels}</div><b>SPIN</b></div><output>${game.result || 'Risk it for bigger points'}</output></div><footer><button type="button" data-jungle-game-play ${game.spinning ? 'disabled' : ''}>${action}</button><small>${status}</small></footer></section>`;
+  const status = game.gameOver ? `Wipeout! Final score: ${game.score}.` : game.started ? (game.result || '[ and ] steer · = boost') : 'Race through the canopy. Dodge hazards and collect point boosts.';
+  const action = !game.started || game.gameOver ? '▶ Start race' : 'Race in progress';
+  const objects = [...game.pickups.map(item => `<i class="canopy-race-pickup" style="--lane:${item.lane};--y:${item.y}%">${item.points === 250 ? '💎' : '⭐'}</i>`), ...game.obstacles.map(item => `<i class="canopy-race-obstacle" style="--lane:${item.lane};--y:${item.y}%">${item.type}</i>`)].join('');
+  game.host.innerHTML = `<section class="jungle-chat-game"><header><b>CANOPY CIRCUIT</b><span>${String(game.score).padStart(4, '0')} · HI ${String(game.highScore).padStart(4, '0')} · WORLD ${String(platformWorldwideHighScore('canopy-run')).padStart(4, '0')}</span></header><div class="canopy-race-field"><div class="canopy-race-road"><i class="canopy-race-rider" style="--lane:${game.lane}">🏎️</i>${objects}</div><output>${game.result || 'Keep racing'}</output></div><footer><button type="button" data-jungle-game-play ${game.started && !game.gameOver ? 'disabled' : ''}>${action}</button><small>${status}</small></footer></section>`;
 }
 function launchJungleChatGame() {
-  const game = jungleChatGame; if (!game.host?.isConnected || game.spinning) return;
-  game.started = true; game.gameOver = false; game.score = 0; game.round = 0; game.result = ''; game.angle = 0; renderJungleChatGame();
+  const game = jungleChatGame; if (!game.host?.isConnected || game.started) return;
+  game.started = true; game.gameOver = false; game.score = 0; game.lane = 1; game.speed = 1; game.pickups = []; game.obstacles = []; game.tick = 0; game.lastSpawn = 0; game.result = ''; clearInterval(game.raceTimer); game.raceTimer = setInterval(tickJungleRace, 90); renderJungleChatGame();
 }
 function endJungleChatGame() {
-  const game = jungleChatGame; game.spinning = false; game.started = false; game.gameOver = true; game.highScore = Math.max(game.highScore, game.score); localStorage.setItem('collector-marketplace-canopy-run-high-score', String(game.highScore)); submitPlatformScore('canopy-run', game.highScore); renderJungleChatGame();
+  const game = jungleChatGame; clearInterval(game.raceTimer); game.raceTimer = 0; game.started = false; game.gameOver = true; game.highScore = Math.max(game.highScore, game.score); localStorage.setItem('collector-marketplace-canopy-run-high-score', String(game.highScore)); submitPlatformScore('canopy-run', game.highScore); renderJungleChatGame();
 }
-function spinJungleWheel() {
-  const game = jungleChatGame; if (!game.host?.isConnected || !game.started || game.spinning || game.gameOver) return;
-  const prize = jungleWheelPrizes[Math.floor(Math.random() * jungleWheelPrizes.length)];
-  game.spinning = true; game.result = ''; game.angle += 1440 + Math.floor(Math.random() * 720); renderJungleChatGame();
-  clearTimeout(game.spinTimer); game.spinTimer = window.setTimeout(() => {
-    game.spinning = false;
-    if (prize === 'LOSE') { game.result = 'LOSE — bank the memory, then try again.'; endJungleChatGame(); return; }
-    game.score += prize; game.round += 1; game.result = `+${prize} points!`; renderJungleChatGame();
-  }, 900);
+function tickJungleRace() {
+  const game = jungleChatGame; if (!game.started) return; game.tick += 1; game.score += game.speed;
+  if (game.tick - game.lastSpawn > Math.max(7, 17 - Math.floor(game.score / 150))) { const isPickup = Math.random() > .62; const item = { lane: Math.floor(Math.random() * 3), y: -12, ...(isPickup ? { points: Math.random() > .75 ? 250 : 100 } : { type: Math.random() > .5 ? '🪵' : '🐍' }) }; (isPickup ? game.pickups : game.obstacles).push(item); game.lastSpawn = game.tick; }
+  const move = item => { item.y += 5 + Math.min(4, game.score / 450); }; game.pickups.forEach(move); game.obstacles.forEach(move);
+  const atRider = item => item.lane === game.lane && item.y > 70 && item.y < 94;
+  const collected = game.pickups.filter(atRider); if (collected.length) { const points = collected.reduce((sum, item) => sum + item.points, 0); game.score += points; game.result = `+${points} boost`; }
+  game.pickups = game.pickups.filter(item => item.y < 112 && !atRider(item));
+  if (game.obstacles.some(atRider)) { game.result = 'Crash!'; endJungleChatGame(); return; }
+  game.obstacles = game.obstacles.filter(item => item.y < 112); renderJungleChatGame();
 }
-function stopJungleChatGame() { clearTimeout(jungleChatGame.spinTimer); jungleChatGame.spinTimer = 0; jungleChatGame.started = false; jungleChatGame.spinning = false; jungleChatGame.host = null; }
+function stopJungleChatGame() { clearInterval(jungleChatGame.raceTimer); jungleChatGame.raceTimer = 0; jungleChatGame.started = false; jungleChatGame.host = null; }
 function mountJungleChatGame() {
   const page = stream?.querySelector('.app-section-page'); if (!page || !document.body.classList.contains('app-section-chat')) return stopJungleChatGame();
   let host = page.querySelector('.jungle-chat-game-host'); if (!host) { host = document.createElement('div'); host.className = 'jungle-chat-game-host'; page.append(host); }
   jungleChatGame.host = host; renderJungleChatGame();
 }
 document.addEventListener('click', event => {
-  if (event.target.closest('[data-jungle-game-play]')) { if (!jungleChatGame.started || jungleChatGame.gameOver) launchJungleChatGame(); else spinJungleWheel(); return; }
+  if (event.target.closest('[data-jungle-game-play]')) { launchJungleChatGame(); return; }
 });
 document.addEventListener('keydown', event => {
   const game = jungleChatGame; if (!game.started || !document.body.classList.contains('app-section-chat') || !canUseAutoScroll(event.target)) return;
-  if (event.code !== 'Equal') return;
-  event.preventDefault(); spinJungleWheel();
+  if (!['BracketLeft', 'BracketRight', 'Equal'].includes(event.code)) return;
+  event.preventDefault();
+  if (event.code === 'BracketLeft') jungleChatGame.lane = Math.max(0, jungleChatGame.lane - 1);
+  if (event.code === 'BracketRight') jungleChatGame.lane = Math.min(2, jungleChatGame.lane + 1);
+  if (event.code === 'Equal') { jungleChatGame.speed = 2; jungleChatGame.result = 'Boosting!'; window.setTimeout(() => { jungleChatGame.speed = 1; }, 550); }
+  renderJungleChatGame();
 });
 
 function syncBrowseModeUi() {
