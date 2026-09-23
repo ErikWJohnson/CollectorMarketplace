@@ -2290,6 +2290,7 @@ tagSearch.addEventListener('keydown', event => { if (event.key === 'Enter') setT
 async function loadMarket() {
   const listingData = await fetch('/listings').then(response => { if (!response.ok) throw new Error('Listings API unavailable'); return response.json(); });
   listings = listingData.filter(listing => listing.listingMode !== 'auction_only').map(asFeedListing).sort((a, b) => a.id === 'mantle' ? -1 : b.id === 'mantle' ? 1 : 0);
+  renderMarketplaceMode();
   renderTags();
   renderCategories();
   // Data refreshes can happen from checkout, account tools, and page games.
