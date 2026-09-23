@@ -1529,9 +1529,8 @@ const deliveryEstimate = miles => {
 const listingProximity = item => {
   const miles = distanceFromViewer(item);
   if (!Number.isFinite(miles)) return '<span>Set your ZIP or location to see distance</span><span>Distance updates automatically when enabled</span>';
-  const radius = Math.max(0, Number(item.pickupRadiusMiles) || 0);
-  const pickup = ['pickup', 'pickup_delivery', 'both'].includes(item.fulfillment) && miles <= radius;
-  return `<span>${miles.toFixed(miles < 10 ? 1 : 0)} mi away</span><span>${safe(deliveryEstimate(miles))}</span>${pickup ? `<strong>Pickup available · within ${radius} mi</strong>` : radius ? `<span>Pickup radius · ${radius} mi</span>` : ''}`;
+  const pickup = ['pickup', 'pickup_delivery', 'both'].includes(item.fulfillment) && miles <= 25;
+  return `${pickup ? '<strong>Pickup available · within 25 mi</strong>' : '<span>Delivery available</span>'}<span>${safe(deliveryEstimate(miles))}</span>`;
 };
 const filtered = () => {
   const minimumPrice = priceRangeValue(priceMin); const maximumPrice = priceRangeValue(priceMax);
