@@ -1071,11 +1071,11 @@ const snakeCellKey = cell => `${cell.x}:${cell.y}`;
 function randomJungleSnakeFood(snake = jungleChatGame.snake) { const occupied = new Set(snake.map(snakeCellKey)); const open = []; for (let y = 0; y < jungleSnakeHeight; y += 1) for (let x = 0; x < jungleSnakeWidth; x += 1) if (!occupied.has(`${x}:${y}`)) open.push({ x, y }); return open[Math.floor(Math.random() * open.length)] || null; }
 function renderJungleChatGame() {
   const game = jungleChatGame; if (!game.host?.isConnected) return; game.host.dataset.worldScore = String(platformWorldwideHighScore('canopy-run'));
-  const status = game.gameOver ? `The canopy got you. Final score: ${game.score}.` : game.started ? (game.result || 'Use arrow keys or WASD to guide the snake.') : 'Eat jungle fruit, grow longer, and do not hit the walls or yourself.';
+  const status = game.gameOver ? `The canopy got you. Final score: ${game.score}.` : game.started ? (game.result || 'Use 8, 4, 5, and 6 to guide the snake.') : 'Eat jungle fruit, grow longer, and do not hit the walls or yourself.';
   const action = !game.started || game.gameOver ? '▶ Start snake' : 'Snake in motion';
   const snakeMap = new Map(game.snake.map((cell, index) => [snakeCellKey(cell), index])); const foodKey = game.food ? snakeCellKey(game.food) : '';
   const cells = Array.from({ length: jungleSnakeWidth * jungleSnakeHeight }, (_, index) => { const cell = { x: index % jungleSnakeWidth, y: Math.floor(index / jungleSnakeWidth) }; const snakeIndex = snakeMap.get(snakeCellKey(cell)); return `<i class="canopy-snake-cell ${snakeIndex === 0 ? 'is-head' : snakeIndex !== undefined ? 'is-snake' : foodKey === snakeCellKey(cell) ? 'is-fruit' : ''}">${snakeIndex === 0 ? '🐍' : foodKey === snakeCellKey(cell) ? '🍎' : ''}</i>`; }).join('');
-  game.host.innerHTML = `<section class="jungle-chat-game"><header><b>CANOPY SNAKE</b><span>${String(game.score).padStart(4, '0')} · HI ${String(game.highScore).padStart(4, '0')} · WORLD ${String(platformWorldwideHighScore('canopy-run')).padStart(4, '0')}</span></header><div class="canopy-snake-field"><div class="canopy-snake-board">${cells}</div><output>${game.result || 'Eat fruit · grow · survive'}</output></div><footer><button type="button" data-jungle-game-play ${game.started && !game.gameOver ? 'disabled' : ''}>${action}</button><div class="canopy-snake-controls" aria-label="Snake controls"><button type="button" data-jungle-snake-direction="up">↑</button><span><button type="button" data-jungle-snake-direction="left">←</button><button type="button" data-jungle-snake-direction="down">↓</button><button type="button" data-jungle-snake-direction="right">→</button></span></div><small>${status}</small></footer></section>`;
+  game.host.innerHTML = `<section class="jungle-chat-game"><header><b>CANOPY SNAKE</b><span>${String(game.score).padStart(4, '0')} · HI ${String(game.highScore).padStart(4, '0')} · WORLD ${String(platformWorldwideHighScore('canopy-run')).padStart(4, '0')}</span></header><div class="canopy-snake-field"><div class="canopy-snake-board">${cells}</div><output>${game.result || 'Eat fruit · grow · survive'}</output></div><footer><button type="button" data-jungle-game-play ${game.started && !game.gameOver ? 'disabled' : ''}>${action}</button><div class="canopy-snake-controls" aria-label="Snake controls: 8 up, 4 left, 5 down, 6 right"><button type="button" data-jungle-snake-direction="up">8</button><span><button type="button" data-jungle-snake-direction="left">4</button><button type="button" data-jungle-snake-direction="down">5</button><button type="button" data-jungle-snake-direction="right">6</button></span></div><small>${status}</small></footer></section>`;
 }
 function launchJungleChatGame() {
   const game = jungleChatGame; if (!game.host?.isConnected || game.started) return;
@@ -1100,7 +1100,8 @@ document.addEventListener('click', event => {
 });
 document.addEventListener('keydown', event => {
   const game = jungleChatGame; if (!game.started || !document.body.classList.contains('app-section-chat') || !canUseAutoScroll(event.target)) return;
-  const directions = { ArrowUp: { x: 0, y: -1 }, KeyW: { x: 0, y: -1 }, ArrowDown: { x: 0, y: 1 }, KeyS: { x: 0, y: 1 }, ArrowLeft: { x: -1, y: 0 }, KeyA: { x: -1, y: 0 }, ArrowRight: { x: 1, y: 0 }, KeyD: { x: 1, y: 0 } }; if (!directions[event.code]) return; event.preventDefault(); setJungleSnakeDirection(directions[event.code]);
+  // Use the number row for Snake, leaving the NumPad free for the marketplace-wide cursor.
+  const directions = { Digit8: { x: 0, y: -1 }, Digit5: { x: 0, y: 1 }, Digit4: { x: -1, y: 0 }, Digit6: { x: 1, y: 0 } }; if (!directions[event.code]) return; event.preventDefault(); setJungleSnakeDirection(directions[event.code]);
 });
 
 function syncBrowseModeUi() {
