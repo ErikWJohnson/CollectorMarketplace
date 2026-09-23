@@ -704,7 +704,7 @@ function preparePurchase(user, body) {
   const itemPrice = Number(listing.price) || 0; const seller = store.data.users.find(candidate => candidate.id === listing.ownerId);
   const fees = { buyer: { rate: tradeFeeRate(user), amount: itemPrice * tradeFeeRate(user) }, seller: { rate: tradeFeeRate(seller), amount: itemPrice * tradeFeeRate(seller) } };
   const buyerSubtotal = itemPrice + fees.buyer.amount + courierPay;
-  const minimumBuyerFee = itemPrice < 10 ? 10 : 0;
+  const minimumBuyerFee = itemPrice < 10 ? 1.5 : 0;
   const paypalFee = paypalProcessingFee(buyerSubtotal + minimumBuyerFee);
   return { listing, address, destination, provider, method, miles, packing, courierPay, itemPrice, fees, buyerSubtotal, minimumBuyerFee, paypalFee, total: Math.round((buyerSubtotal + minimumBuyerFee + paypalFee) * 100) / 100 };
 }
