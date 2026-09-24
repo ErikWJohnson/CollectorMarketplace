@@ -1543,6 +1543,8 @@ const filtered = () => {
     return matchesMarketplaceMode(item) && (activeCategory === 'All' || item.category === activeCategory) && `${item.title} ${item.description} ${item.location || ''} ${itemTags.join(' ')}`.toLowerCase().includes(activeQuery.toLowerCase()) && matches(activeTags) && matches(typedTags) && lockedTags.every(tag => itemTags.some(itemTag => itemTag.includes(tag))) && !voidTags.some(tag => itemTags.some(itemTag => itemTag.includes(tag))) && (minimumPrice === null || price >= minimumPrice) && (maximumPrice === null || price <= maximumPrice);
   }).sort((left, right) => {
     const leftDate = new Date(left.createdAt || 0).valueOf(); const rightDate = new Date(right.createdAt || 0).valueOf();
+    const promotionPriority = Number(right.promotion?.status === 'active') - Number(left.promotion?.status === 'active');
+    if (promotionPriority) return promotionPriority;
     if (sortMode === 'oldest') return leftDate - rightDate;
     if (sortMode === 'popular') return ((right.likes?.length || 0) + (right.favorites?.length || 0) + stateFor(right.id).score) - ((left.likes?.length || 0) + (left.favorites?.length || 0) + stateFor(left.id).score);
     if (sortMode === 'price-high') return (Number(right.price) || 0) - (Number(left.price) || 0);
@@ -1643,6 +1645,7 @@ function renderFeed(reset = true) {
   const originalCards = visible.map(card).join(''); const conveyorCopies = browseMode === 'conveyor' && visible.length ? Array.from({ length: 2 }, () => visible.map(item => card(item).replace('<article class="listing"', '<article class="listing" data-conveyor-copy="true"')).join('')).join('') : '';
   stream.innerHTML = originalCards ? originalCards + conveyorCopies : '<p class="load-state">No collector finds match that search.</p>';
   stream.querySelectorAll('.listing .collector-head').forEach((header, index) => { const item = visible[index % visible.length]; header.dataset.profile = item?.ownerId || ''; header.tabIndex = 0; header.setAttribute('role', 'button'); header.setAttribute('aria-label', `Open ${item?.owner?.username || 'collector'} profile`); });
+  stream.querySelectorAll('.listing').forEach((listing, index) => { const item = visible[index % visible.length]; if (item?.promotion?.status === 'active') listing.querySelector('.listing-media-zoom')?.insertAdjacentHTML('beforeend', '<span class="promotion-badge">PROMOTED</span>'); });
   document.querySelector('#result-count').textContent = `${rows.length} listed`; sentinel.textContent = browseMode === 'conveyor' ? 'Conveyor mode · looping continuously' : page * 4 < rows.length ? 'Scroll for more finds ↓' : 'You are all caught up.'; syncBrowseModeUi(); renderVisibleCheckoutEstimates();
 }
 function openAppSection(kind, title, copy, content = '') {
