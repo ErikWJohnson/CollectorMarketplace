@@ -1552,6 +1552,7 @@ const filtered = () => {
     return rightDate - leftDate;
   });
 };
+const alternatePromotedListings = rows => { const promoted = rows.filter(item => item.promotion?.status === 'active'); const regular = rows.filter(item => item.promotion?.status !== 'active'); const ordered = []; while (promoted.length || regular.length) { if (promoted.length) ordered.push(promoted.shift()); if (regular.length) ordered.push(regular.shift()); } return ordered; };
 const directoryItemTags = (item, type) => type === 'accounts' ? [...new Set([...listings.filter(listing => listing.ownerId === item.id).flatMap(listingTags), ...(item.profileTags || [])].map(tag => String(tag).toLowerCase()))] : (item.tags || []).map(tag => String(tag).toLowerCase());
 const tagsMatchDirectory = itemTags => {
   const matches = terms => !terms.length || (tagMatchMode === 'all' ? terms.every(term => itemTags.some(tag => tag.includes(term))) : terms.some(term => itemTags.some(tag => tag.includes(term))));
@@ -1641,7 +1642,7 @@ function renderFeed(reset = true) {
   // updates belong only to Browse and must never replace an open workspace.
   if (!canRenderBrowseFeed()) return;
   if (searchScope !== 'listings') { const rows = filteredDirectory(); const meta = socialScopeMeta[searchScope]; stream.innerHTML = rows.map(item => directoryCard(item, searchScope)).join('') || `<p class="load-state">No ${meta.noun}s match that search yet.</p>`; document.querySelector('#result-count').textContent = `${rows.length} ${meta.noun}${rows.length === 1 ? '' : 's'}`; sentinel.textContent = rows.length ? 'Community directory complete.' : 'Try another name, interest, or tag.'; syncBrowseModeUi(); return; }
-  const rows = filtered(); if (reset) page = 1; const visible = browseMode === 'conveyor' ? rows : rows.slice(0, page * 4);
+  const rows = alternatePromotedListings(filtered()); if (reset) page = 1; const visible = browseMode === 'conveyor' ? rows : rows.slice(0, page * 4);
   const originalCards = visible.map(card).join(''); const conveyorCopies = browseMode === 'conveyor' && visible.length ? Array.from({ length: 2 }, () => visible.map(item => card(item).replace('<article class="listing"', '<article class="listing" data-conveyor-copy="true"')).join('')).join('') : '';
   stream.innerHTML = originalCards ? originalCards + conveyorCopies : '<p class="load-state">No collector finds match that search.</p>';
   stream.querySelectorAll('.listing .collector-head').forEach((header, index) => { const item = visible[index % visible.length]; header.dataset.profile = item?.ownerId || ''; header.tabIndex = 0; header.setAttribute('role', 'button'); header.setAttribute('aria-label', `Open ${item?.owner?.username || 'collector'} profile`); });
