@@ -492,6 +492,8 @@ app.get('/auctions', (req, res) => {
 });
 const listingConditions = new Set(['New', 'New with Tags', 'Sealed', 'Like New', 'Mint', 'Near Mint', 'Excellent', 'Very Good', 'Good', 'Fair', 'Poor', 'For Parts or Repair', 'Graded', 'Ungraded', 'Authenticated', 'Restored']);
 const prohibitedListingTerms = /\b(counterfeit|replica\s+as\s+authentic|stolen|gray[- ]?market|wholesale\s+lot|unlicensed\s+weapon|explosive)\b/i;
+const alcoholListingTerms = /\b(alcohol|aged alcohol|beer|wine|champagne|whiskey|whisky|bourbon|scotch|rum|tequila|gin|vodka|brandy|cognac|liqueur|mead|cider)\b/i;
+const isAlcoholListing = listing => alcoholListingTerms.test(`${listing?.title || ''} ${listing?.description || ''} ${listing?.category || ''} ${(listing?.tags || []).join(' ')}`);
 function listingRiskFlags(ownerId, listing, previousPrice = null) {
   const flags = [];
   const text = `${listing.title || ''} ${listing.description || ''} ${(listing.tags || []).join(' ')}`;
@@ -502,7 +504,7 @@ function listingRiskFlags(ownerId, listing, previousPrice = null) {
   return flags;
 }
 app.post('/listing', required, (req, res) => {
-  const { title, description, category, condition, tags = [], price, tradeOffer, images = [], videos = [], sellerCity, sellerZip, locationCoordinates, pickupRadiusMiles, fulfillment, shippingPackagingCost, listingMode = 'marketplace', auctionStartPrice, auctionDurationHours } = req.body;
+  const { title, description, category, condition, tags = [], price, tradeOffer, images = [], videos = [], sellerCity, sellerZip, locationCoordinates, pickupRadiusMiles, fulfillment, shippingPackagingCost, listingMode = 'marketplace', auctionStartPrice, auctionDurationHours, confirmedAlcoholAge } = req.body;
   const validImages = Array.isArray(images) && images.length > 0 && images.length <= 5 && images.every(image => typeof image === 'string' && image.length <= 2_000_000 && (/^https?:\/\//i.test(image) || /^data:image\/(jpeg|png|webp);base64,/i.test(image)));
   const validVideos = Array.isArray(videos) && videos.length <= 1 && videos.every(video => typeof video === 'string' && video.length <= 6_000_000 && /^data:video\/(mp4|webm|quicktime);base64,/i.test(video));
   if (!title?.trim() || !description?.trim() || !category?.trim()) return res.status(400).json({ error: 'title, description, and category are required' });
@@ -530,11 +532,12 @@ app.post('/listing', required, (req, res) => {
   const submittedTags = [...new Set([category.trim(), itemCondition, ...(Array.isArray(tags) ? tags : []).map(tag => typeof tag === 'string' ? tag.trim().replace(/^#/, '') : '').filter(Boolean)])];
   const validTags = submittedTags.length <= 8 && submittedTags.every(tag => tag.length <= 60);
   if (!validTags) return res.status(400).json({ error: 'Use up to 8 tags, each 60 characters or less.' });
+  if (isAlcoholListing({ title, description, category, tags: submittedTags }) && confirmedAlcoholAge !== true) return res.status(400).json({ error: 'Confirm that you are at least 21 years old before listing alcohol.' });
   if (!validImages) return res.status(400).json({ error: 'Add 1–5 valid image links or uploads.' });
   if (!validVideos) return res.status(400).json({ error: 'Add at most one valid uploaded video.' });
   const publicLocation = `${publicCity} ${publicZip}`;
   const locationTag = `US City/Town: ${publicCity}`;
-  const listing = { id: id(), ownerId: req.user.id, title: title.trim(), description: description.trim(), category: category.trim(), condition: itemCondition, tags: [...submittedTags, locationTag], location: publicLocation, sellerCity: publicCity, sellerZip: publicZip, locationCoordinates: coordinates, pickupRadiusMiles: pickupRadius, fulfillment, upsPackagingCost, listingMode, auctionStartPrice: listingMode === 'marketplace' ? null : startingBid, auctionEndAt: listingMode === 'marketplace' ? null : new Date(Date.now() + auctionHours * 3600000).toISOString(), auctionBids: 0, price: Number(price) || 0, tradeOffer: Boolean(tradeOffer), images, videos, status: 'active', likes: [], createdAt: now() };
+  const listing = { id: id(), ownerId: req.user.id, title: title.trim(), description: description.trim(), category: category.trim(), condition: itemCondition, tags: [...submittedTags, locationTag], location: publicLocation, sellerCity: publicCity, sellerZip: publicZip, locationCoordinates: coordinates, pickupRadiusMiles: pickupRadius, fulfillment, upsPackagingCost, listingMode, auctionStartPrice: listingMode === 'marketplace' ? null : startingBid, auctionEndAt: listingMode === 'marketplace' ? null : new Date(Date.now() + auctionHours * 3600000).toISOString(), auctionBids: 0, price: Number(price) || 0, tradeOffer: Boolean(tradeOffer), images, videos, alcoholAgeConfirmedAt: isAlcoholListing({ title, description, category, tags: submittedTags }) ? now() : null, status: 'active', likes: [], createdAt: now() };
   listing.riskFlags = listingRiskFlags(req.user.id, listing); if (listing.riskFlags.length) { listing.reviewStatus = 'flagged'; securityLog('listing_flagged', req, { userId: req.user.id, listingId: listing.id, flags: listing.riskFlags }); }
   store.data.listings.unshift(listing); activity('listing', req.user.id, { listingId: listing.id }); store.save(); res.status(201).json(listing);
 });
@@ -701,10 +704,12 @@ function recordDeliveryUpdate(delivery, userId, status, note = '') {
   delivery.history.push(record); delivery.updatedAt = now();
 }
 function preparePurchase(user, body) {
-  const { listingId, shippingAddress, recipientAddress, deliveryProvider, deliveryMiles, paymentMethod } = body;
+  const { listingId, shippingAddress, recipientAddress, deliveryProvider, deliveryMiles, paymentMethod, confirmedAlcoholAge } = body;
   const listing = store.data.listings.find(row => row.id === listingId && row.status === 'active');
   if (!listing) throw new Error('Active listing not found');
   if (listing.ownerId === user.id) throw new Error('You cannot purchase your own listing');
+  const alcoholRestricted = isAlcoholListing(listing);
+  if (alcoholRestricted && confirmedAlcoholAge !== true) throw new Error('Confirm that you are at least 21 years old before purchasing alcohol.');
   const destination = recipientAddress ? shippoAddress(recipientAddress, 'delivery') : null;
   const address = typeof shippingAddress === 'string' ? shippingAddress.trim() : destination ? [destination.name, destination.street1, destination.street2, `${destination.city}, ${destination.state} ${destination.zip}`].filter(Boolean).join('\n') : '';
   const provider = typeof deliveryProvider === 'string' ? deliveryProvider.trim() : '';
@@ -722,10 +727,10 @@ function preparePurchase(user, body) {
   const buyerSubtotal = itemPrice + fees.buyer.amount + courierPay;
   const minimumBuyerFee = itemPrice < 10 ? 1.5 : 0;
   const paypalFee = paypalProcessingFee(buyerSubtotal + minimumBuyerFee);
-  return { listing, address, destination, provider, method, miles, packing, courierPay, itemPrice, fees, buyerSubtotal, minimumBuyerFee, paypalFee, total: Math.round((buyerSubtotal + minimumBuyerFee + paypalFee) * 100) / 100 };
+  return { listing, address, destination, provider, method, miles, packing, courierPay, itemPrice, fees, buyerSubtotal, minimumBuyerFee, paypalFee, alcoholRestricted, total: Math.round((buyerSubtotal + minimumBuyerFee + paypalFee) * 100) / 100 };
 }
 function purchaseDelivery(purchase, buyer, status) {
-  return { id: id(), listingId: purchase.listing.id, buyerId: buyer.id, sellerId: purchase.listing.ownerId, shippingAddress: purchase.address, recipientAddress: purchase.destination, itemPrice: purchase.itemPrice, fees: purchase.fees, deliveryProvider: purchase.provider, deliveryMiles: purchase.miles, packagingCost: purchase.packing, courierPay: purchase.courierPay, deliveryFee: purchase.courierPay, paymentMethod: purchase.method, paypalFee: purchase.paypalFee, buyerSubtotal: purchase.buyerSubtotal, minimumBuyerFee: purchase.minimumBuyerFee, status, courier: '', trackingNumber: '', messages: [], history: [], createdAt: now(), updatedAt: now() };
+  return { id: id(), listingId: purchase.listing.id, buyerId: buyer.id, sellerId: purchase.listing.ownerId, shippingAddress: purchase.address, recipientAddress: purchase.destination, itemPrice: purchase.itemPrice, fees: purchase.fees, deliveryProvider: purchase.provider, deliveryMiles: purchase.miles, packagingCost: purchase.packing, courierPay: purchase.courierPay, deliveryFee: purchase.courierPay, paymentMethod: purchase.method, paypalFee: purchase.paypalFee, buyerSubtotal: purchase.buyerSubtotal, minimumBuyerFee: purchase.minimumBuyerFee, alcoholAgeConfirmedAt: purchase.alcoholRestricted ? now() : null, status, courier: '', trackingNumber: '', messages: [], history: [], createdAt: now(), updatedAt: now() };
 }
 app.post('/purchase', required, (req, res) => {
   res.status(410).json({ error: 'Direct checkout is disabled. Create a PayPal order first.' });
