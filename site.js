@@ -1723,6 +1723,7 @@ const hasActiveCuratorMembership = profile => {
 };
 const accountTitleBadge = profile => {
   if (profile?.developerPass === true) return '<span class="account-title-badge developer-pass">DEV PASS</span>';
+  if (profile?.brandPass === true) return '<span class="account-title-badge brand-pass">BRAND PASS</span>';
   if (profile?.grandCurator === true) return '<span class="account-title-badge grand-curator-pass">GRAND CURATOR</span>';
   if (hasActiveCuratorMembership(profile)) return '<span class="account-title-badge">VIP CURATOR</span>';
   return '';
@@ -1906,6 +1907,7 @@ const paypalProcessingFee = amount => Math.round((Math.max(0, Number(amount) || 
 const collectorFeeRate = user => {
   if (Number.isFinite(Number(user?.marketplaceFeeRate))) return Number(user.marketplaceFeeRate);
   if (user?.developerPass === true) return 0;
+  if (user?.brandPass === true) return .0075;
   const awards = Array.isArray(user?.awards) ? user.awards : [];
   const proGamerDiscount = Number(awards.find(award => award.id === 'pro-gamer' && award.earned)?.discount || 0);
   const grandCuratorDiscount = Number(awards.find(award => award.id === 'grand-curator' && award.earned)?.discount || 0);
@@ -2277,7 +2279,11 @@ modal.addEventListener('close', () => {
 });
 const baseOpenListingEditor = openListingEditor;
 openListingEditor = async listingId => { await baseOpenListingEditor(listingId); const editor = modal.querySelector('.listing-editor-form'); const price = editor?.querySelector('[name="price"]'); if (price && !editor.querySelector('[name="stockQuantity"]')) price.closest('label')?.insertAdjacentHTML('afterend', '<label>Stock quantity <input required name="stockQuantity" type="number" min="1" max="10000" step="1" value="1"></label>'); if (editor) { const item = await api(`/listing/${listingId}`); const input = editor.querySelector('[name="stockQuantity"]'); if (input) input.value = String(item.stockQuantity || 1); } };
+const renderAccountPanelWithModeratorTools = openAccountPanel;
+openAccountPanel = async (...args) => { const result = await renderAccountPanelWithModeratorTools(...args); if (String(session?.user?.username || '').toLowerCase() === 'collectormarketplace') { const footer = stream.querySelector('.profile-workspace .profile-footer'); if (footer && !footer.querySelector('[data-brand-pass-manager]')) footer.insertAdjacentHTML('afterbegin', '<button type="button" class="entity-primary" data-brand-pass-manager>Manage Brand Passes</button>'); } return result; };
+document.addEventListener('click', event => { if (!event.target.closest('[data-brand-pass-manager]')) return; openModal('Brand Pass management', 'Grant or revoke the 0.75% one-sided marketplace fee benefit for an account.', '<form class="modal-form brand-pass-form"><label>Account username<input required name="username" maxlength="80" autocomplete="off" placeholder="collectorname"></label><label class="check"><input name="enabled" type="checkbox"> Grant Brand Pass</label><small>Leave this unchecked to revoke the pass.</small><button>Save Brand Pass</button></form>'); }, true);
 document.addEventListener('keydown', event => { const composer = event.target.closest('.collector-message-form textarea'); if (composer && event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); composer.form.requestSubmit(); } });
+document.addEventListener('submit', async event => { const form = event.target.closest?.('.brand-pass-form'); if (!form) return; event.preventDefault(); event.stopImmediatePropagation(); try { const fields = new FormData(form); const result = await api('/moderation/brand-pass', { method: 'PUT', body: JSON.stringify({ username: fields.get('username'), enabled: fields.get('enabled') === 'on' }) }); modalContent.innerHTML = `<section class="modal-copy"><b>Brand Pass updated</b><p>@${safe(result.user.username)} now has the Brand Pass ${result.enabled ? 'enabled at a 0.75% one-sided fee.' : 'revoked.'}</p></section>`; } catch (error) { modalContent.querySelector('.form-submit-error')?.remove(); modalContent.insertAdjacentHTML('afterbegin', `<p class="modal-copy form-submit-error" role="alert">${safe(error.message)}</p>`); } }, true);
 document.addEventListener('submit', async event => {
   const editor = event.target.closest?.('.listing-editor-form'); if (!editor) return;
   event.preventDefault(); event.stopImmediatePropagation();

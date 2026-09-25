@@ -12,6 +12,7 @@ dialog.account-dialog { position: fixed; inset: 0; width: 100vw !important; max-
 .account-hero h3 { margin: 0; color: #f5f3eb; font-size: clamp(1.5rem, 3vw, 2.5rem); }
 .account-hero span { display: block; max-width: 620px; margin-top: 7px; color: #bcb8ad; }
 .account-hero>button { margin-left: auto; border: 1px solid #f2bc35; padding: 10px 13px; background: transparent; color: #f2bc35; font: 700 .7rem/1 var(--mono, monospace); text-transform: uppercase; }
+.account-title-badge{display:inline-flex;align-items:center;margin-left:9px;border:1px solid #e8bd48;border-radius:999px;padding:4px 7px;color:#ffd76a;background:#3a2f12;font:800 .62rem/1 var(--mono,monospace);letter-spacing:.08em;vertical-align:middle}.account-title-badge.brand-pass{border-color:#62c5f4;color:#d9f4ff;background:#123148}
 .account-dialog .account-stats { max-width: none; }
 .account-columns { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); flex: 1; min-height: 0; }
 .account-columns>section { display: flex; min-width: 0; min-height: 280px; flex-direction: column; border-right: 1px solid #4a4a4a; }

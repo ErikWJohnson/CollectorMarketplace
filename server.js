@@ -46,6 +46,7 @@ const paypalProcessingFee = amount => Math.round((Math.max(0, Number(amount) || 
 const calculatedDeliveryFee = (miles, packaging) => Math.round((Math.max(8, Math.max(0, Number(miles) || 0) * 0.10) + Math.max(0, Number(packaging) || 0)) * 100) / 100;
 const developerPassUsername = 'collectormarketplace';
 const hasDeveloperPass = user => user?.developerPass === true;
+const isMarketplaceModerator = user => String(user?.username || '').trim().toLowerCase() === developerPassUsername;
 const vipCuratorPrice = 150;
 const vipCuratorDays = 30;
 const hasActiveCuratorMembership = user => {
@@ -210,6 +211,7 @@ const accountAwards = user => {
 };
 const marketplaceFeeRate = user => {
   if (hasDeveloperPass(user)) return 0;
+  if (user?.brandPass === true) return .0075;
   const awards = accountAwards(user);
   const proGamerDiscount = awards.find(award => award.id === 'pro-gamer' && award.earned)?.discount || 0;
   const grandCuratorDiscount = awards.find(award => award.id === 'grand-curator' && award.earned)?.discount || 0;
@@ -412,6 +414,17 @@ app.get('/community/:type/:entityId', (req, res) => { const entity = communityEn
 app.post('/community/:type/:entityId', required, (req, res) => { const entity = communityEntity(req.params.type, req.params.entityId); const title = String(req.body.title || '').trim(); const body = String(req.body.body || '').trim(); if (!entity) return res.status(404).json({ error: 'Discussion space not found.' }); if (!title || !body || title.length > 140 || body.length > 2000) return res.status(400).json({ error: 'Use a title up to 140 characters and a post up to 2,000 characters.' }); const post = { id: id(), type: req.params.type, entityId: req.params.entityId, authorId: req.user.id, title, body, replies: [], createdAt: now() }; store.data.communityPosts.unshift(post); activity('community_post', req.user.id, { communityType: post.type, communityId: post.entityId }); store.save(); res.status(201).json(communityPostView(post)); });
 app.post('/community/:type/:entityId/:postId/replies', required, (req, res) => { const post = store.data.communityPosts.find(row => row.id === req.params.postId && row.type === req.params.type && row.entityId === req.params.entityId); const body = String(req.body.body || '').trim(); if (!post) return res.status(404).json({ error: 'Discussion post not found.' }); if (!body || body.length > 2000) return res.status(400).json({ error: 'Use a reply up to 2,000 characters.' }); const reply = { id: id(), authorId: req.user.id, body, createdAt: now() }; post.replies.push(reply); store.save(); res.status(201).json({ ...reply, author: directoryUser(req.user) }); });
 app.put('/user/:id', required, (req, res) => { if (req.user.id !== req.params.id) return res.status(403).json({ error: 'Not allowed' }); ['username','avatar','bio'].forEach(k => { if (req.body[k] !== undefined) req.user[k] = req.body[k]; }); if (req.body.lobbySong !== undefined) { const song = String(req.body.lobbySong || ''); if (song && (!/^data:audio\/(mpeg|mp3)(?:;[a-z0-9=._-]+)*;base64,[a-z0-9+/=]+$/i.test(song) || song.length > 5500000)) return res.status(400).json({ error: 'Use an MP3 lobby song under 4 MB.' }); req.user.lobbySong = song; } if (req.body.profileTags !== undefined) { if (!Array.isArray(req.body.profileTags)) return res.status(400).json({ error: 'Profile tags must be a list.' }); const tags = [...new Set(req.body.profileTags.map(tag => String(tag).replace(/^#/, '').trim()).filter(tag => tag && tag.length <= 48))].slice(0, 20); req.user.profileTags = tags; } activity('profile', req.user.id); store.save(); res.json({ ...publicUser(req.user), lobbySong: req.user.lobbySong || '' }); });
+app.put('/moderation/brand-pass', required, (req, res) => {
+  if (!isMarketplaceModerator(req.user)) return res.status(403).json({ error: 'Only the CollectorMarketplace moderator account can manage Brand Passes.' });
+  const username = String(req.body.username || '').trim(); const enabled = req.body.enabled === true;
+  const target = store.data.users.find(user => String(user.username || '').toLowerCase() === username.toLowerCase());
+  if (!target) return res.status(404).json({ error: 'No account matches that username.' });
+  if (target.id === req.user.id) return res.status(400).json({ error: 'The moderator account cannot change its own Brand Pass.' });
+  target.brandPass = enabled; target.brandPassUpdatedAt = now(); target.brandPassUpdatedBy = req.user.id;
+  securityLog(enabled ? 'brand_pass_granted' : 'brand_pass_revoked', req, { userId: req.user.id, targetUserId: target.id });
+  notify(target.id, 'account', `Your Brand Pass was ${enabled ? 'granted' : 'removed'} by CollectorMarketplace.`, `/accounts/${target.id}`);
+  store.save(); res.json({ user: publicUser(target), enabled });
+});
 app.get('/account/shipping-profile', required, (req, res) => { try { res.json(decryptPrivate(req.user.shippingProfile) || {}); } catch (error) { res.status(503).json({ error: 'Private shipping data is temporarily unavailable.' }); } });
 app.put('/account/shipping-profile', required, (req, res) => { try { const profile = shippoAddress(req.body, 'shipping profile'); if (profile.name.length > 120 || profile.street1.length > 160 || profile.street2.length > 120 || profile.city.length > 80 || !/^[A-Z]{2}$/i.test(profile.state) || !/^\d{5}(?:-\d{4})?$/.test(profile.zip)) return res.status(400).json({ error: 'Use a complete US name, street, city, two-letter state, and ZIP code.' }); req.user.shippingProfile = encryptPrivate(profile); store.save(); securityLog('shipping_profile_updated', req, { userId: req.user.id }); res.json(profile); } catch (error) { res.status(400).json({ error: error.message }); } });
 app.post('/user/:id/follow', required, (req, res) => { if (req.user.id === req.params.id) return res.status(400).json({ error: 'You cannot follow yourself' }); if (!store.data.users.some(u => u.id === req.params.id)) return res.status(404).json({ error: 'User not found' }); const following = req.user.following; const index = following.indexOf(req.params.id); index < 0 ? following.push(req.params.id) : following.splice(index, 1); store.save(); res.json({ following: index < 0 }); });
