@@ -11,6 +11,7 @@
 .listing-actions .valuation-button:hover,.listing-actions .valuation-button:focus-visible{border-color:#cdbbff;color:#fff;background:linear-gradient(135deg,#3c3157,#263d5e);box-shadow:0 0 0 1px #5f4d89}
 .listing-actions .valuation-button:disabled{cursor:wait;opacity:.72}
 .listing-copy .listing-owner-status{display:block;margin:3px 0 5px;color:#f3cf58;font:700 8px/1.2 "DM Mono",monospace;letter-spacing:.45px}
+.listing-copy .listing-stock-status{display:block;margin:3px 0 5px;color:#8ff0b4;font:700 8px/1.2 "DM Mono",monospace;letter-spacing:.45px}
 .valuation-report{display:grid;gap:13px;padding:4px 0;color:#d8dee7}.valuation-report header{display:grid;gap:5px}.valuation-report header span{width:max-content;border:1px solid #9478c7;padding:4px 7px;color:#d9ccff;font:700 9px "DM Mono";letter-spacing:.9px}.valuation-report h3{margin:0;color:#f5f2ff;font-size:1.35rem}.valuation-report>strong{padding:17px;border:1px solid #5c927f;background:linear-gradient(135deg,#123a37,#1d2943);color:#aaffd3;font:700 1.42rem "DM Mono"}.valuation-report p{margin:0}.valuation-report ul{display:grid;gap:7px;margin:0;padding:13px 13px 13px 29px;border:1px solid #404b5a;background:#161c25}.valuation-report>small{color:#aeb9c7;line-height:1.48}
 @media(max-width:520px){.listing footer.listing-actions{grid-template-columns:minmax(56px,1.05fr) minmax(50px,.8fr) minmax(59px,.95fr) auto 31px 33px}.listing-actions .valuation-button{font-size:7px;padding-inline:3px}}
 
