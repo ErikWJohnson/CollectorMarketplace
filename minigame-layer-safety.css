@@ -29,3 +29,4 @@
 .puppy-game-layer { z-index: 1; }
 .conveyor-rocket,
 .puppy-game-pup { z-index: 2; }
+@media (pointer:coarse){.rocket-game-playfield,.puppy-game-playfield,.gothic-hunt-field,.sell-lava-field,.sailing-battlefield,.auction-block-game,.canopy-snake-field{touch-action:none}.gothic-hunt-game footer button,.sell-lava-game footer button,.account-sailing-game footer button,.jungle-chat-game button,.auction-block-game button{min-width:44px;min-height:44px}.gothic-hunt-game footer small,.sell-lava-game footer small,.account-sailing-game footer small{font-size:10px;line-height:1.35}.gothic-hunt-game footer>div,.sell-lava-game footer>div,.account-sailing-game footer>div{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}}

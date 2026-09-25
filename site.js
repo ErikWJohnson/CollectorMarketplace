@@ -1103,6 +1103,27 @@ document.addEventListener('keydown', event => {
   // These keys leave the marketplace-wide shortcuts and NumPad cursor untouched.
   const directions = { KeyT: { x: 0, y: -1 }, KeyG: { x: 0, y: 1 }, KeyF: { x: -1, y: 0 }, KeyH: { x: 1, y: 0 } }; if (!directions[event.code]) return; event.preventDefault(); setJungleSnakeDirection(directions[event.code]);
 });
+// Every game supports touch gestures on phones. A swipe maps to movement; an
+// upward swipe performs its jump/boost/rotate action; a tap fires or drops.
+let gameTouchStart = null;
+document.addEventListener('touchstart', event => {
+  const field = event.target.closest?.('.rocket-game-playfield,.puppy-game-playfield,.gothic-hunt-game,.sell-lava-game,.account-sailing-game,.auction-block-game,.jungle-chat-game');
+  if (!field || event.target.closest('button') || event.touches.length !== 1) return;
+  const touch = event.touches[0]; gameTouchStart = { field, x: touch.clientX, y: touch.clientY };
+  event.preventDefault();
+}, { passive: false });
+document.addEventListener('touchend', event => {
+  if (!gameTouchStart) return; const start = gameTouchStart; gameTouchStart = null; const touch = event.changedTouches[0]; if (!touch) return;
+  const dx = touch.clientX - start.x, dy = touch.clientY - start.y; const horizontal = Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 14; const upward = dy < -14 && Math.abs(dy) >= Math.abs(dx); const downward = dy > 14 && Math.abs(dy) >= Math.abs(dx); const tap = !horizontal && !upward && !downward;
+  if (start.field.matches('.rocket-game-playfield')) { if (!conveyorRocketGame.started) return; if (horizontal) conveyorRocket.angle += dx < 0 ? -15 : 15; else if (upward) { conveyorRocket.keys.add('Equal'); setTimeout(() => conveyorRocket.keys.delete('Equal'), 260); } else if (tap) fireRocketLaser(); }
+  else if (start.field.matches('.puppy-game-playfield')) { if (!puppyJumpGame.started) return; if (horizontal) puppyJump.vx += dx < 0 ? -.17 : .17; else if (upward) jumpPuppy(); else if (tap) firePuppyLaser(); }
+  else if (start.field.matches('.gothic-hunt-game')) { if (horizontal) { gothicHuntGame.movingLeft = dx < 0; gothicHuntGame.movingRight = dx > 0; setTimeout(() => { gothicHuntGame.movingLeft = false; gothicHuntGame.movingRight = false; }, 240); } else if (upward) leapGothicHunter(); else if (tap) fireGothicWard(); }
+  else if (start.field.matches('.sell-lava-game')) { if (horizontal) moveSellLavaRunner(dx < 0 ? -1 : 1); else if (upward) jumpSellLavaRunner(); else if (tap) shootSellLavaRunner(); }
+  else if (start.field.matches('.account-sailing-game')) { if (horizontal) moveVeniceSailingShip(dx < 0 ? -1 : 1); else if (downward) activateVeniceShield(); else if (tap) fireVeniceCannon(); }
+  else if (start.field.matches('.auction-block-game')) { const game = auctionBlocks; if (!game.started || game.settling || !game.piece) return; if (horizontal && !auctionBlocksCollide(game.piece, game.x + (dx < 0 ? -1 : 1), game.y)) game.x += dx < 0 ? -1 : 1; else if (upward) { const turned = rotateAuctionPiece(game.piece); if (!auctionBlocksCollide(turned)) game.piece = turned; } else if (downward || tap) { while (!auctionBlocksCollide(game.piece, game.x, game.y + 1)) game.y += 1; settleAuctionPiece(); } renderAuctionBlocks(); }
+  else if (start.field.matches('.jungle-chat-game')) { if (horizontal) setJungleSnakeDirection(dx < 0 ? { x: -1, y: 0 } : { x: 1, y: 0 }); else if (upward) setJungleSnakeDirection({ x: 0, y: -1 }); else if (downward) setJungleSnakeDirection({ x: 0, y: 1 }); }
+  event.preventDefault();
+}, { passive: false });
 
 function syncBrowseModeUi() {
   const auctionActive = document.body.classList.contains('auction-mode');
