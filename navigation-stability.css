@@ -18,6 +18,19 @@ body { padding-bottom: 98px; }
   align-items: stretch !important;
 }
 
+/* Conveyor status and its horizontal scrollbar must remain behind the global
+   navigation dock. Keep this explicit because conveyor creates its own layers. */
+.browse-conveyor .bottom-nav {
+  z-index: 2147483000 !important;
+  isolation: isolate;
+  pointer-events: auto !important;
+}
+
+.browse-conveyor #sentinel {
+  bottom: 98px !important;
+  z-index: 2 !important;
+}
+
 .bottom-nav button {
   display: grid !important;
   place-content: center !important;
@@ -44,4 +57,5 @@ body { padding-bottom: 98px; }
   .bottom-nav { height: 84px !important; }
   .bottom-nav button { min-height: 84px !important; padding: 8px 3px !important; font-size: 8px !important; }
   .bottom-nav b { font-size: 25px !important; }
+  .browse-conveyor #sentinel { bottom: 84px !important; }
 }
