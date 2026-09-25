@@ -2275,7 +2275,14 @@ modal.addEventListener('close', () => {
     if (listings.length) applyHashLocation();
   }
 });
+const baseOpenListingEditor = openListingEditor;
+openListingEditor = async listingId => { await baseOpenListingEditor(listingId); const editor = modal.querySelector('.listing-editor-form'); const price = editor?.querySelector('[name="price"]'); if (price && !editor.querySelector('[name="stockQuantity"]')) price.closest('label')?.insertAdjacentHTML('afterend', '<label>Stock quantity <input required name="stockQuantity" type="number" min="1" max="10000" step="1" value="1"></label>'); if (editor) { const item = await api(`/listing/${listingId}`); const input = editor.querySelector('[name="stockQuantity"]'); if (input) input.value = String(item.stockQuantity || 1); } };
 document.addEventListener('keydown', event => { const composer = event.target.closest('.collector-message-form textarea'); if (composer && event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); composer.form.requestSubmit(); } });
+document.addEventListener('submit', async event => {
+  const editor = event.target.closest?.('.listing-editor-form'); if (!editor) return;
+  event.preventDefault(); event.stopImmediatePropagation();
+  try { const fields = new FormData(editor); const tags = String(fields.get('tags') || '').split(/[\n,]+/).map(tag => tag.replace(/^#/, '').trim()).filter(Boolean); const images = String(fields.get('images') || '').split(/[\n,]+/).map(value => value.trim()).filter(value => /^(https?:\/\/|data:image\/)/i.test(value)).slice(0, 5); const quantity = Number(fields.get('stockQuantity') || 1); if (!images.length) throw new Error('Keep at least one valid listing image.'); if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10000) throw new Error('Stock quantity must be a whole number from 1 to 10,000.'); await api(`/listing/${editor.dataset.listingEditor}`, { method: 'PUT', body: JSON.stringify({ title: fields.get('title'), category: fields.get('category'), condition: fields.get('condition'), price: Number(fields.get('price') || 0), stockQuantity: quantity, tags, images, description: fields.get('description'), upsPackagingCost: Number(fields.get('upsPackagingCost') || 0), tradeOffer: fields.get('tradeOffer') === 'on' }) }); await loadMarket(); await openAccountPanel(); } catch (error) { modalContent.querySelector('.form-submit-error')?.remove(); modalContent.insertAdjacentHTML('afterbegin', `<p class="modal-copy form-submit-error" role="alert">${safe(error.message)}</p>`); }
+}, true);
 document.addEventListener('submit', async event => {
   const listingForm = event.target.closest?.('.listing-form');
   if (!listingForm || !listingForm.closest('.app-section-page')) return;
