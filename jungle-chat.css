@@ -27,7 +27,7 @@ body.app-section-chat .delivery-row { border-color: #477a4f88; background: #071b
 body.app-section-chat .chat-conversation-row:hover,
 body.app-section-chat .suggestion-card:hover,
 body.app-section-chat .delivery-row:hover { border-color: #b7d969; background: #12351cbf; }
-body.app-section-chat .chat-avatar { border: 1px solid #b8e277; background: radial-gradient(circle at 30% 25%, #b4e86c, #265b2f 64%); color: #07150a; }
+body.app-section-chat .chat-avatar { border: 1px solid #d4aa57; background: radial-gradient(circle at 30% 25%, #303a36, #101714 64%); color: #f3d17a; }
 body.app-section-chat .conversation-header { border-bottom-color: #5a8f5d88; background: #082211e8; }
 body.app-section-chat .conversation-header strong { color: #f1ffd1; }
 body.app-section-chat .conversation-header button,
