@@ -1245,13 +1245,14 @@ const setWorkspaceHash = hash => {
 // Claim the destination before any asynchronous panel request begins. If a
 // previous request resolves later, openModal will ignore that stale result.
 document.addEventListener('click', event => {
-  const target = event.target.closest('[data-home],[data-market],[data-auction],[data-chat],[data-sell],[data-account],[data-curator],[data-profile],[data-collector-chat],[data-conversation],[data-trade-chat],[data-delivery]');
+  const target = event.target.closest('[data-home],[data-market],[data-auction],[data-chat],[data-sell],[data-account],[data-curator],[data-help],[data-profile],[data-collector-chat],[data-conversation],[data-trade-chat],[data-delivery]');
   if (!target) return;
   if (target.matches('[data-home],[data-market]')) { beginWorkspaceRoute('browse'); document.body.classList.remove('app-section-membership', 'listing-page'); }
   else if (target.matches('[data-auction]')) { beginWorkspaceRoute('auction'); document.body.classList.remove('app-section-listing', 'app-section-membership', 'listing-page'); }
   else if (target.matches('[data-chat],[data-collector-chat],[data-conversation],[data-trade-chat],[data-delivery]')) beginWorkspaceRoute('chat');
   else if (target.matches('[data-sell]')) beginWorkspaceRoute('listing');
   else if (target.matches('[data-curator]')) beginWorkspaceRoute('membership');
+  else if (target.matches('[data-help]')) beginWorkspaceRoute('help');
   else beginWorkspaceRoute('account');
 });
 document.addEventListener('keydown', event => {
@@ -1297,6 +1298,7 @@ const applyHashLocation = () => {
   const listingWorkspace = hash.match(/^listing\/([^/]+)\/(promotion|statistics)$/);
   if (listingWorkspace) { if (!session) return openAuthPanel('login'); const [, listingId, page] = listingWorkspace; return (page === 'promotion' ? openListingAdvertising(listingId, false) : openListingStatistics(listingId, false)).catch(showError); }
   if (hash.startsWith('purchase/')) { const listingId = hash.slice('purchase/'.length); const item = listings.find(listing => String(listing.id).toLowerCase() === listingId); if (!item) return; if (!session) return openAuthPanel('login'); if (item.ownerId === session.user.id) return openModal('Your own listing', 'You cannot buy your own listing. Use your account page to edit, archive, or manage it instead.'); const routeId = beginWorkspaceRoute('purchase'); api('/account/shipping-profile').catch(() => ({})).then(profile => { if (routeId === workspaceRouteId && location.hash.slice(1).toLowerCase() === hash) openPurchasePage(item, profile, false); }).catch(showError); return; }
+  if (hash === 'help') { openHelpPage(false); return; }
   if (hash === 'search' || hash === 'tags') { openDiscoveryShortcut(hash); return; }
   const destination = Object.values(keyboardNavigation).find(item => item.hash === hash);
   if (destination) document.querySelector(destination.selector)?.click();
@@ -1805,13 +1807,19 @@ function renderFeed(reset = true) {
   stream.querySelectorAll('.listing').forEach((listing, index) => { const item = visible[index % visible.length]; if (item?.promotion?.status === 'active') listing.querySelector('.listing-media-zoom')?.insertAdjacentHTML('beforeend', '<span class="promotion-badge">PROMOTED</span>'); });
   document.querySelector('#result-count').textContent = `${rows.length} listed`; sentinel.textContent = browseMode === 'conveyor' ? 'Conveyor mode · looping continuously' : browseMode === 'squared' ? `Squared mode · all ${rows.length} matching listings shown` : page * pageSize < rows.length ? 'Scroll for more finds ↓' : 'You are all caught up.'; syncBrowseModeUi(); renderVisibleCheckoutEstimates();
 }
+function openHelpPage(updateRoute = true) {
+  beginWorkspaceRoute('help');
+  if (updateRoute) setWorkspaceHash('help');
+  openAppSection('help', 'Help Center', 'Quick answers for browsing, buying, selling, trading, and staying safe on CollectorMarketplace.', `<section class="help-grid"><article><b>Browse & discover</b><p>Search listings, select tags, switch browse modes, and use Metadata to show or hide marketplace rails.</p><button type="button" data-home>Browse listings</button></article><article><b>Buy & delivery</b><p>Review the estimate, delivery option, and payment method before checkout. Keep all payment and delivery activity on-platform.</p><button type="button" data-policy>View fees</button></article><article><b>Sell an item</b><p>Add clear photos, an accurate condition, price, location, and pickup or delivery details before publishing.</p><button type="button" data-sell>Create a listing</button></article><article><b>Trading</b><p>Choose your items, add cash only when needed, and wait for both collectors to accept the trade.</p><button type="button" data-chat>Open messages</button></article><article><b>Safety & disputes</b><p>Keep conversations and payment on CollectorMarketplace. Save proof of condition and shipment if a delivery needs review.</p><button type="button" data-policy>Marketplace policies</button></article><article><b>Keyboard shortcuts</b><p><kbd>Q</kbd> changes browse mode, <kbd>M</kbd> toggles Metadata, <kbd>S</kbd> opens search, and <kbd>T</kbd> opens tags.</p></article></section>`);
+}
+
 function openAppSection(kind, title, copy, content = '') {
   if (modal.open) modal.close(); stopAutoScroll(); stopConveyor(); stopAuctionWaterfall(); stopJungleChatGame(); stopJungleChatAmbience(); stopAccountVeniceAmbience(); stopSellLavaAmbience(); stopGothicCheckoutAmbience(); stopSellLavaGame(); stopVeniceSailingGame(); stopGothicHuntGame(); clearInterval(auctionClock); clearInterval(auctionFeedClock);
   document.querySelector('.conveyor-smog-layer')?.remove();
   document.querySelector('.conveyor-orbit-layer')?.remove();
-  document.body.classList.remove('auction-mode', 'browse-conveyor', 'browse-squared', 'chat-open', 'account-open', 'purchase-open', 'comments-open', 'listing-page', 'app-section-chat', 'app-section-account', 'app-section-listing', 'app-section-membership', 'app-section-purchase', 'app-section-valuation', 'app-section-leaderboard');
+  document.body.classList.remove('auction-mode', 'browse-conveyor', 'browse-squared', 'chat-open', 'account-open', 'purchase-open', 'comments-open', 'listing-page', 'app-section-chat', 'app-section-account', 'app-section-listing', 'app-section-membership', 'app-section-help', 'app-section-purchase', 'app-section-valuation', 'app-section-leaderboard');
   document.body.classList.add('app-section-mode', `app-section-${kind}`); syncBrowseModeUi(); if (kind === 'chat') startJungleChatAmbience(); if (kind === 'account') startAccountVeniceAmbience(); if (kind === 'listing') startSellLavaAmbience(); if (kind === 'purchase') startGothicCheckoutAmbience(); if (observer) observer.disconnect(); sentinel.hidden = true;
-  const workspaceLabel = kind === 'account' ? 'Collector workspace' : kind === 'listing' ? 'Seller workspace' : kind === 'membership' ? 'Membership' : kind === 'purchase' ? 'Secure checkout' : kind === 'valuation' ? 'AI market value' : kind === 'leaderboard' ? 'Global scores' : 'Social workspace';
+  const workspaceLabel = kind === 'account' ? 'Collector workspace' : kind === 'listing' ? 'Seller workspace' : kind === 'membership' ? 'Membership' : kind === 'help' ? 'Collector support' : kind === 'purchase' ? 'Secure checkout' : kind === 'valuation' ? 'AI market value' : kind === 'leaderboard' ? 'Global scores' : 'Social workspace';
   const purchaseDecor = kind === 'purchase' ? '<div class="gothic-checkout-scene" aria-hidden="true"><i class="castle castle-left"><b></b><b></b><b></b></i><i class="castle castle-right"><b></b><b></b></i><i class="gargoyle gargoyle-left">♜</i><i class="gargoyle gargoyle-right">♜</i><i class="moon"></i></div>' : '';
   stream.innerHTML = `<section class="app-section-page">${purchaseDecor}<header class="app-section-intro"><span>${workspaceLabel}</span><h1>${title}</h1><p>${copy || ''}</p></header><div class="app-section-content">${content}${kind === 'account' ? '<div class="account-sailing-game-host" aria-label="Venice Cannon Run game"></div>' : ''}${kind === 'listing' ? '<div class="sell-lava-game-host" aria-label="Lava Dash Run game"></div>' : ''}</div></section>`;
   if (kind === 'account') { syncAccountVeniceControl(); mountVeniceSailingGame(); }
@@ -2290,7 +2298,7 @@ document.addEventListener('click', event => {
   if (event.target.closest('[data-browse-mode]')) { toggleBrowseMode(); return; }
   if (event.target.closest('[data-metadata-toggle]')) { toggleMetadata(); return; }
   const scopeButton = event.target.closest('[data-search-scope]'); if (scopeButton) { setSearchScope(scopeButton.dataset.searchScope); return; }
-  const tag = event.target.closest('[data-tag]'); const category = event.target.closest('[data-category]'); const trade = event.target.closest('[data-trade]'); const action = event.target.closest('[data-home],[data-market],[data-auction],[data-chat],[data-sell],[data-account],[data-curator],[data-policy]');
+  const tag = event.target.closest('[data-tag]'); const category = event.target.closest('[data-category]'); const trade = event.target.closest('[data-trade]'); const action = event.target.closest('[data-home],[data-market],[data-auction],[data-chat],[data-sell],[data-account],[data-curator],[data-help],[data-policy]');
   const profile = event.target.closest('[data-profile]'); if (profile) openProfile(profile.dataset.profile).catch(showError);
   if (tag) {
     // Popular tags are quick Browse filters, not navigation into the Tags page.
@@ -2336,10 +2344,11 @@ document.addEventListener('click', event => {
   if (action?.matches('[data-chat]')) { setWorkspaceHash('chat'); activateNav('chat'); openChatCenter(); }
   if (action?.matches('[data-account]')) { if (session) startAccountVeniceAmbience(); setWorkspaceHash('account'); activateNav('account'); openAccountPanel(); }
   if (action?.matches('[data-curator]')) { setWorkspaceHash('vip-curator'); openCuratorMembership().catch(showError); }
+  if (action?.matches('[data-help]')) openHelpPage();
   if (action?.matches('[data-policy]')) { setWorkspaceHash('fees'); openModal('Marketplace fees', 'Standard purchase fees are 4% per side. Curator members pay 1% on their own side for $150/month. Buyers pay taxes and delivery; courier pay is the greater of $8 or $0.10 per mile, plus packaging. Transaction and delivery terms are policy drafts pending legal review.'); }
   if (action?.matches('[data-auction]')) { setWorkspaceHash('auction-house'); activateNav('auction'); showAuctionHouse(); }
   if (event.target.closest('.like')) { const like = event.target.closest('.like'); like.textContent = like.textContent === '♡' ? '♥' : '♡'; like.classList.toggle('liked'); }
-  if (action?.matches('[data-market],[data-home]')) { setWorkspaceHash('browse'); stopAuctionWaterfall(); stopAccountVeniceAmbience(); stopSellLavaAmbience(); stopGothicCheckoutAmbience(); stopGothicHuntGame(); stopSellLavaGame(); stopVeniceSailingGame(); document.body.classList.remove('auction-mode', 'app-section-mode', 'app-section-chat', 'app-section-account', 'app-section-listing', 'app-section-purchase', 'app-section-membership', 'app-section-valuation', 'app-section-leaderboard'); clearInterval(auctionClock); clearInterval(auctionFeedClock); activateNav(action.matches('[data-market]') ? 'market' : 'home'); sentinel.hidden = false; activeCategory = 'All'; setQuery(''); setDiscoveryMode(activeTags.length || lockedTags.length || voidTags.length ? 'tags' : 'search'); renderTags(); renderCategories(); renderFeed(); if (observer) observer.observe(sentinel); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  if (action?.matches('[data-market],[data-home]')) { setWorkspaceHash('browse'); stopAuctionWaterfall(); stopAccountVeniceAmbience(); stopSellLavaAmbience(); stopGothicCheckoutAmbience(); stopGothicHuntGame(); stopSellLavaGame(); stopVeniceSailingGame(); document.body.classList.remove('auction-mode', 'app-section-mode', 'app-section-chat', 'app-section-account', 'app-section-listing', 'app-section-purchase', 'app-section-membership', 'app-section-help', 'app-section-valuation', 'app-section-leaderboard'); clearInterval(auctionClock); clearInterval(auctionFeedClock); activateNav(action.matches('[data-market]') ? 'market' : 'home'); sentinel.hidden = false; activeCategory = 'All'; setQuery(''); setDiscoveryMode(activeTags.length || lockedTags.length || voidTags.length ? 'tags' : 'search'); renderTags(); renderCategories(); renderFeed(); if (observer) observer.observe(sentinel); window.scrollTo({ top: 0, behavior: 'smooth' }); }
   if (event.target.matches('.close')) modal.close();
 });
 search.addEventListener('input', event => { setDiscoveryMode('search'); clearTimeout(searchRenderTimer); const value = event.target.value; searchRenderTimer = setTimeout(() => setQuery(value), 140); });
