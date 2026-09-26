@@ -344,6 +344,24 @@ html body.browse-doomscroll .bottom-nav { display: flex !important; align-items:
 html body.browse-doomscroll .bottom-nav button { flex: 1 1 20% !important; width: 20% !important; color: #6b4655 !important; background: transparent !important; border-right-color: #ce8e8c !important; }
 html body.browse-doomscroll .bottom-nav button.active { color: #54273d !important; background: linear-gradient(180deg,#ffe1a1b5,#f6b17c8c) !important; }
 
+/* Discovery metadata is a first-class part of Doomscroll, not dark Conveyor
+   UI pasted over the cloud world. Each rail keeps a distinct but related
+   sunset accent so the four layers scan cleanly. */
+html body.browse-doomscroll .metadata-toggle { color:#4c2a40!important; border-color:#b75768!important; background:linear-gradient(135deg,#ffe29a,#f3ab7a)!important; box-shadow:0 4px 12px #a64a5b45!important; }
+html body.browse-doomscroll .metadata-toggle kbd { color:#643142!important; border-color:#c26c6b!important; background:#fff0c7!important; }
+html body.browse-doomscroll .metadata-toggle[aria-pressed="false"] { color:#805c65!important; border-color:#d6a49b!important; background:#ffe9d5d9!important; box-shadow:none!important; }
+html body.browse-doomscroll .live-auction-rail,html body.browse-doomscroll .popular-listing-rail,html body.browse-doomscroll .popular-entity-rail { border-color:#d89082!important; background:linear-gradient(105deg,#fff2ddeb,#ffd0bce8)!important; box-shadow:0 9px 24px #8d3f5750!important; }
+html body.browse-doomscroll .live-auction-rail { border-color:#c98656!important; background:linear-gradient(105deg,#fff0ceef,#ffc796e8)!important; }
+html body.browse-doomscroll .popular-listing-rail { border-color:#77a194!important; background:linear-gradient(105deg,#e8f5e9ed,#bfe6d3e8)!important; }
+html body.browse-doomscroll .popular-brand-rail { border-color:#b47a9a!important; background:linear-gradient(105deg,#fff0f3ed,#efc3d5e8)!important; }
+html body.browse-doomscroll .popular-account-rail { border-color:#8698c3!important; background:linear-gradient(105deg,#edf1ffed,#cdd7f1e8)!important; }
+html body.browse-doomscroll .live-auction-rail>b,html body.browse-doomscroll .popular-listing-rail>b,html body.browse-doomscroll .popular-entity-rail>b { color:#73364c!important; }
+html body.browse-doomscroll .live-auction-rail>b { color:#875020!important; }html body.browse-doomscroll .popular-listing-rail>b { color:#326b60!important; }html body.browse-doomscroll .popular-brand-rail>b { color:#813c68!important; }html body.browse-doomscroll .popular-account-rail>b { color:#405b93!important; }
+html body.browse-doomscroll .live-auction-card,html body.browse-doomscroll .popular-listing-card,html body.browse-doomscroll .popular-entity-card { border-color:#dca198!important; background:#fffaf1e8!important; box-shadow:0 3px 10px #7e3c4b22!important; }
+html body.browse-doomscroll .live-auction-card:hover,html body.browse-doomscroll .live-auction-card:focus-visible,html body.browse-doomscroll .popular-listing-card:hover,html body.browse-doomscroll .popular-listing-card:focus-visible,html body.browse-doomscroll .popular-entity-card:hover,html body.browse-doomscroll .popular-entity-card:focus-visible { border-color:#a94b61!important; background:#ffe8d0!important; outline:0; }
+html body.browse-doomscroll .live-auction-card img,html body.browse-doomscroll .popular-listing-card img { background:#fff4e4!important; }html body.browse-doomscroll .popular-entity-avatar,html body.browse-doomscroll .popular-entity-mark { border-color:#c87e89!important; background:#fff3e5!important; color:#91485f!important; }
+html body.browse-doomscroll .live-auction-card small,html body.browse-doomscroll .popular-listing-card small,html body.browse-doomscroll .popular-entity-card small { color:#805d67!important; }html body.browse-doomscroll .live-auction-card b,html body.browse-doomscroll .popular-listing-card b,html body.browse-doomscroll .popular-entity-card b { color:#472938!important; }html body.browse-doomscroll .live-auction-card em,html body.browse-doomscroll .popular-listing-card em,html body.browse-doomscroll .popular-entity-card em { color:#28715c!important; }html body.browse-doomscroll .live-auction-card>i,html body.browse-doomscroll .popular-listing-card>i,html body.browse-doomscroll .popular-entity-card>i { color:#805569!important; }
+
 /* Remaining listing overlays and utility strips inherit the sunset palette
    instead of the dark marketplace defaults. */
 html body.browse-doomscroll .media .grade,
