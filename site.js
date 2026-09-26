@@ -1153,8 +1153,19 @@ function syncBrowseModeUi() {
   let playfield = document.querySelector('.rocket-game-playfield');
   if (conveyor && !playfield) { playfield = document.createElement('div'); playfield.className = 'rocket-game-playfield'; playfield.setAttribute('aria-hidden', 'true'); playfield.innerHTML = '<div class="rocket-game-layer"></div><div class="conveyor-rocket"><img src="/public/star-run-rocket.png" alt=""></div>'; document.querySelector('.app-shell')?.append(playfield); }
   let gameHud = document.querySelector('.rocket-game-hud');
-  if (conveyor && !gameHud) { gameHud = document.createElement('aside'); gameHud.className = 'rocket-game-hud'; gameHud.setAttribute('aria-live', 'off'); document.querySelector('.tag-search-layout')?.append(gameHud); }
-  if (conveyor) startConveyorRocket(playfield?.querySelector('.conveyor-rocket')); else { orbit?.remove(); playfield?.remove(); gameHud?.remove(); stopConveyorRocket(); }
+  let utilityDock = document.querySelector('.conveyor-utility-dock');
+  const tagLayout = document.querySelector('.tag-search-layout');
+  const removeTagsButton = document.querySelector('#remove-tags');
+  if (conveyor) {
+    if (!utilityDock) { utilityDock = document.createElement('aside'); utilityDock.className = 'conveyor-utility-dock'; document.querySelector('.app-shell')?.append(utilityDock); }
+    if (!gameHud) { gameHud = document.createElement('aside'); gameHud.className = 'rocket-game-hud'; gameHud.setAttribute('aria-live', 'off'); }
+    utilityDock.append(gameHud);
+    if (removeTagsButton) utilityDock.append(removeTagsButton);
+    startConveyorRocket(playfield?.querySelector('.conveyor-rocket'));
+  } else {
+    if (removeTagsButton && tagLayout) tagLayout.prepend(removeTagsButton);
+    orbit?.remove(); playfield?.remove(); gameHud?.remove(); utilityDock?.remove(); stopConveyorRocket();
+  }
   let cloudLayer = document.querySelector('.puppy-cloud-layer');
   if (doomscroll && !cloudLayer) { cloudLayer = document.createElement('div'); cloudLayer.className = 'puppy-cloud-layer'; cloudLayer.setAttribute('aria-hidden', 'true'); cloudLayer.innerHTML = '<i></i><i></i><i></i><i></i><i></i>'; document.body.append(cloudLayer); }
   if (!doomscroll) cloudLayer?.remove();
