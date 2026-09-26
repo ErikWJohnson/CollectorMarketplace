@@ -325,6 +325,11 @@ html body.browse-doomscroll .mode-tabs button:not(.is-active) { color: #845f66 !
 html body.browse-doomscroll .search:focus-within,
 html body.browse-doomscroll .tag-search:focus-within { border-color: #a94b61 !important; box-shadow: 0 0 0 3px #e9856c50 !important; }
 html body.browse-doomscroll .bottom-nav button.active { color: #54273d !important; background: linear-gradient(180deg,#ffe1a1a8,#f6b17c70) !important; }
+html body.browse-doomscroll .popular-tags { border-color:#d88d7c !important; background:linear-gradient(135deg,#fff0d8e8,#ffc8b1e8) !important; box-shadow:0 7px 22px #8f3f5550 !important; }
+html body.browse-doomscroll .popular-tags>b { color:#8c3b51 !important; }
+html body.browse-doomscroll .popular-tags button { color:#563746 !important; background:#fffaf2e8 !important; border-color:#d99888 !important; }
+html body.browse-doomscroll .popular-tags button small { color:#a55354 !important; }
+html body.browse-doomscroll .popular-tags button:hover,html body.browse-doomscroll .popular-tags button.active { color:#4a2639 !important; background:#ffd18f !important; border-color:#ae5661 !important; }
 html body.browse-doomscroll .bottom-nav button.active b { color: #b04f59 !important; filter: drop-shadow(0 0 6px #f18f70a8); }
 
 /* Doomscroll is a vertical feed: never retain the Conveyor rail or its
