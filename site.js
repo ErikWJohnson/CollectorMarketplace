@@ -2598,6 +2598,55 @@ async function handleGoogleLoginResult() {
 Promise.all([loadMarket(), Promise.all([fetch('data/auctions.json').then(response => response.json()), fetch('/auctions').then(response => response.ok ? response.json() : [])]), fetch('/users').then(response => response.ok ? response.json() : []), fetch('/collectives').then(response => response.ok ? response.json() : []), fetch('/brands').then(response => response.ok ? response.json() : []), fetch('/couriers').then(response => response.ok ? response.json() : []), fetch('/chatrooms').then(response => response.ok ? response.json() : [])]).then(async ([, [featuredLots, userLots], accountDirectory, collectiveDirectory, brandDirectory, courierDirectory, chatroomDirectory]) => { accounts = accountDirectory; collectives = collectiveDirectory; brands = brandDirectory; couriers = courierDirectory; chatrooms = chatroomDirectory; auctions = [...featuredLots, ...userLots].map(lot => { const [hours = 0, minutes = 0, seconds = 0] = String(lot.ends || '').split(':').map(Number); const configuredEnd = lot.endAt ? new Date(lot.endAt).valueOf() : 0; return { ...lot, endAt: lot.auctionEndless ? Infinity : Number.isFinite(configuredEnd) && configuredEnd > Date.now() ? configuredEnd : Date.now() + ((hours * 3600 + minutes * 60 + seconds) * 1000) }; }); applyTagRoute(); applyHashLocation(); observer = new IntersectionObserver(entries => { if (entries[0].isIntersecting && browseMode === 'doomscroll' && page * 4 < filtered().length) { page++; renderFeed(false); } }, { rootMargin: '250px' }); observer.observe(sentinel); await handlePayPalCheckoutResult(); await handleGoogleLoginResult(); }).catch(() => { stream.innerHTML = '<p class="load-state">The marketplace feed could not load. Please refresh the page.</p>'; });
 refreshPlatformWorldwideHighScores();
 setInterval(updateLiveAuctionRailClocks, 1000);
+function galleryWorkspaceMarkup(profile, own = false) {
+  const galleries = Array.isArray(profile?.galleries) ? profile.galleries : [];
+  const galleryCards = galleries.length ? galleries.map(gallery => `<article class="profile-gallery-card"><header><div><span>GALLERY · ${Number(gallery.items?.length || 0)} LISTING${Number(gallery.items?.length || 0) === 1 ? '' : 'S'}</span><h5>${safe(gallery.title)}</h5></div>${own ? `<button type="button" class="profile-gallery-delete" data-gallery-delete="${safe(gallery.id)}" aria-label="Delete ${safe(gallery.title)} gallery">Delete</button>` : ''}</header>${gallery.description ? `<p>${safe(gallery.description)}</p>` : ''}<div class="profile-gallery-items">${(gallery.items || []).slice(0, 8).map(item => `<button type="button" data-detail="${safe(item.id)}" aria-label="View ${safe(item.title)}"><img src="${safe(item.image || item.images?.[0] || '')}" alt="${safe(item.title)}"><span>${safe(item.title)}</span></button>`).join('')}</div></article>`).join('') : `<p class="profile-empty">${own ? 'Create a gallery to group your active listings into a shareable collection.' : 'This collector has not published a gallery yet.'}</p>`;
+  return `<section class="profile-galleries"><header><div><h4>Galleries <small>${galleries.length}</small></h4><p>Curated collections of listings, organized by the collector.</p></div>${own ? '<button type="button" class="entity-primary" data-gallery-create>Create gallery</button>' : ''}</header><div class="profile-gallery-grid">${galleryCards}</div></section>`;
+}
+function injectProfileGalleries(profile, own = false) {
+  const listingsSection = stream.querySelector('.profile-workspace > .profile-listings');
+  if (!listingsSection || stream.querySelector('.profile-galleries')) return;
+  listingsSection.insertAdjacentHTML('afterend', galleryWorkspaceMarkup(profile, own));
+}
+const openAccountPanelWithGalleries = openAccountPanel;
+openAccountPanel = async (...args) => {
+  const result = await openAccountPanelWithGalleries(...args);
+  if (session?.user) injectProfileGalleries(session.user, true);
+  return result;
+};
+const openPublicProfileWithGalleries = openProfile;
+openProfile = async (...args) => {
+  const result = await openPublicProfileWithGalleries(...args);
+  const profileId = args[0];
+  if (profileId && session?.user?.id !== profileId && stream.querySelector('.profile-workspace')) {
+    const profile = await api(`/user/${profileId}`).catch(() => null);
+    if (profile) injectProfileGalleries(profile, false);
+  }
+  return result;
+};
+document.addEventListener('click', event => {
+  const create = event.target.closest('[data-gallery-create]');
+  if (create) {
+    const rows = (session?.user?.activeListings || []).map(item => `<label class="gallery-listing-choice"><input type="checkbox" name="listingIds" value="${safe(item.id)}"><img src="${safe(item.image || item.images?.[0] || '')}" alt=""><span><b>${safe(item.title)}</b><small>${money(item.price)}</small></span></label>`).join('');
+    return openModal('Create gallery', 'Choose one or more of your active listings to create a curated public collection.', `<form class="modal-form gallery-form"><label>Gallery name<input required name="title" maxlength="80" placeholder="e.g. My Skylanders shelf"></label><label>Description <small>Optional</small><textarea name="description" maxlength="280" placeholder="Tell collectors what connects these items."></textarea></label><fieldset class="gallery-listing-picker"><legend>Listings to include</legend>${rows || '<p class="profile-empty">Create an active listing before making a gallery.</p>'}</fieldset><button class="transaction-submit" ${rows ? '' : 'disabled'}>Create gallery</button></form>`);
+  }
+  const remove = event.target.closest('[data-gallery-delete]');
+  if (remove) {
+    if (!window.confirm('Delete this gallery? Listings will remain active.')) return;
+    api(`/account/galleries/${remove.dataset.galleryDelete}`, { method: 'DELETE' }).then(openAccountPanel).catch(showError);
+  }
+});
+document.addEventListener('submit', async event => {
+  const form = event.target.closest?.('.gallery-form');
+  if (!form) return;
+  event.preventDefault();
+  const fields = new FormData(form);
+  try {
+    await api('/account/galleries', { method: 'POST', body: JSON.stringify({ title: fields.get('title'), description: fields.get('description'), listingIds: fields.getAll('listingIds') }) });
+    if (modal.open) modal.close();
+    await openAccountPanel();
+  } catch (error) { showError(error); }
+}, true);
 document.addEventListener('click', event => { const signIn = event.target.closest('[data-auth="login"]'); if (signIn) openAuthPanel('login'); });
 window.addEventListener('popstate', () => {
   restoringWorkspaceHistory = true;
