@@ -43,7 +43,15 @@ const paymentMethods = new Set(['PayPal']);
 const paypalProcessingRate = 0.0349;
 const paypalProcessingFixed = 0.49;
 const paypalProcessingFee = amount => Math.round((Math.max(0, Number(amount) || 0) * paypalProcessingRate + paypalProcessingFixed) * 100) / 100;
-const calculatedDeliveryFee = (miles, packaging) => Math.round((Math.max(0, Number(miles) || 0) * 0.10 + Math.max(0, Number(packaging) || 0)) * 100) / 100;
+// The marketplace UPS Priority estimate is intentionally shared by purchases,
+// trades, and the checkout preview so a buyer never sees conflicting delivery math.
+// Shippo's label quote remains the carrier's final live charge once parcel details
+// and the seller's origin address are supplied.
+const upsPriorityEstimate = Object.freeze({ floor: 8, perMile: 0.10 });
+const calculatedDeliveryFee = (miles, packaging) => Math.round((Math.max(
+  upsPriorityEstimate.floor,
+  Math.max(0, Number(miles) || 0) * upsPriorityEstimate.perMile + Math.max(0, Number(packaging) || 0)
+)) * 100) / 100;
 const developerPassUsername = 'collectormarketplace';
 const hasDeveloperPass = user => user?.developerPass === true;
 const isMarketplaceModerator = user => String(user?.username || '').trim().toLowerCase() === developerPassUsername;
