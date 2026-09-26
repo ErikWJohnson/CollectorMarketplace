@@ -365,7 +365,8 @@ function initializeSiteTheme() {
   render(); start();
 }
 initializeSiteTheme();
-let browseMode = localStorage.getItem('collector-marketplace-browse-mode') === 'doomscroll' ? 'doomscroll' : 'conveyor', conveyorFrame = 0, conveyorTimer = 0;
+const savedBrowseMode = localStorage.getItem('collector-marketplace-browse-mode');
+let browseMode = ['conveyor', 'doomscroll', 'squared'].includes(savedBrowseMode) ? savedBrowseMode : 'conveyor', conveyorFrame = 0, conveyorTimer = 0;
 // Keep comma/period keyboard navigation in the same order as the visible scope bar.
 const searchScopes = ['listings', 'accounts', 'collectives', 'brands', 'chatrooms', 'couriers'];
 const socialScopeMeta = {
@@ -1135,8 +1136,10 @@ function syncBrowseModeUi() {
   const browseSurface = !document.body.classList.contains('app-section-mode') && !modal.open;
   const conveyor = browseMode === 'conveyor' && searchScope === 'listings' && browseSurface && !auctionActive;
   const doomscroll = browseMode === 'doomscroll' && searchScope === 'listings' && browseSurface && !auctionActive;
+  const squared = browseMode === 'squared' && searchScope === 'listings' && browseSurface && !auctionActive;
   document.body.classList.toggle('browse-conveyor', conveyor);
   document.body.classList.toggle('browse-doomscroll', doomscroll);
+  document.body.classList.toggle('browse-squared', squared);
   let smog = document.querySelector('.conveyor-smog-layer');
   if (conveyor && !smog) { smog = document.createElement('div'); smog.className = 'conveyor-smog-layer'; smog.setAttribute('aria-hidden', 'true'); smog.innerHTML = '<span></span><span></span><span></span><span></span><span></span>'; document.body.append(smog); }
   if (!conveyor) smog?.remove();
@@ -1156,11 +1159,11 @@ function syncBrowseModeUi() {
   if (doomscroll && !puppyHud) { puppyHud = document.createElement('aside'); puppyHud.className = 'puppy-game-hud'; puppyHud.setAttribute('aria-live', 'off'); document.querySelector('.tag-search-layout')?.append(puppyHud); }
   if (doomscroll) startPuppyJump(puppyField?.querySelector('.puppy-game-pup')); else { puppyField?.remove(); puppyHud?.remove(); stopPuppyJump(); }
   const button = document.querySelector('[data-browse-mode]');
-  if (button) { button.disabled = searchScope !== 'listings' || auctionActive; button.firstChild.textContent = browseMode === 'conveyor' ? 'Conveyor ' : 'Doomscroll '; button.setAttribute('aria-label', `Browsing mode: ${browseMode}. Press Q to switch.`); button.setAttribute('aria-pressed', String(browseMode === 'conveyor')); }
+  if (button) { const label = browseMode === 'conveyor' ? 'Conveyor' : browseMode === 'doomscroll' ? 'Doomscroll' : 'Squared'; button.disabled = searchScope !== 'listings' || auctionActive; button.firstChild.textContent = `${label} `; button.setAttribute('aria-label', `Browsing mode: ${label}. Press Q to switch.`); button.setAttribute('aria-pressed', String(browseMode === 'conveyor')); }
   if (conveyor) startConveyor(); else stopConveyor();
 }
 function toggleBrowseMode() {
-  browseMode = browseMode === 'doomscroll' ? 'conveyor' : 'doomscroll';
+  browseMode = browseMode === 'conveyor' ? 'doomscroll' : browseMode === 'doomscroll' ? 'squared' : 'conveyor';
   localStorage.setItem('collector-marketplace-browse-mode', browseMode);
   stopAutoScroll(); stream.scrollLeft = 0; syncBrowseModeUi(); renderFeed();
 }
@@ -1611,6 +1614,17 @@ const filteredDirectory = () => {
 };
 const stateFor = id => postState[id] || (postState[id] = { score: 0, vote: 0, comments: [] });
 const savePostState = () => localStorage.setItem('collector-marketplace-post-state', JSON.stringify(postState));
+const squareCard = item => {
+  const owner = item.owner?.username || item.ownerName || 'collector';
+  const image = item.images?.[0] || item.image || '';
+  const ownListing = session?.user?.id === item.ownerId;
+  const stock = Math.max(0, Number(item.stockRemaining ?? item.stockQuantity ?? 1));
+  const availability = Number(item.stockQuantity || 1) > 1 ? `${stock} in stock` : item.fulfillment === 'pickup' ? 'Pickup available' : 'Pickup & delivery';
+  const action = ownListing
+    ? `<button type="button" data-listing-statistics="${safe(item.id)}">Statistics</button>`
+    : `<button type="button" class="square-buy" data-purchase="${safe(item.id)}">Buy ${money(item.price)}</button>`;
+  return `<article class="square-listing-card ${item.promotion?.status === 'active' ? 'is-promoted' : ''}"><button type="button" class="square-listing-media" data-image-zoom="${safe(item.id)}" data-image-index="0" aria-label="Inspect ${safe(item.title)}"><img src="${safe(image)}" alt="${safe(item.title)}" loading="lazy"><span class="square-category">${safe(item.category || 'Collectible')}</span>${item.promotion?.status === 'active' ? '<span class="square-promoted">Promoted</span>' : ''}</button><section class="square-listing-copy"><small>@${safe(owner)}</small><h2 title="${safe(item.title)}">${safe(item.title)}</h2><strong>${money(item.price)}</strong><p>${safe(item.condition || 'Condition not specified')} · ${safe(availability)}</p><footer>${action}<button type="button" data-image-zoom="${safe(item.id)}" data-image-index="0">Inspect</button></footer></section></article>`;
+};
 const card = item => {
   const state = stateFor(item.id); const owner = item.owner?.username || item.ownerName || 'collector'; const avatar = accountAvatar(item.owner || { username: owner }, 'listing-owner-avatar');
   const imageCount = item.images?.length || 1; const videoCount = item.videos?.length || 0; const commentCount = Number(item.commentCount || 0);
@@ -1692,18 +1706,19 @@ function renderFeed(reset = true) {
   // updates belong only to Browse and must never replace an open workspace.
   if (!canRenderBrowseFeed()) return;
   if (searchScope !== 'listings') { const rows = filteredDirectory(); const meta = socialScopeMeta[searchScope]; stream.innerHTML = rows.map(item => directoryCard(item, searchScope)).join('') || `<p class="load-state">No ${meta.noun}s match that search yet.</p>`; document.querySelector('#result-count').textContent = `${rows.length} ${meta.noun}${rows.length === 1 ? '' : 's'}`; sentinel.textContent = rows.length ? 'Community directory complete.' : 'Try another name, interest, or tag.'; syncBrowseModeUi(); return; }
-  const rows = alternatePromotedListings(filtered()); if (reset) page = 1; const visible = browseMode === 'conveyor' ? rows : rows.slice(0, page * 4);
-  const originalCards = visible.map(card).join(''); const conveyorCopies = browseMode === 'conveyor' && visible.length ? Array.from({ length: 2 }, () => visible.map(item => card(item).replace('<article class="listing"', '<article class="listing" data-conveyor-copy="true"')).join('')).join('') : '';
+  const rows = alternatePromotedListings(filtered()); if (reset) page = 1; const pageSize = browseMode === 'squared' ? 24 : 4; const visible = browseMode === 'conveyor' ? rows : rows.slice(0, page * pageSize);
+  const renderCard = browseMode === 'squared' ? squareCard : card;
+  const originalCards = visible.map(renderCard).join(''); const conveyorCopies = browseMode === 'conveyor' && visible.length ? Array.from({ length: 2 }, () => visible.map(item => card(item).replace('<article class="listing"', '<article class="listing" data-conveyor-copy="true"')).join('')).join('') : '';
   stream.innerHTML = originalCards ? originalCards + conveyorCopies : '<p class="load-state">No collector finds match that search.</p>';
   stream.querySelectorAll('.listing .collector-head').forEach((header, index) => { const item = visible[index % visible.length]; header.dataset.profile = item?.ownerId || ''; header.tabIndex = 0; header.setAttribute('role', 'button'); header.setAttribute('aria-label', `Open ${item?.owner?.username || 'collector'} profile`); });
   stream.querySelectorAll('.listing').forEach((listing, index) => { const item = visible[index % visible.length]; if (item?.promotion?.status === 'active') listing.querySelector('.listing-media-zoom')?.insertAdjacentHTML('beforeend', '<span class="promotion-badge">PROMOTED</span>'); });
-  document.querySelector('#result-count').textContent = `${rows.length} listed`; sentinel.textContent = browseMode === 'conveyor' ? 'Conveyor mode · looping continuously' : page * 4 < rows.length ? 'Scroll for more finds ↓' : 'You are all caught up.'; syncBrowseModeUi(); renderVisibleCheckoutEstimates();
+  document.querySelector('#result-count').textContent = `${rows.length} listed`; sentinel.textContent = browseMode === 'conveyor' ? 'Conveyor mode · looping continuously' : page * pageSize < rows.length ? 'Scroll for more finds ↓' : 'You are all caught up.'; syncBrowseModeUi(); renderVisibleCheckoutEstimates();
 }
 function openAppSection(kind, title, copy, content = '') {
   if (modal.open) modal.close(); stopAutoScroll(); stopConveyor(); stopAuctionWaterfall(); stopJungleChatGame(); stopJungleChatAmbience(); stopAccountVeniceAmbience(); stopSellLavaAmbience(); stopGothicCheckoutAmbience(); stopSellLavaGame(); stopVeniceSailingGame(); stopGothicHuntGame(); clearInterval(auctionClock); clearInterval(auctionFeedClock);
   document.querySelector('.conveyor-smog-layer')?.remove();
   document.querySelector('.conveyor-orbit-layer')?.remove();
-  document.body.classList.remove('auction-mode', 'browse-conveyor', 'chat-open', 'account-open', 'purchase-open', 'comments-open', 'listing-page', 'app-section-chat', 'app-section-account', 'app-section-listing', 'app-section-membership', 'app-section-purchase', 'app-section-valuation', 'app-section-leaderboard');
+  document.body.classList.remove('auction-mode', 'browse-conveyor', 'browse-squared', 'chat-open', 'account-open', 'purchase-open', 'comments-open', 'listing-page', 'app-section-chat', 'app-section-account', 'app-section-listing', 'app-section-membership', 'app-section-purchase', 'app-section-valuation', 'app-section-leaderboard');
   document.body.classList.add('app-section-mode', `app-section-${kind}`); syncBrowseModeUi(); if (kind === 'chat') startJungleChatAmbience(); if (kind === 'account') startAccountVeniceAmbience(); if (kind === 'listing') startSellLavaAmbience(); if (kind === 'purchase') startGothicCheckoutAmbience(); if (observer) observer.disconnect(); sentinel.hidden = true;
   const workspaceLabel = kind === 'account' ? 'Collector workspace' : kind === 'listing' ? 'Seller workspace' : kind === 'membership' ? 'Membership' : kind === 'purchase' ? 'Secure checkout' : kind === 'valuation' ? 'AI market value' : kind === 'leaderboard' ? 'Global scores' : 'Social workspace';
   const purchaseDecor = kind === 'purchase' ? '<div class="gothic-checkout-scene" aria-hidden="true"><i class="castle castle-left"><b></b><b></b><b></b></i><i class="castle castle-right"><b></b><b></b></i><i class="gargoyle gargoyle-left">♜</i><i class="gargoyle gargoyle-right">♜</i><i class="moon"></i></div>' : '';
@@ -2464,7 +2479,7 @@ async function handleGoogleLoginResult() {
   await loadDeliveries();
   openAccountPanel();
 }
-Promise.all([loadMarket(), Promise.all([fetch('data/auctions.json').then(response => response.json()), fetch('/auctions').then(response => response.ok ? response.json() : [])]), fetch('/users').then(response => response.ok ? response.json() : []), fetch('/collectives').then(response => response.ok ? response.json() : []), fetch('/brands').then(response => response.ok ? response.json() : []), fetch('/couriers').then(response => response.ok ? response.json() : []), fetch('/chatrooms').then(response => response.ok ? response.json() : [])]).then(async ([, [featuredLots, userLots], accountDirectory, collectiveDirectory, brandDirectory, courierDirectory, chatroomDirectory]) => { accounts = accountDirectory; collectives = collectiveDirectory; brands = brandDirectory; couriers = courierDirectory; chatrooms = chatroomDirectory; auctions = [...featuredLots, ...userLots].map(lot => { const [hours = 0, minutes = 0, seconds = 0] = String(lot.ends || '').split(':').map(Number); const configuredEnd = lot.endAt ? new Date(lot.endAt).valueOf() : 0; return { ...lot, endAt: lot.auctionEndless ? Infinity : Number.isFinite(configuredEnd) && configuredEnd > Date.now() ? configuredEnd : Date.now() + ((hours * 3600 + minutes * 60 + seconds) * 1000) }; }); applyTagRoute(); applyHashLocation(); observer = new IntersectionObserver(entries => { if (entries[0].isIntersecting && page * 4 < filtered().length) { page++; renderFeed(false); } }, { rootMargin: '250px' }); observer.observe(sentinel); await handlePayPalCheckoutResult(); await handleGoogleLoginResult(); }).catch(() => { stream.innerHTML = '<p class="load-state">The marketplace feed could not load. Please refresh the page.</p>'; });
+Promise.all([loadMarket(), Promise.all([fetch('data/auctions.json').then(response => response.json()), fetch('/auctions').then(response => response.ok ? response.json() : [])]), fetch('/users').then(response => response.ok ? response.json() : []), fetch('/collectives').then(response => response.ok ? response.json() : []), fetch('/brands').then(response => response.ok ? response.json() : []), fetch('/couriers').then(response => response.ok ? response.json() : []), fetch('/chatrooms').then(response => response.ok ? response.json() : [])]).then(async ([, [featuredLots, userLots], accountDirectory, collectiveDirectory, brandDirectory, courierDirectory, chatroomDirectory]) => { accounts = accountDirectory; collectives = collectiveDirectory; brands = brandDirectory; couriers = courierDirectory; chatrooms = chatroomDirectory; auctions = [...featuredLots, ...userLots].map(lot => { const [hours = 0, minutes = 0, seconds = 0] = String(lot.ends || '').split(':').map(Number); const configuredEnd = lot.endAt ? new Date(lot.endAt).valueOf() : 0; return { ...lot, endAt: lot.auctionEndless ? Infinity : Number.isFinite(configuredEnd) && configuredEnd > Date.now() ? configuredEnd : Date.now() + ((hours * 3600 + minutes * 60 + seconds) * 1000) }; }); applyTagRoute(); applyHashLocation(); observer = new IntersectionObserver(entries => { const pageSize = browseMode === 'squared' ? 24 : 4; if (entries[0].isIntersecting && browseMode !== 'conveyor' && page * pageSize < filtered().length) { page++; renderFeed(false); } }, { rootMargin: '250px' }); observer.observe(sentinel); await handlePayPalCheckoutResult(); await handleGoogleLoginResult(); }).catch(() => { stream.innerHTML = '<p class="load-state">The marketplace feed could not load. Please refresh the page.</p>'; });
 refreshPlatformWorldwideHighScores();
 document.addEventListener('click', event => { const signIn = event.target.closest('[data-auth="login"]'); if (signIn) openAuthPanel('login'); });
 window.addEventListener('popstate', () => {
