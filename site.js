@@ -372,6 +372,7 @@ function initializeSiteTheme() {
 initializeSiteTheme();
 const savedBrowseMode = localStorage.getItem('collector-marketplace-browse-mode');
 let browseMode = ['conveyor', 'doomscroll', 'squared'].includes(savedBrowseMode) ? savedBrowseMode : 'conveyor', conveyorFrame = 0, conveyorTimer = 0;
+let metadataVisible = localStorage.getItem('collector-marketplace-metadata-visible') !== 'false';
 // Keep comma/period keyboard navigation in the same order as the visible scope bar.
 const searchScopes = ['listings', 'accounts', 'collectives', 'brands', 'chatrooms', 'couriers'];
 const socialScopeMeta = {
@@ -1131,6 +1132,12 @@ document.addEventListener('touchend', event => {
   event.preventDefault();
 }, { passive: false });
 
+function toggleMetadata() {
+  metadataVisible = !metadataVisible;
+  localStorage.setItem('collector-marketplace-metadata-visible', String(metadataVisible));
+  syncBrowseModeUi();
+}
+
 function syncBrowseModeUi() {
   const auctionActive = document.body.classList.contains('auction-mode');
   if (!auctionActive) stopAuctionWaterfall();
@@ -1145,6 +1152,7 @@ function syncBrowseModeUi() {
   document.body.classList.toggle('browse-conveyor', conveyor);
   document.body.classList.toggle('browse-doomscroll', doomscroll);
   document.body.classList.toggle('browse-squared', squared);
+  document.querySelector('.discovery')?.classList.toggle('metadata-hidden', !metadataVisible);
   let smog = document.querySelector('.conveyor-smog-layer');
   if (conveyor && !smog) { smog = document.createElement('div'); smog.className = 'conveyor-smog-layer'; smog.setAttribute('aria-hidden', 'true'); smog.innerHTML = '<span></span><span></span><span></span><span></span><span></span>'; document.body.append(smog); }
   if (!conveyor) smog?.remove();
@@ -1190,6 +1198,8 @@ function syncBrowseModeUi() {
   }
   const button = document.querySelector('[data-browse-mode]');
   if (button) { const label = browseMode === 'conveyor' ? 'Conveyor' : browseMode === 'doomscroll' ? 'Doomscroll' : 'Squared'; button.disabled = searchScope !== 'listings' || auctionActive; button.firstChild.textContent = `${label} `; button.setAttribute('aria-label', `Browsing mode: ${label}. Press Q to switch.`); button.setAttribute('aria-pressed', String(browseMode === 'conveyor')); }
+  const metadataButton = document.querySelector('[data-metadata-toggle]');
+  if (metadataButton) { metadataButton.disabled = searchScope !== 'listings' || auctionActive; metadataButton.setAttribute('aria-pressed', String(metadataVisible)); metadataButton.setAttribute('aria-label', `${metadataVisible ? 'Hide' : 'Show'} marketplace metadata rails. Press M to toggle.`); }
   if (conveyor) startConveyor(); else stopConveyor();
 }
 function toggleBrowseMode() {
@@ -1198,6 +1208,7 @@ function toggleBrowseMode() {
   stopAutoScroll(); stream.scrollLeft = 0; syncBrowseModeUi(); renderFeed();
 }
 document.addEventListener('keydown', event => { if (event.key.toLowerCase() === 'q' && searchScope === 'listings' && !document.body.classList.contains('auction-mode') && !event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey && canUseAutoScroll(event.target)) { event.preventDefault(); toggleBrowseMode(); } });
+document.addEventListener('keydown', event => { if (event.key.toLowerCase() === 'm' && searchScope === 'listings' && !document.body.classList.contains('auction-mode') && !event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey && canUseAutoScroll(event.target)) { event.preventDefault(); toggleMetadata(); } });
 document.addEventListener('keydown', event => {
   if (event.defaultPrevented) return;
   if (event.key === 'Alt' && !event.ctrlKey && !event.metaKey && canUseAutoScroll(event.target)) {
@@ -2277,6 +2288,7 @@ document.addEventListener('click', event => {
   const listingArchive = event.target.closest('[data-listing-archive]'); if (listingArchive) { api(`/listing/${listingArchive.dataset.listingArchive}`, { method: 'PUT', body: JSON.stringify({ status: listingArchive.dataset.listingNextStatus }) }).then(async () => { await loadMarket(); if (listingArchive.dataset.listingEditAfter) await openListingEditor(listingArchive.dataset.listingArchive); else await openAccountPanel(); }).catch(showError); return; }
   const listingDelete = event.target.closest('[data-listing-delete]'); if (listingDelete) { if (!window.confirm('Delete this listing permanently? This cannot be undone.')) return; api(`/listing/${listingDelete.dataset.listingDelete}`, { method: 'DELETE' }).then(async () => { await loadMarket(); await openAccountPanel(); }).catch(showError); return; }
   if (event.target.closest('[data-browse-mode]')) { toggleBrowseMode(); return; }
+  if (event.target.closest('[data-metadata-toggle]')) { toggleMetadata(); return; }
   const scopeButton = event.target.closest('[data-search-scope]'); if (scopeButton) { setSearchScope(scopeButton.dataset.searchScope); return; }
   const tag = event.target.closest('[data-tag]'); const category = event.target.closest('[data-category]'); const trade = event.target.closest('[data-trade]'); const action = event.target.closest('[data-home],[data-market],[data-auction],[data-chat],[data-sell],[data-account],[data-curator],[data-policy]');
   const profile = event.target.closest('[data-profile]'); if (profile) openProfile(profile.dataset.profile).catch(showError);
