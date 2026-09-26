@@ -43,7 +43,7 @@ const paymentMethods = new Set(['PayPal']);
 const paypalProcessingRate = 0.0349;
 const paypalProcessingFixed = 0.49;
 const paypalProcessingFee = amount => Math.round((Math.max(0, Number(amount) || 0) * paypalProcessingRate + paypalProcessingFixed) * 100) / 100;
-const calculatedDeliveryFee = (miles, packaging) => Math.round((Math.max(8, Math.max(0, Number(miles) || 0) * 0.10) + Math.max(0, Number(packaging) || 0)) * 100) / 100;
+const calculatedDeliveryFee = (miles, packaging) => Math.round((Math.max(0, Number(miles) || 0) * 0.10 + Math.max(0, Number(packaging) || 0)) * 100) / 100;
 const developerPassUsername = 'collectormarketplace';
 const hasDeveloperPass = user => user?.developerPass === true;
 const isMarketplaceModerator = user => String(user?.username || '').trim().toLowerCase() === developerPassUsername;
@@ -808,9 +808,8 @@ function preparePurchase(user, body) {
   const itemPrice = Number(listing.price) || 0; const seller = store.data.users.find(candidate => candidate.id === listing.ownerId);
   const fees = { buyer: { rate: tradeFeeRate(user), amount: itemPrice * tradeFeeRate(user) }, seller: { rate: tradeFeeRate(seller), amount: itemPrice * tradeFeeRate(seller) } };
   const buyerSubtotal = itemPrice + fees.buyer.amount + courierPay;
-  const minimumBuyerFee = itemPrice < 10 ? 1.5 : 0;
-  const paypalFee = paypalProcessingFee(buyerSubtotal + minimumBuyerFee);
-  return { listing, address, destination, provider, method, miles, packing, courierPay, itemPrice, fees, buyerSubtotal, minimumBuyerFee, paypalFee, alcoholRestricted, total: Math.round((buyerSubtotal + minimumBuyerFee + paypalFee) * 100) / 100 };
+  const paypalFee = paypalProcessingFee(buyerSubtotal);
+  return { listing, address, destination, provider, method, miles, packing, courierPay, itemPrice, fees, buyerSubtotal, minimumBuyerFee: 0, paypalFee, alcoholRestricted, total: Math.round((buyerSubtotal + paypalFee) * 100) / 100 };
 }
 function purchaseDelivery(purchase, buyer, status) {
   return { id: id(), listingId: purchase.listing.id, buyerId: buyer.id, sellerId: purchase.listing.ownerId, shippingAddress: purchase.address, recipientAddress: purchase.destination, itemPrice: purchase.itemPrice, fees: purchase.fees, deliveryProvider: purchase.provider, deliveryMiles: purchase.miles, packagingCost: purchase.packing, courierPay: purchase.courierPay, deliveryFee: purchase.courierPay, paymentMethod: purchase.method, paypalFee: purchase.paypalFee, buyerSubtotal: purchase.buyerSubtotal, minimumBuyerFee: purchase.minimumBuyerFee, alcoholAgeConfirmedAt: purchase.alcoholRestricted ? now() : null, status, courier: '', trackingNumber: '', messages: [], history: [], createdAt: now(), updatedAt: now() };
