@@ -1580,7 +1580,7 @@ function renderLiveAuctionRail() {
 function renderPopularListingRail() {
   if (!popularListingRail) return;
   const rows = listings.filter(item => item.status === 'active' && item.listingMode !== 'auction_only').sort((left, right) => ((right.likes?.length || 0) + (right.favorites?.length || 0) + Number(right.viewCount || 0) + stateFor(right.id).score) - ((left.likes?.length || 0) + (left.favorites?.length || 0) + Number(left.viewCount || 0) + stateFor(left.id).score)).slice(0, 10);
-  const cards = (duplicate = false) => rows.map(item => { const image = item.image || item.images?.[0] || '/public/logo-three-cards.png'; return `<button type="button" class="popular-listing-card" data-purchase="${safe(item.id)}" aria-label="Open ${safe(item.title)}"${duplicate ? ' tabindex="-1" aria-hidden="true"' : ''}><img src="${safe(image)}" alt="${safe(item.title)}" loading="lazy" onerror="this.onerror=null;this.src='/public/logo-three-cards.png'"><span><small>POPULAR · ${safe(item.category || 'Collectible')}</small><b>${safe(item.title)}</b><em>${money(item.price)}</em></span><i>${Number(item.viewCount || 0)} views</i></button>`; }).join('');
+  const cards = (duplicate = false) => rows.map(item => { const image = item.image || item.images?.[0] || '/public/logo-three-cards.png'; return `<button type="button" class="popular-listing-card" data-popular-listing-open="${safe(item.id)}" aria-label="Open ${safe(item.title)}"${duplicate ? ' tabindex="-1" aria-hidden="true"' : ''}><img src="${safe(image)}" alt="${safe(item.title)}" loading="lazy" onerror="this.onerror=null;this.src='/public/logo-three-cards.png'"><span><small>POPULAR · ${safe(item.category || 'Collectible')}</small><b>${safe(item.title)}</b><em>${money(item.price)}</em></span><i>${Number(item.viewCount || 0)} views</i></button>`; }).join('');
   popularListingRail.innerHTML = rows.length ? `<b>Popular listings</b><div class="popular-listing-viewport"><div class="popular-listing-track"><div class="popular-listing-lane">${cards()}</div><div class="popular-listing-lane" aria-hidden="true">${cards(true)}</div></div></div>` : '';
   popularListingRail.hidden = !rows.length;
 }
@@ -2114,11 +2114,11 @@ function openPurchasePage(item, shippingProfile = {}, updateRoute = true) {
 // Checkout used to be a constrained dialog. Intercept its action before the
 // shared click router so it consistently opens as a dedicated workspace.
 document.addEventListener('click', event => {
-  const purchase = event.target.closest('[data-purchase]');
+  const purchase = event.target.closest('[data-purchase], [data-popular-listing-open]');
   if (!purchase) return;
   event.preventDefault();
   event.stopImmediatePropagation();
-  const item = listings.find(row => row.id === purchase.dataset.purchase);
+  const item = listings.find(row => row.id === (purchase.dataset.purchase || purchase.dataset.popularListingOpen));
   if (!session) return openAuthPanel('login');
   if (item?.ownerId === session.user.id) return openModal('Your own listing', 'You cannot buy your own listing. Use your account page to edit, archive, or manage it instead.');
   const routeId = beginWorkspaceRoute('purchase');
