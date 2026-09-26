@@ -1147,7 +1147,11 @@ function syncBrowseModeUi() {
   if (!document.body.classList.contains('app-section-purchase')) stopGothicCheckoutAmbience();
   const browseSurface = !document.body.classList.contains('app-section-mode') && !modal.open;
   const conveyor = browseMode === 'conveyor' && searchScope === 'listings' && browseSurface && !auctionActive;
-  const doomscroll = browseMode === 'doomscroll' && searchScope === 'listings' && browseSurface && !auctionActive;
+  // Doomscroll is a visual browse surface, not a listings-only mode. This keeps
+  // Communities, Brands, Collectors, Couriers, and Live Rooms in the same
+  // sunset/light interface when the visitor has selected Doomscroll.
+  const doomscroll = browseMode === 'doomscroll' && browseSurface && !auctionActive;
+  const doomscrollGame = doomscroll && searchScope === 'listings';
   const squared = browseMode === 'squared' && searchScope === 'listings' && browseSurface && !auctionActive;
   document.body.classList.toggle('browse-conveyor', conveyor);
   document.body.classList.toggle('browse-doomscroll', doomscroll);
@@ -1179,13 +1183,13 @@ function syncBrowseModeUi() {
     orbit?.remove(); playfield?.remove(); gameHud?.remove(); utilityDock?.remove(); stopConveyorRocket();
   }
   let cloudLayer = document.querySelector('.puppy-cloud-layer');
-  if (doomscroll && !cloudLayer) { cloudLayer = document.createElement('div'); cloudLayer.className = 'puppy-cloud-layer'; cloudLayer.setAttribute('aria-hidden', 'true'); cloudLayer.innerHTML = '<i></i><i></i><i></i><i></i><i></i>'; document.body.append(cloudLayer); }
-  if (!doomscroll) cloudLayer?.remove();
+  if (doomscrollGame && !cloudLayer) { cloudLayer = document.createElement('div'); cloudLayer.className = 'puppy-cloud-layer'; cloudLayer.setAttribute('aria-hidden', 'true'); cloudLayer.innerHTML = '<i></i><i></i><i></i><i></i><i></i>'; document.body.append(cloudLayer); }
+  if (!doomscrollGame) cloudLayer?.remove();
   let puppyField = document.querySelector('.puppy-game-playfield');
-  if (doomscroll && !puppyField) { puppyField = document.createElement('div'); puppyField.className = 'puppy-game-playfield'; puppyField.setAttribute('aria-hidden', 'true'); puppyField.innerHTML = '<div class="puppy-game-layer"></div><div class="puppy-game-pup"><img src="/public/puppy-jump.png" alt=""></div>'; document.querySelector('.app-shell')?.append(puppyField); }
+  if (doomscrollGame && !puppyField) { puppyField = document.createElement('div'); puppyField.className = 'puppy-game-playfield'; puppyField.setAttribute('aria-hidden', 'true'); puppyField.innerHTML = '<div class="puppy-game-layer"></div><div class="puppy-game-pup"><img src="/public/puppy-jump.png" alt=""></div>'; document.querySelector('.app-shell')?.append(puppyField); }
   let puppyHud = document.querySelector('.puppy-game-hud');
   let doomUtilityDock = document.querySelector('.doomscroll-utility-dock');
-  if (doomscroll) {
+  if (doomscrollGame) {
     if (!doomUtilityDock) { doomUtilityDock = document.createElement('aside'); doomUtilityDock.className = 'doomscroll-utility-dock'; }
     dockHost?.append(doomUtilityDock);
     if (!puppyHud) { puppyHud = document.createElement('aside'); puppyHud.className = 'puppy-game-hud'; puppyHud.setAttribute('aria-live', 'off'); }
@@ -1197,7 +1201,7 @@ function syncBrowseModeUi() {
     if (!conveyor && removeTagsButton && tagLayout) tagLayout.prepend(removeTagsButton);
   }
   const button = document.querySelector('[data-browse-mode]');
-  if (button) { const label = browseMode === 'conveyor' ? 'Conveyor' : browseMode === 'doomscroll' ? 'Doomscroll' : 'Squared'; button.disabled = searchScope !== 'listings' || auctionActive; button.firstChild.textContent = `${label} `; button.setAttribute('aria-label', `Browsing mode: ${label}. Press Q to switch.`); button.setAttribute('aria-pressed', String(browseMode === 'conveyor')); }
+  if (button) { const label = browseMode === 'conveyor' ? 'Conveyor' : browseMode === 'doomscroll' ? 'Doomscroll' : 'Squared'; button.disabled = auctionActive; button.firstChild.textContent = `${label} `; button.setAttribute('aria-label', `Browsing mode: ${label}. Press Q to switch.`); button.setAttribute('aria-pressed', String(browseMode === 'conveyor')); }
   const metadataButton = document.querySelector('[data-metadata-toggle]');
   if (metadataButton) { metadataButton.disabled = searchScope !== 'listings' || auctionActive; metadataButton.setAttribute('aria-pressed', String(metadataVisible)); metadataButton.setAttribute('aria-label', `${metadataVisible ? 'Hide' : 'Show'} marketplace metadata rails. Press M to toggle.`); }
   if (conveyor) startConveyor(); else stopConveyor();
@@ -1207,7 +1211,7 @@ function toggleBrowseMode() {
   localStorage.setItem('collector-marketplace-browse-mode', browseMode);
   stopAutoScroll(); stream.scrollLeft = 0; syncBrowseModeUi(); renderFeed();
 }
-document.addEventListener('keydown', event => { if (event.key.toLowerCase() === 'q' && searchScope === 'listings' && !document.body.classList.contains('auction-mode') && !event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey && canUseAutoScroll(event.target)) { event.preventDefault(); toggleBrowseMode(); } });
+document.addEventListener('keydown', event => { if (event.key.toLowerCase() === 'q' && !document.body.classList.contains('auction-mode') && !event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey && canUseAutoScroll(event.target)) { event.preventDefault(); toggleBrowseMode(); } });
 document.addEventListener('keydown', event => { if (event.key.toLowerCase() === 'm' && searchScope === 'listings' && !document.body.classList.contains('auction-mode') && !event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey && canUseAutoScroll(event.target)) { event.preventDefault(); toggleMetadata(); } });
 document.addEventListener('keydown', event => {
   if (event.defaultPrevented) return;
