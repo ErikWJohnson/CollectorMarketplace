@@ -560,7 +560,7 @@ function listingRiskFlags(ownerId, listing, previousPrice = null) {
   return flags;
 }
 app.post('/listing', required, (req, res) => {
-  const { title, description, category, condition, tags = [], price, tradeOffer, images = [], videos = [], sellerCity, sellerZip, locationCoordinates, pickupRadiusMiles, fulfillment, shippingPackagingCost, listingMode = 'marketplace', auctionStartPrice, auctionDurationHours, stockQuantity = 1, confirmedAlcoholAge } = req.body;
+  const { title, description, category, condition, tags = [], price, tradeOffer, images = [], videos = [], sellerCity, sellerZip, locationCoordinates, pickupRadiusMiles, fulfillment, shippingPackagingCost, listingMode = 'marketplace', postType = 'sale', auctionStartPrice, auctionDurationHours, stockQuantity = 1, confirmedAlcoholAge } = req.body;
   const validImages = Array.isArray(images) && images.length > 0 && images.length <= 5 && images.every(image => typeof image === 'string' && image.length <= 2_000_000 && (/^https?:\/\//i.test(image) || /^data:image\/(jpeg|png|webp);base64,/i.test(image)));
   const validVideos = Array.isArray(videos) && videos.length <= 1 && videos.every(video => typeof video === 'string' && video.length <= 6_000_000 && /^data:video\/(mp4|webm|quicktime);base64,/i.test(video));
   if (!title?.trim() || !description?.trim() || !category?.trim()) return res.status(400).json({ error: 'title, description, and category are required' });
@@ -576,6 +576,8 @@ app.post('/listing', required, (req, res) => {
   if (upsPackagingCost > 1000) return res.status(400).json({ error: 'UPS packaging cost must be $1,000 or less.' });
   if (!['pickup', 'pickup_delivery'].includes(fulfillment)) return res.status(400).json({ error: 'Choose pickup or pickup and delivery for fulfillment.' });
   if (!['marketplace', 'auction_only', 'marketplace_auction'].includes(listingMode)) return res.status(400).json({ error: 'Choose where this listing should appear.' });
+  if (!['sale', 'showcase'].includes(postType)) return res.status(400).json({ error: 'Choose whether this is for sale or a collection post.' });
+  if (postType === 'showcase' && listingMode !== 'marketplace') return res.status(400).json({ error: 'Collection posts cannot be auction listings.' });
   const quantity = Math.floor(Number(stockQuantity));
   if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10000) return res.status(400).json({ error: 'Stock quantity must be a whole number between 1 and 10,000.' });
   if (listingMode !== 'marketplace' && quantity !== 1) return res.status(400).json({ error: 'Auction listings must have a stock quantity of 1.' });
@@ -596,7 +598,7 @@ app.post('/listing', required, (req, res) => {
   if (!validVideos) return res.status(400).json({ error: 'Add at most one valid uploaded video.' });
   const publicLocation = `${publicCity} ${publicZip}`;
   const locationTag = `US City/Town: ${publicCity}`;
-  const listing = { id: id(), ownerId: req.user.id, title: title.trim(), description: description.trim(), category: category.trim(), condition: itemCondition, tags: [...submittedTags, locationTag], location: publicLocation, sellerCity: publicCity, sellerZip: publicZip, locationCoordinates: coordinates, pickupRadiusMiles: pickupRadius, fulfillment, upsPackagingCost, listingMode, auctionStartPrice: listingMode === 'marketplace' ? null : startingBid, auctionEndAt: listingMode === 'marketplace' ? null : new Date(Date.now() + auctionHours * 3600000).toISOString(), auctionBids: 0, price: Number(price) || 0, stockQuantity: quantity, stockRemaining: quantity, tradeOffer: Boolean(tradeOffer) && quantity === 1, images, videos, alcoholAgeConfirmedAt: isAlcoholListing({ title, description, category, tags: submittedTags }) ? now() : null, status: 'active', likes: [], createdAt: now() };
+  const listing = { id: id(), ownerId: req.user.id, title: title.trim(), description: description.trim(), category: category.trim(), condition: itemCondition, tags: [...submittedTags, locationTag], location: publicLocation, sellerCity: publicCity, sellerZip: publicZip, locationCoordinates: coordinates, pickupRadiusMiles: pickupRadius, fulfillment, upsPackagingCost, listingMode, postType, auctionStartPrice: listingMode === 'marketplace' ? null : startingBid, auctionEndAt: listingMode === 'marketplace' ? null : new Date(Date.now() + auctionHours * 3600000).toISOString(), auctionBids: 0, price: postType === 'showcase' ? 0 : Number(price) || 0, stockQuantity: quantity, stockRemaining: quantity, tradeOffer: postType === 'sale' && Boolean(tradeOffer) && quantity === 1, images, videos, alcoholAgeConfirmedAt: isAlcoholListing({ title, description, category, tags: submittedTags }) ? now() : null, status: 'active', likes: [], createdAt: now() };
   listing.riskFlags = listingRiskFlags(req.user.id, listing); if (listing.riskFlags.length) { listing.reviewStatus = 'flagged'; securityLog('listing_flagged', req, { userId: req.user.id, listingId: listing.id, flags: listing.riskFlags }); }
   store.data.listings.unshift(listing); activity('listing', req.user.id, { listingId: listing.id }); store.save(); res.status(201).json(listing);
 });
@@ -606,6 +608,7 @@ const promotionCheckout = (listing, user, body) => {
   if (!listing) throw new Error('Listing not found');
   if (listing.ownerId !== user.id) throw new Error('Only the listing owner can promote this listing.');
   if (listing.status !== 'active') throw new Error('Restore this listing before promoting it.');
+  if (listing.postType === 'showcase') throw new Error('Collection posts cannot be promoted as sale listings.');
   const dailyBudget = Math.round(Number(body.dailyBudget) * 100) / 100;
   const durationDays = Math.round(Number(body.durationDays));
   if (!Number.isFinite(dailyBudget) || dailyBudget < 1 || dailyBudget > 500) throw new Error('Choose a daily promotion budget between $1 and $500.');
@@ -728,6 +731,7 @@ app.post('/trade', required, (req, res) => {
   const requestedListings = activeTradeListings(requestedIds, receiverId);
   const offeredListings = activeTradeListings(offeredIds, req.user.id);
   if (requestedListings.length !== requestedIds.length || offeredListings.length !== offeredIds.length) return res.status(400).json({ error: 'Every trade item must be an active listing owned by the correct collector.' });
+  if ([...requestedListings, ...offeredListings].some(listing => listing.postType === 'showcase')) return res.status(400).json({ error: 'Collection posts are not for sale or trade. Contact the collector directly to ask about one.' });
   const legacyAmount = Number(cashAmount);
   const senderCash = Number(senderCashAmount ?? (cashFrom === 'sender' ? legacyAmount : 0));
   const receiverCash = Number(receiverCashAmount ?? (cashFrom === 'receiver' ? legacyAmount : 0));
@@ -828,6 +832,7 @@ function preparePurchase(user, body) {
   const { listingId, shippingAddress, recipientAddress, deliveryProvider, deliveryMiles, paymentMethod, confirmedAlcoholAge } = body;
   const listing = store.data.listings.find(row => row.id === listingId && row.status === 'active');
   if (!listing) throw new Error('Active listing not found');
+  if (listing.postType === 'showcase') throw new Error('This is a collection post, not a listing for sale. Contact the collector to ask about it.');
   if (Number(listing.stockRemaining ?? 1) < 1) throw new Error('This listing is out of stock.');
   if (listing.ownerId === user.id) throw new Error('You cannot purchase your own listing');
   const alcoholRestricted = isAlcoholListing(listing);
