@@ -2292,7 +2292,11 @@ document.addEventListener('click', event => {
   const scopeButton = event.target.closest('[data-search-scope]'); if (scopeButton) { setSearchScope(scopeButton.dataset.searchScope); return; }
   const tag = event.target.closest('[data-tag]'); const category = event.target.closest('[data-category]'); const trade = event.target.closest('[data-trade]'); const action = event.target.closest('[data-home],[data-market],[data-auction],[data-chat],[data-sell],[data-account],[data-curator],[data-policy]');
   const profile = event.target.closest('[data-profile]'); if (profile) openProfile(profile.dataset.profile).catch(showError);
-  if (tag) { setDiscoveryMode('tags'); toggleTag(tag.dataset.tag, event.shiftKey ? 'add' : event.ctrlKey || event.metaKey ? 'remove' : 'toggle'); }
+  if (tag) {
+    // Popular tags are quick Browse filters, not navigation into the Tags page.
+    setDiscoveryMode(tag.closest('#popular-tags') ? 'search' : 'tags');
+    toggleTag(tag.dataset.tag, event.shiftKey ? 'add' : event.ctrlKey || event.metaKey ? 'remove' : 'toggle');
+  }
   if (category) { activeCategory = category.dataset.category; renderCategories(); renderFeed(); }
   if (trade) { const item = listings.find(row => row.id === trade.dataset.trade); if (!session) return openAuthPanel('login'); openTradeOfferChat(item); }
   const purchase = event.target.closest('[data-purchase]'); if (purchase) { const item = listings.find(row => row.id === purchase.dataset.purchase); if (!session) return openAuthPanel('login'); if (item?.ownerId === session.user.id) return openModal('Your own listing', 'You cannot buy your own listing. Use your account page to edit, archive, or manage it instead.'); const routeId = beginWorkspaceRoute('purchase'); api('/account/shipping-profile').catch(() => ({})).then(shippingProfile => { if (routeId === workspaceRouteId) openPurchasePage(item, shippingProfile); }).catch(showError); }
