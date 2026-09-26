@@ -1172,8 +1172,17 @@ function syncBrowseModeUi() {
   let puppyField = document.querySelector('.puppy-game-playfield');
   if (doomscroll && !puppyField) { puppyField = document.createElement('div'); puppyField.className = 'puppy-game-playfield'; puppyField.setAttribute('aria-hidden', 'true'); puppyField.innerHTML = '<div class="puppy-game-layer"></div><div class="puppy-game-pup"><img src="/public/puppy-jump.png" alt=""></div>'; document.querySelector('.app-shell')?.append(puppyField); }
   let puppyHud = document.querySelector('.puppy-game-hud');
-  if (doomscroll && !puppyHud) { puppyHud = document.createElement('aside'); puppyHud.className = 'puppy-game-hud'; puppyHud.setAttribute('aria-live', 'off'); document.querySelector('.tag-search-layout')?.append(puppyHud); }
-  if (doomscroll) startPuppyJump(puppyField?.querySelector('.puppy-game-pup')); else { puppyField?.remove(); puppyHud?.remove(); stopPuppyJump(); }
+  let doomUtilityDock = document.querySelector('.doomscroll-utility-dock');
+  if (doomscroll) {
+    if (!doomUtilityDock) { doomUtilityDock = document.createElement('aside'); doomUtilityDock.className = 'doomscroll-utility-dock'; document.querySelector('.app-shell')?.append(doomUtilityDock); }
+    if (!puppyHud) { puppyHud = document.createElement('aside'); puppyHud.className = 'puppy-game-hud'; puppyHud.setAttribute('aria-live', 'off'); }
+    doomUtilityDock.append(puppyHud);
+    if (removeTagsButton) doomUtilityDock.append(removeTagsButton);
+    startPuppyJump(puppyField?.querySelector('.puppy-game-pup'));
+  } else {
+    puppyField?.remove(); puppyHud?.remove(); doomUtilityDock?.remove(); stopPuppyJump();
+    if (!conveyor && removeTagsButton && tagLayout) tagLayout.prepend(removeTagsButton);
+  }
   const button = document.querySelector('[data-browse-mode]');
   if (button) { const label = browseMode === 'conveyor' ? 'Conveyor' : browseMode === 'doomscroll' ? 'Doomscroll' : 'Squared'; button.disabled = searchScope !== 'listings' || auctionActive; button.firstChild.textContent = `${label} `; button.setAttribute('aria-label', `Browsing mode: ${label}. Press Q to switch.`); button.setAttribute('aria-pressed', String(browseMode === 'conveyor')); }
   if (conveyor) startConveyor(); else stopConveyor();
