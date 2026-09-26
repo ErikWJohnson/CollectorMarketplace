@@ -1156,8 +1156,12 @@ function syncBrowseModeUi() {
   let utilityDock = document.querySelector('.conveyor-utility-dock');
   const tagLayout = document.querySelector('.tag-search-layout');
   const removeTagsButton = document.querySelector('#remove-tags');
+  // The site masthead participates in page flow on some browse surfaces. Keep
+  // these controls on the shell so their fixed positioning never scrolls away.
+  const dockHost = document.querySelector('.app-shell');
   if (conveyor) {
-    if (!utilityDock) { utilityDock = document.createElement('aside'); utilityDock.className = 'conveyor-utility-dock'; document.querySelector('.app-shell')?.append(utilityDock); }
+    if (!utilityDock) { utilityDock = document.createElement('aside'); utilityDock.className = 'conveyor-utility-dock'; }
+    dockHost?.append(utilityDock);
     if (!gameHud) { gameHud = document.createElement('aside'); gameHud.className = 'rocket-game-hud'; gameHud.setAttribute('aria-live', 'off'); }
     utilityDock.append(gameHud);
     if (removeTagsButton) utilityDock.append(removeTagsButton);
@@ -1174,7 +1178,8 @@ function syncBrowseModeUi() {
   let puppyHud = document.querySelector('.puppy-game-hud');
   let doomUtilityDock = document.querySelector('.doomscroll-utility-dock');
   if (doomscroll) {
-    if (!doomUtilityDock) { doomUtilityDock = document.createElement('aside'); doomUtilityDock.className = 'doomscroll-utility-dock'; document.querySelector('.app-shell')?.append(doomUtilityDock); }
+    if (!doomUtilityDock) { doomUtilityDock = document.createElement('aside'); doomUtilityDock.className = 'doomscroll-utility-dock'; }
+    dockHost?.append(doomUtilityDock);
     if (!puppyHud) { puppyHud = document.createElement('aside'); puppyHud.className = 'puppy-game-hud'; puppyHud.setAttribute('aria-live', 'off'); }
     doomUtilityDock.append(puppyHud);
     if (removeTagsButton) doomUtilityDock.append(removeTagsButton);
