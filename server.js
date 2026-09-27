@@ -140,8 +140,20 @@ const getArtifactLore = async (title, { strict = false } = {}) => {
 };
 
 class Store {
-  constructor() { fs.mkdirSync(dataDir, { recursive: true }); this.data = this.load(); this.ensureData(); this.removeDemoContent(); this.pool = null; this.writeQueue = Promise.resolve(); }
+  constructor() { fs.mkdirSync(dataDir, { recursive: true }); this.data = this.load(); this.ensureData(); this.seedTestShipping(); this.removeDemoContent(); this.pool = null; this.writeQueue = Promise.resolve(); }
   ensureData() { ['users', 'listings', 'comments', 'trades', 'notifications', 'activities', 'deliveries', 'conversations', 'communityPosts', 'memberships', 'promotions', 'securityEvents', 'sessions'].forEach(key => { if (!Array.isArray(this.data[key])) this.data[key] = []; }); this.data.sessions = this.data.sessions.filter(session => session?.tokenHash && session.expiresAt > Date.now()); this.data.conversations = this.data.conversations.filter(conversation => !(conversation.participantIds || []).includes('system-appraisal-parrot')); this.data.users = this.data.users.filter(user => user.id !== 'system-appraisal-parrot'); this.data.users.forEach(user => { if (!Array.isArray(user.profileTags)) user.profileTags = []; if (!Array.isArray(user.galleries)) user.galleries = []; if (String(user.username || '').trim().toLowerCase() === developerPassUsername) user.developerPass = true; }); this.data.listings.forEach(listing => { if (!Number.isInteger(listing.stockQuantity) || listing.stockQuantity < 1) listing.stockQuantity = 1; if (!Number.isInteger(listing.stockRemaining) || listing.stockRemaining < 0) listing.stockRemaining = ['sold', 'traded'].includes(listing.status) ? 0 : listing.stockQuantity; }); const testAuction = this.data.listings.find(listing => listing.title === 'TEST' && listing.description === 'Internal payment-flow test listing. Do not purchase.'); if (testAuction) { testAuction.listingMode = 'auction_only'; testAuction.auctionEndless = true; testAuction.auctionEndAt = null; testAuction.auctionStartPrice = Number.isFinite(Number(testAuction.auctionStartPrice)) ? Number(testAuction.auctionStartPrice) : 0; } const testUser = this.data.users.find(user => String(user.username || '').trim().toLowerCase() === 'test'); if (testUser && !this.data.listings.some(listing => listing.ownerId === testUser.id && listing.title === 'TEST 2')) this.data.listings.unshift({ id: id(), ownerId: testUser.id, title: 'TEST 2', description: 'Internal browsing-flow test listing. Do not purchase.', category: 'Memorabilia', condition: 'New', tags: ['Memorabilia', 'New', 'Test', 'Browsing Test', 'US City/Town: San Diego, CA'], location: 'San Diego, CA 92106', sellerCity: 'San Diego, CA', sellerZip: '92106', locationCoordinates: null, pickupRadiusMiles: 0, fulfillment: 'pickup_delivery', upsPackagingCost: 0, listingMode: 'marketplace', auctionStartPrice: null, auctionEndAt: null, auctionBids: 0, price: 1, tradeOffer: false, images: ['https://collectormarketplace.net/public/logo-three-cards.png'], videos: [], stockQuantity: 1, stockRemaining: 1, status: 'active', likes: [], createdAt: now() }); }
+  seedTestShipping() {
+    const testUser = this.data.users.find(user => String(user.username || '').trim().toLowerCase() === 'test');
+    const testListing = testUser && this.data.listings.find(listing => listing.ownerId === testUser.id && listing.title === 'TEST 2');
+    if (!testUser || !testListing) return;
+    // A non-residential sample origin and a small parcel make TEST 2 usable for
+    // exercising the live-rate screen without exposing a real collector address.
+    if (!testUser.shippingProfile && encryptionKey) testUser.shippingProfile = encryptPrivate({ name: 'TEST Seller', street1: '1 Market St', street2: '', city: 'San Francisco', state: 'CA', zip: '94105', country: 'US' });
+    testListing.fulfillment = 'pickup_delivery';
+    testListing.postType = 'sale';
+    testListing.shippingParcel = { length: 12, width: 10, height: 4, distance_unit: 'in', weight: 2, mass_unit: 'lb' };
+    testListing.upsPackagingCost = 0;
+  }
   load() {
     if (fs.existsSync(dataFile)) {
       try { return JSON.parse(fs.readFileSync(dataFile, 'utf8')); } catch { console.warn('Ignoring unreadable local marketplace data.'); }
@@ -175,6 +187,7 @@ class Store {
     const result = await this.pool.query('SELECT data FROM marketplace_state WHERE id = $1', ['primary']);
     if (result.rows[0]?.data) this.data = result.rows[0].data;
     this.ensureData();
+    this.seedTestShipping();
     this.removeDemoContent();
     await this.save();
     console.log('Connected to collector-db.');
