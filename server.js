@@ -39,7 +39,7 @@ const base32Secret = () => Array.from(crypto.randomBytes(20)).map(byte => base32
 const decodeBase32 = secret => { let bits = ''; for (const char of String(secret).toUpperCase().replace(/=+$/g, '')) { const index = base32Alphabet.indexOf(char); if (index >= 0) bits += index.toString(2).padStart(5, '0'); } return Buffer.from((bits.match(/.{1,8}/g) || []).filter(byte => byte.length === 8).map(byte => parseInt(byte, 2))); };
 const totpCode = (secret, at = Date.now()) => { const step = Math.floor(at / 30000); const counter = Buffer.alloc(8); counter.writeBigUInt64BE(BigInt(step)); const digest = crypto.createHmac('sha1', decodeBase32(secret)).update(counter).digest(); const offset = digest[digest.length - 1] & 15; return String(((digest.readUInt32BE(offset) & 0x7fffffff) % 1000000)).padStart(6, '0'); };
 const verifyTotp = (secret, code) => { const normalized = String(code || '').replace(/\D/g, '').slice(0, 6).padStart(6, '0'); return [-1, 0, 1].some(offset => crypto.timingSafeEqual(Buffer.from(totpCode(secret, Date.now() + offset * 30000)), Buffer.from(normalized))); };
-const deliveryProviders = { 'UPS Priority': { type: 'carrier', trackingRequired: true } };
+const deliveryProviders = { 'USPS Priority Mail': { type: 'carrier', trackingRequired: true } };
 const paymentMethods = new Set(['PayPal']);
 const paypalProcessingRate = 0.0349;
 const paypalProcessingFixed = 0.49;
@@ -317,20 +317,20 @@ async function paypalRequest(method, pathname, body, requestId) {
 function shippoAddress(input, label) { const value = input && typeof input === 'object' ? input : {}; const required = ['name', 'street1', 'city', 'state', 'zip']; if (required.some(key => !String(value[key] || '').trim())) throw new Error(`Add a complete ${label} address.`); return { name: String(value.name).trim(), street1: String(value.street1).trim(), street2: String(value.street2 || '').trim(), city: String(value.city).trim(), state: String(value.state).trim(), zip: String(value.zip).trim(), country: String(value.country || 'US').trim().toUpperCase() }; }
 function shippoParcel(input) { const value = input && typeof input === 'object' ? input : {}; const keys = ['length', 'width', 'height', 'weight']; if (keys.some(key => !(Number(value[key]) > 0))) throw new Error('Add positive package dimensions and weight.'); return { length: Number(value.length), width: Number(value.width), height: Number(value.height), distance_unit: 'in', weight: Number(value.weight), mass_unit: 'lb' }; }
 const shippingAddressKey = address => [address.name, address.street1, address.street2, address.city, address.state, address.zip, address.country].map(value => String(value || '').trim().toUpperCase()).join('|');
-async function liveUpsQuote({ listing, destination }) {
+async function liveUspsQuote({ listing, destination }) {
   if (listing.fulfillment !== 'pickup_delivery') throw new Error('This listing is available for local pickup only.');
   let origin;
   try { origin = shippoAddress(decryptPrivate(store.data.users.find(user => user.id === listing.ownerId)?.shippingProfile), 'seller shipping profile'); }
-  catch (error) { throw new Error('The seller has not configured their private shipping address for live UPS checkout yet.'); }
-  if (!origin) throw new Error('The seller has not configured their private shipping address for live UPS checkout yet.');
+  catch (error) { throw new Error('The seller has not configured their private shipping address for live USPS checkout yet.'); }
+  if (!origin) throw new Error('The seller has not configured their private shipping address for live USPS checkout yet.');
   let parcel;
   try { parcel = shippoParcel(listing.shippingParcel); }
-  catch (error) { throw new Error('The seller needs to add package dimensions and weight before a live UPS rate can be quoted.'); }
+  catch (error) { throw new Error('The seller needs to add package dimensions and weight before a live USPS rate can be quoted.'); }
   const shipment = await shippoRequest('/shipments/', { address_from: origin, address_to: destination, parcels: [parcel], async: false, metadata: `CollectorMarketplace live quote · ${listing.id}` });
-  const upsRates = (shipment.rates || []).filter(rate => /ups/i.test(`${rate.provider || ''} ${rate.servicelevel?.name || ''}`));
-  const rate = upsRates.sort((left, right) => Number(left.amount || Infinity) - Number(right.amount || Infinity))[0];
-  if (!rate || !Number.isFinite(Number(rate.amount))) throw new Error('Shippo returned no UPS service for this address and package.');
-  return { shipmentId: shipment.object_id, rateId: rate.object_id, amount: Math.round(Number(rate.amount) * 100) / 100, currency: rate.currency || 'USD', provider: rate.provider || 'UPS', service: rate.servicelevel?.name || 'UPS', origin, destination, parcel };
+  const uspsRates = (shipment.rates || []).filter(rate => /usps/i.test(`${rate.provider || ''} ${rate.servicelevel?.name || ''}`));
+  const rate = uspsRates.find(row => /priority/i.test(row.servicelevel?.name || '')) || uspsRates.sort((left, right) => Number(left.amount || Infinity) - Number(right.amount || Infinity))[0];
+  if (!rate || !Number.isFinite(Number(rate.amount))) throw new Error('Shippo returned no USPS service for this address and package.');
+  return { shipmentId: shipment.object_id, rateId: rate.object_id, amount: Math.round(Number(rate.amount) * 100) / 100, currency: rate.currency || 'USD', provider: rate.provider || 'USPS', service: rate.servicelevel?.name || 'USPS Priority Mail', origin, destination, parcel };
 }
 function createLiveShippingQuote(listing, buyer, destination, quote) {
   for (const [quoteId, saved] of liveShippingQuotes) if (saved.expiresAt <= Date.now()) liveShippingQuotes.delete(quoteId);
@@ -607,7 +607,7 @@ app.post('/listing', required, (req, res) => {
   const pickupRadius = Number(pickupRadiusMiles);
   if (!Number.isFinite(pickupRadius) || pickupRadius < 0 || pickupRadius > 500) return res.status(400).json({ error: 'Pickup radius must be between 0 and 500 miles.' });
   const upsPackagingCost = Math.round(Math.max(0, Number(shippingPackagingCost) || 0) * 100) / 100;
-  if (upsPackagingCost > 1000) return res.status(400).json({ error: 'UPS packaging cost must be $1,000 or less.' });
+  if (upsPackagingCost > 1000) return res.status(400).json({ error: 'Packaging cost must be $1,000 or less.' });
   if (!['pickup', 'pickup_delivery'].includes(fulfillment)) return res.status(400).json({ error: 'Choose pickup or pickup and delivery for fulfillment.' });
   let parcel = null;
   if (fulfillment === 'pickup_delivery' && postType !== 'showcase') {
@@ -707,9 +707,9 @@ app.put('/listing/:id', required, (req, res) => {
     if (!['pickup', 'pickup_delivery'].includes(req.body.fulfillment)) return res.status(400).json({ error: 'Choose pickup or pickup and delivery for fulfillment.' });
     listing.fulfillment = req.body.fulfillment;
   }
-  if (req.body.upsPackagingCost !== undefined) { const packaging = Math.round(Math.max(0, Number(req.body.upsPackagingCost) || 0) * 100) / 100; if (packaging > 1000) return res.status(400).json({ error: 'UPS packaging cost must be $1,000 or less.' }); listing.upsPackagingCost = packaging; }
+  if (req.body.upsPackagingCost !== undefined) { const packaging = Math.round(Math.max(0, Number(req.body.upsPackagingCost) || 0) * 100) / 100; if (packaging > 1000) return res.status(400).json({ error: 'Packaging cost must be $1,000 or less.' }); listing.upsPackagingCost = packaging; }
   if (req.body.shippingParcel !== undefined) {
-    if (listing.fulfillment === 'pickup_delivery') { try { listing.shippingParcel = shippoParcel(req.body.shippingParcel); } catch (error) { return res.status(400).json({ error: 'Add positive package length, width, height, and weight for live UPS quotes.' }); } }
+    if (listing.fulfillment === 'pickup_delivery') { try { listing.shippingParcel = shippoParcel(req.body.shippingParcel); } catch (error) { return res.status(400).json({ error: 'Add positive package length, width, height, and weight for live USPS quotes.' }); } }
     else listing.shippingParcel = null;
   }
   if (req.body.stockQuantity !== undefined) {
@@ -885,20 +885,20 @@ function preparePurchase(user, body) {
   const provider = typeof deliveryProvider === 'string' ? deliveryProvider.trim() : '';
   if (!provider || !deliveryProviders[provider]) throw new Error('Choose one of the supported delivery options.');
   if (!address || address.length > 500) throw new Error(address ? 'Keep the delivery address under 500 characters.' : 'A delivery address is required');
-  if (provider === 'UPS Priority' && !destination) throw new Error('Add a complete delivery address for UPS Priority.');
+  if (provider === 'USPS Priority Mail' && !destination) throw new Error('Add a complete delivery address for USPS Priority Mail.');
   if (listing.fulfillment === 'pickup' && provider !== 'Local pickup') throw new Error('This listing is available for local pickup only.');
   const method = typeof paymentMethod === 'string' ? paymentMethod.trim() : '';
   if (!paymentMethods.has(method)) throw new Error('Choose one of the supported payment methods.');
   const miles = Math.min(20000, Math.max(0, Number(deliveryMiles) || 0));
   const packing = Math.min(1000, Math.max(0, Number(listing.upsPackagingCost) || 0));
   const savedQuote = liveShippingQuotes.get(String(shippingQuoteId || ''));
-  if (provider === 'UPS Priority' && (!savedQuote || savedQuote.expiresAt <= Date.now() || savedQuote.listingId !== listing.id || savedQuote.buyerId !== user.id || savedQuote.destinationKey !== shippingAddressKey(destination))) throw new Error('Get a fresh live UPS shipping quote before paying.');
-  const courierPay = provider === 'UPS Priority' ? savedQuote.quote.amount : calculatedDeliveryFee(miles, packing);
+  if (provider === 'USPS Priority Mail' && (!savedQuote || savedQuote.expiresAt <= Date.now() || savedQuote.listingId !== listing.id || savedQuote.buyerId !== user.id || savedQuote.destinationKey !== shippingAddressKey(destination))) throw new Error('Get a fresh live USPS shipping quote before paying.');
+  const courierPay = provider === 'USPS Priority Mail' ? savedQuote.quote.amount : calculatedDeliveryFee(miles, packing);
   const itemPrice = Number(listing.price) || 0; const seller = store.data.users.find(candidate => candidate.id === listing.ownerId);
   const fees = { buyer: { rate: tradeFeeRate(user), amount: itemPrice * tradeFeeRate(user) }, seller: { rate: tradeFeeRate(seller), amount: itemPrice * tradeFeeRate(seller) } };
   const buyerSubtotal = itemPrice + fees.buyer.amount + courierPay;
   const paypalFee = paypalProcessingFee(buyerSubtotal);
-  return { listing, address, destination, provider, method, miles, packing, courierPay, shippingQuote: provider === 'UPS Priority' ? savedQuote.quote : null, itemPrice, fees, buyerSubtotal, minimumBuyerFee: 0, paypalFee, alcoholRestricted, total: Math.round((buyerSubtotal + paypalFee) * 100) / 100 };
+  return { listing, address, destination, provider, method, miles, packing, courierPay, shippingQuote: provider === 'USPS Priority Mail' ? savedQuote.quote : null, itemPrice, fees, buyerSubtotal, minimumBuyerFee: 0, paypalFee, alcoholRestricted, total: Math.round((buyerSubtotal + paypalFee) * 100) / 100 };
 }
 function purchaseDelivery(purchase, buyer, status) {
   return { id: id(), listingId: purchase.listing.id, buyerId: buyer.id, sellerId: purchase.listing.ownerId, shippingAddress: purchase.address, recipientAddress: purchase.destination, itemPrice: purchase.itemPrice, fees: purchase.fees, deliveryProvider: purchase.provider, deliveryMiles: purchase.miles, packagingCost: purchase.packing, courierPay: purchase.courierPay, deliveryFee: purchase.courierPay, shippo: purchase.shippingQuote ? { ...purchase.shippingQuote } : null, paymentMethod: purchase.method, paypalFee: purchase.paypalFee, buyerSubtotal: purchase.buyerSubtotal, minimumBuyerFee: purchase.minimumBuyerFee, alcoholAgeConfirmedAt: purchase.alcoholRestricted ? now() : null, status, courier: '', trackingNumber: '', messages: [], history: [], createdAt: now(), updatedAt: now() };
@@ -908,9 +908,9 @@ app.post('/shipping/quote', required, async (req, res) => {
     const listing = store.data.listings.find(row => row.id === req.body.listingId && row.status === 'active');
     if (!listing || listing.postType === 'showcase') throw new Error('Active listing not found.');
     if (listing.ownerId === req.user.id) throw new Error('You cannot quote shipping for your own listing.');
-    if (String(req.body.deliveryProvider || '') !== 'UPS Priority') throw new Error('Choose UPS Priority for a live carrier quote.');
+    if (String(req.body.deliveryProvider || '') !== 'USPS Priority Mail') throw new Error('Choose USPS Priority Mail for a live carrier quote.');
     const destination = shippoAddress(req.body.recipientAddress, 'delivery');
-    const quote = await liveUpsQuote({ listing, destination });
+    const quote = await liveUspsQuote({ listing, destination });
     const saved = createLiveShippingQuote(listing, req.user, destination, quote);
     res.json({ quoteId: saved.quoteId, amount: saved.amount, currency: saved.currency, provider: saved.provider, service: saved.service, expiresAt: saved.expiresAt });
   } catch (error) { res.status(400).json({ error: error.message }); }
@@ -1112,7 +1112,7 @@ app.post('/delivery/:id/return-request', required, (req, res) => {
   if (!delivery || delivery.buyerId !== req.user.id) return res.status(404).json({ error: 'Delivery not found' });
   if (delivery.status !== 'completed' || delivery.return?.status) return res.status(400).json({ error: 'A return can only be requested once after a completed delivery.' });
   if (reason.length < 10 || reason.length > 1000) return res.status(400).json({ error: 'Describe the return reason in 10 to 1,000 characters.' });
-  delivery.return = { status: 'requested', reason, requestedAt: now(), requestedBy: req.user.id, trackingNumber: '', carrier: delivery.deliveryProvider || 'UPS Priority', updates: [] };
+  delivery.return = { status: 'requested', reason, requestedAt: now(), requestedBy: req.user.id, trackingNumber: '', carrier: delivery.deliveryProvider || 'USPS Priority Mail', updates: [] };
   recordDeliveryUpdate(delivery, req.user.id, 'return_requested', `Return requested: ${reason}`);
   notify(delivery.sellerId, 'return', `${req.user.username} requested a return for “${store.data.listings.find(row => row.id === delivery.listingId)?.title || 'a collector item'}”`, `/delivery/${delivery.id}`);
   store.save(); res.status(201).json(deliveryView(delivery, req.user.id));
@@ -1132,7 +1132,7 @@ app.post('/delivery/:id/return-tracking', required, (req, res) => {
   const trackingNumber = String(req.body.trackingNumber || '').trim(); const carrier = String(req.body.carrier || '').trim();
   if (!delivery || delivery.buyerId !== req.user.id || delivery.return?.status !== 'approved') return res.status(404).json({ error: 'An approved return was not found.' });
   if (trackingNumber.length < 4 || trackingNumber.length > 120) return res.status(400).json({ error: 'Enter a valid return tracking number.' });
-  delivery.return.status = 'shipped'; delivery.return.trackingNumber = trackingNumber; delivery.return.carrier = carrier || delivery.deliveryProvider || 'UPS Priority'; delivery.return.shippedAt = now();
+  delivery.return.status = 'shipped'; delivery.return.trackingNumber = trackingNumber; delivery.return.carrier = carrier || delivery.deliveryProvider || 'USPS Priority Mail'; delivery.return.shippedAt = now();
   recordDeliveryUpdate(delivery, req.user.id, 'return_shipped', `Return shipped with ${delivery.return.carrier}. Tracking: ${trackingNumber}`);
   notify(delivery.sellerId, 'return', `${req.user.username} shipped a return`, `/delivery/${delivery.id}`);
   store.save(); res.json(deliveryView(delivery, req.user.id));
@@ -1146,8 +1146,8 @@ app.post('/delivery/:id/return-received', required, (req, res) => {
   notify(delivery.buyerId, 'return', `${req.user.username} confirmed receipt of your return`, `/delivery/${delivery.id}`);
   store.save(); res.json(deliveryView(delivery, req.user.id));
 });
-app.post('/delivery/:id/shippo/rate', required, async (req, res) => { try { const delivery = store.data.deliveries.find(row => row.id === req.params.id); if (!delivery || delivery.sellerId !== req.user.id) return res.status(404).json({ error: 'Delivery not found' }); if (delivery.deliveryProvider !== 'UPS Priority') return res.status(400).json({ error: 'This order did not select UPS Priority.' }); const origin = shippoAddress(req.body.origin, 'sender'); const destination = shippoAddress(delivery.recipientAddress || req.body.destination, 'recipient'); const parcel = shippoParcel(req.body.parcel); const shipment = await shippoRequest('/shipments/', { address_from: origin, address_to: destination, parcels: [parcel], async: false, metadata: `CollectorMarketplace ${delivery.id}` }); const upsRates = (shipment.rates || []).filter(row => /ups/i.test(`${row.provider || ''} ${row.servicelevel?.name || ''}`)); const rate = upsRates.find(row => /priority/i.test(row.servicelevel?.name || '')) || upsRates.sort((left, right) => Number(left.amount || Infinity) - Number(right.amount || Infinity))[0]; if (!rate) return res.status(400).json({ error: 'Shippo returned no UPS rate for these details.' }); delivery.shippo = { shipmentId: shipment.object_id, rateId: rate.object_id, amount: Number(rate.amount), currency: rate.currency || 'USD', provider: rate.provider || 'UPS', service: rate.servicelevel?.name || 'UPS', origin, destination, parcel }; recordDeliveryUpdate(delivery, req.user.id, delivery.status, `Live UPS quote: ${delivery.shippo.currency} ${delivery.shippo.amount.toFixed(2)} · ${delivery.shippo.service}.`); store.save(); res.json(deliveryView(delivery, req.user.id)); } catch (error) { res.status(400).json({ error: error.message }); } });
-app.post('/delivery/:id/shippo/label', required, async (req, res) => { try { const delivery = store.data.deliveries.find(row => row.id === req.params.id); if (!delivery || delivery.sellerId !== req.user.id) return res.status(404).json({ error: 'Delivery not found' }); if (!delivery.shippo?.rateId) return res.status(400).json({ error: 'Request a UPS rate first.' }); if (delivery.shippo.transactionId) return res.status(400).json({ error: 'A label was already purchased for this delivery.' }); const transaction = await shippoRequest('/transactions/', { rate: delivery.shippo.rateId, async: false, label_file_type: 'PDF_4x6', metadata: `CollectorMarketplace ${delivery.id}` }); if (transaction.status !== 'SUCCESS') return res.status(400).json({ error: transaction.messages?.[0]?.text || 'Shippo could not purchase this label.' }); delivery.shippo = { ...delivery.shippo, transactionId: transaction.object_id, labelUrl: transaction.label_url, trackingUrl: transaction.tracking_url_provider }; delivery.trackingNumber = transaction.tracking_number || ''; recordDeliveryUpdate(delivery, req.user.id, delivery.status, `UPS label purchased. Tracking: ${delivery.trackingNumber || 'pending'}.`); store.save(); res.json(deliveryView(delivery, req.user.id)); } catch (error) { res.status(400).json({ error: error.message }); } });
+app.post('/delivery/:id/shippo/rate', required, async (req, res) => { try { const delivery = store.data.deliveries.find(row => row.id === req.params.id); if (!delivery || delivery.sellerId !== req.user.id) return res.status(404).json({ error: 'Delivery not found' }); if (delivery.deliveryProvider !== 'USPS Priority Mail') return res.status(400).json({ error: 'This order did not select USPS Priority Mail.' }); const origin = shippoAddress(req.body.origin, 'sender'); const destination = shippoAddress(delivery.recipientAddress || req.body.destination, 'recipient'); const parcel = shippoParcel(req.body.parcel); const shipment = await shippoRequest('/shipments/', { address_from: origin, address_to: destination, parcels: [parcel], async: false, metadata: `CollectorMarketplace ${delivery.id}` }); const uspsRates = (shipment.rates || []).filter(row => /usps/i.test(`${row.provider || ''} ${row.servicelevel?.name || ''}`)); const rate = uspsRates.find(row => /priority/i.test(row.servicelevel?.name || '')) || uspsRates.sort((left, right) => Number(left.amount || Infinity) - Number(right.amount || Infinity))[0]; if (!rate) return res.status(400).json({ error: 'Shippo returned no USPS rate for these details.' }); delivery.shippo = { shipmentId: shipment.object_id, rateId: rate.object_id, amount: Number(rate.amount), currency: rate.currency || 'USD', provider: rate.provider || 'USPS', service: rate.servicelevel?.name || 'USPS Priority Mail', origin, destination, parcel }; recordDeliveryUpdate(delivery, req.user.id, delivery.status, `Live USPS quote: ${delivery.shippo.currency} ${delivery.shippo.amount.toFixed(2)} · ${delivery.shippo.service}.`); store.save(); res.json(deliveryView(delivery, req.user.id)); } catch (error) { res.status(400).json({ error: error.message }); } });
+app.post('/delivery/:id/shippo/label', required, async (req, res) => { try { const delivery = store.data.deliveries.find(row => row.id === req.params.id); if (!delivery || delivery.sellerId !== req.user.id) return res.status(404).json({ error: 'Delivery not found' }); if (!delivery.shippo?.rateId) return res.status(400).json({ error: 'Request a USPS rate first.' }); if (delivery.shippo.transactionId) return res.status(400).json({ error: 'A label was already purchased for this delivery.' }); const transaction = await shippoRequest('/transactions/', { rate: delivery.shippo.rateId, async: false, label_file_type: 'PDF_4x6', metadata: `CollectorMarketplace ${delivery.id}` }); if (transaction.status !== 'SUCCESS') return res.status(400).json({ error: transaction.messages?.[0]?.text || 'Shippo could not purchase this label.' }); delivery.shippo = { ...delivery.shippo, transactionId: transaction.object_id, labelUrl: transaction.label_url, trackingUrl: transaction.tracking_url_provider }; delivery.trackingNumber = transaction.tracking_number || ''; recordDeliveryUpdate(delivery, req.user.id, delivery.status, `USPS label purchased. Tracking: ${delivery.trackingNumber || 'pending'}.`); store.save(); res.json(deliveryView(delivery, req.user.id)); } catch (error) { res.status(400).json({ error: error.message }); } });
 
 const xmlEscape = value => String(value ?? '').replace(/[<>&'\"]/g, character => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' })[character]);
 const htmlEscape = xmlEscape;
