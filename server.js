@@ -20,6 +20,7 @@ const loginAttempts = new Map();
 const twoFactorChallenges = new Map();
 const twoFactorEnrollments = new Map();
 const liveShippingQuotes = new Map();
+const liveTaxQuotes = new Map();
 const securityEvents = [];
 const blockedIpHashes = new Set(String(process.env.BLOCKED_IP_HASHES || '').split(',').map(value => value.trim()).filter(Boolean));
 const sessionLifetimeMs = 1000 * 60 * 60 * 24 * 14;
@@ -294,6 +295,15 @@ function notify(userId, type, message, link) { store.data.notifications.unshift(
 function recordPaymentFailure(user, req, reason = '') { if (!user) return; const cutoff = Date.now() - 60 * 60 * 1000; user.paymentFailures = (user.paymentFailures || []).filter(at => new Date(at).valueOf() > cutoff); user.paymentFailures.push(now()); if (user.paymentFailures.length >= 5) user.paymentRestrictedAt = now(); securityLog('payment_failed', req, { userId: user.id, reason: String(reason).slice(0, 120), count: user.paymentFailures.length }); }
 const shippoReady = () => Boolean(process.env.SHIPPO_API_KEY);
 async function shippoRequest(pathname, body) { if (!shippoReady()) throw new Error('Shipping labels are not configured yet. Add SHIPPO_API_KEY in Render.'); const response = await fetch(`https://api.goshippo.com${pathname}`, { method: 'POST', headers: { Authorization: `ShippoToken ${process.env.SHIPPO_API_KEY}`, 'Content-Type': 'application/json', 'SHIPPO-API-VERSION': '2018-02-08' }, body: JSON.stringify(body) }); const payload = await response.json().catch(() => ({})); if (!response.ok) throw new Error(payload.detail || payload.messages?.[0]?.text || 'Shippo could not complete that request.'); return payload; }
+const taxJarApiToken = () => String(process.env.TAXJAR_API_TOKEN || process.env.TAXJAR_API_KEY || '').trim();
+async function taxJarRequest(pathname, body) {
+  const token = taxJarApiToken();
+  if (!token) throw new Error('Automatic sales-tax calculation is not configured. Add TAXJAR_API_TOKEN in Render.');
+  const response = await fetch(`https://api.taxjar.com/v2${pathname}`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.detail || payload.error || payload.status || 'The sales-tax provider could not calculate tax for this address.');
+  return payload;
+}
 const paypalReady = () => Boolean(process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_SECRET);
 const paypalEnvironment = () => process.env.PAYPAL_ENV === 'live' ? 'live' : 'sandbox';
 const paypalBaseUrl = () => paypalEnvironment() === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
@@ -343,6 +353,30 @@ function createLiveShippingQuote(listing, buyer, destination, quote) {
   const quoteId = id();
   liveShippingQuotes.set(quoteId, { quoteId, listingId: listing.id, buyerId: buyer.id, destinationKey: shippingAddressKey(destination), quote, expiresAt: Date.now() + 15 * 60 * 1000 });
   return { quoteId, ...quote, expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString() };
+}
+async function liveTaxQuote({ listing, destination, shippingQuote }) {
+  const origin = shippingQuote?.quote?.origin;
+  if (!origin) throw new Error('Get a fresh live shipping quote before calculating tax.');
+  const itemPrice = Math.round((Math.max(0, Number(listing.price) || 0)) * 100) / 100;
+  const shipping = Math.round((Math.max(0, Number(shippingQuote.quote.amount) || 0)) * 100) / 100;
+  const request = {
+    from_country: origin.country || 'US', from_zip: origin.zip, from_state: origin.state, from_city: origin.city, from_street: origin.street1,
+    to_country: destination.country || 'US', to_zip: destination.zip, to_state: destination.state, to_city: destination.city, to_street: destination.street1,
+    amount: itemPrice, shipping,
+    line_items: [{ id: listing.id, quantity: 1, product_identifier: listing.category || 'collectible', description: String(listing.title || 'Collector item').slice(0, 255), unit_price: itemPrice }]
+  };
+  const payload = await taxJarRequest('/taxes', request);
+  const tax = payload.tax || {};
+  const amount = Math.round((Math.max(0, Number(tax.amount_to_collect) || 0)) * 100) / 100;
+  return { amount, rate: Number.isFinite(Number(tax.rate)) ? Number(tax.rate) : null, taxableAmount: Number.isFinite(Number(tax.taxable_amount)) ? Number(tax.taxable_amount) : null, shipping, provider: 'TaxJar' };
+}
+function createLiveTaxQuote(listing, buyer, destination, shippingQuoteId, quote) {
+  for (const [quoteId, saved] of liveTaxQuotes) if (saved.expiresAt <= Date.now()) liveTaxQuotes.delete(quoteId);
+  const shippingQuote = liveShippingQuotes.get(shippingQuoteId);
+  const expiresAt = Math.min(Date.now() + 15 * 60 * 1000, shippingQuote?.expiresAt || Date.now());
+  const quoteId = id();
+  liveTaxQuotes.set(quoteId, { quoteId, listingId: listing.id, buyerId: buyer.id, destinationKey: shippingAddressKey(destination), shippingQuoteId, quote, expiresAt });
+  return { quoteId, ...quote, expiresAt: new Date(expiresAt).toISOString() };
 }
 const googleOAuthReady = () => Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 const googleRedirectUri = req => `${req.protocol}://${req.get('host')}/auth/google/callback`;
@@ -891,7 +925,7 @@ function recordDeliveryUpdate(delivery, userId, status, note = '') {
   delivery.history.push(record); delivery.updatedAt = now();
 }
 function preparePurchase(user, body) {
-  const { listingId, shippingAddress, recipientAddress, deliveryProvider, deliveryMiles, shippingQuoteId, paymentMethod, confirmedAlcoholAge } = body;
+  const { listingId, shippingAddress, recipientAddress, deliveryProvider, deliveryMiles, shippingQuoteId, taxQuoteId, paymentMethod, confirmedAlcoholAge } = body;
   const listing = store.data.listings.find(row => row.id === listingId && row.status === 'active');
   if (!listing) throw new Error('Active listing not found');
   if (listing.postType === 'showcase') throw new Error('This is a collection post, not a listing for sale. Contact the collector to ask about it.');
@@ -912,15 +946,18 @@ function preparePurchase(user, body) {
   const packing = Math.min(1000, Math.max(0, Number(listing.upsPackagingCost) || 0));
   const savedQuote = liveShippingQuotes.get(String(shippingQuoteId || ''));
   if (deliveryProviders[provider]?.type === 'carrier' && (!savedQuote || savedQuote.expiresAt <= Date.now() || savedQuote.listingId !== listing.id || savedQuote.buyerId !== user.id || savedQuote.destinationKey !== shippingAddressKey(destination))) throw new Error('Get a fresh live shipping quote before paying.');
+  const savedTaxQuote = liveTaxQuotes.get(String(taxQuoteId || ''));
+  if (deliveryProviders[provider]?.type === 'carrier' && (!savedTaxQuote || savedTaxQuote.expiresAt <= Date.now() || savedTaxQuote.listingId !== listing.id || savedTaxQuote.buyerId !== user.id || savedTaxQuote.destinationKey !== shippingAddressKey(destination) || savedTaxQuote.shippingQuoteId !== String(shippingQuoteId || ''))) throw new Error('Calculate a fresh automatic sales-tax quote before paying.');
   const courierPay = deliveryProviders[provider]?.type === 'carrier' ? savedQuote.quote.amount : calculatedDeliveryFee(miles, packing);
+  const salesTax = deliveryProviders[provider]?.type === 'carrier' ? savedTaxQuote.quote.amount : 0;
   const itemPrice = Number(listing.price) || 0; const seller = store.data.users.find(candidate => candidate.id === listing.ownerId);
   const fees = { buyer: { rate: tradeFeeRate(user), amount: itemPrice * tradeFeeRate(user) }, seller: { rate: tradeFeeRate(seller), amount: itemPrice * tradeFeeRate(seller) } };
-  const buyerSubtotal = itemPrice + fees.buyer.amount + courierPay;
+  const buyerSubtotal = itemPrice + fees.buyer.amount + courierPay + salesTax;
   const paypalFee = paypalProcessingFee(buyerSubtotal);
-  return { listing, address, destination, provider, method, miles, packing, courierPay, shippingQuote: deliveryProviders[provider]?.type === 'carrier' ? savedQuote.quote : null, itemPrice, fees, buyerSubtotal, minimumBuyerFee: 0, paypalFee, alcoholRestricted, total: Math.round((buyerSubtotal + paypalFee) * 100) / 100 };
+  return { listing, address, destination, provider, method, miles, packing, courierPay, salesTax, taxQuote: deliveryProviders[provider]?.type === 'carrier' ? savedTaxQuote.quote : null, shippingQuote: deliveryProviders[provider]?.type === 'carrier' ? savedQuote.quote : null, itemPrice, fees, buyerSubtotal, minimumBuyerFee: 0, paypalFee, alcoholRestricted, total: Math.round((buyerSubtotal + paypalFee) * 100) / 100 };
 }
 function purchaseDelivery(purchase, buyer, status) {
-  return { id: id(), listingId: purchase.listing.id, buyerId: buyer.id, sellerId: purchase.listing.ownerId, shippingAddress: purchase.address, recipientAddress: purchase.destination, itemPrice: purchase.itemPrice, fees: purchase.fees, deliveryProvider: purchase.provider, deliveryMiles: purchase.miles, packagingCost: purchase.packing, courierPay: purchase.courierPay, deliveryFee: purchase.courierPay, shippo: purchase.shippingQuote ? { ...purchase.shippingQuote } : null, paymentMethod: purchase.method, paypalFee: purchase.paypalFee, buyerSubtotal: purchase.buyerSubtotal, minimumBuyerFee: purchase.minimumBuyerFee, alcoholAgeConfirmedAt: purchase.alcoholRestricted ? now() : null, status, courier: '', trackingNumber: '', messages: [], history: [], createdAt: now(), updatedAt: now() };
+  return { id: id(), listingId: purchase.listing.id, buyerId: buyer.id, sellerId: purchase.listing.ownerId, shippingAddress: purchase.address, recipientAddress: purchase.destination, itemPrice: purchase.itemPrice, fees: purchase.fees, deliveryProvider: purchase.provider, deliveryMiles: purchase.miles, packagingCost: purchase.packing, courierPay: purchase.courierPay, deliveryFee: purchase.courierPay, salesTax: purchase.salesTax, taxQuote: purchase.taxQuote ? { ...purchase.taxQuote } : null, shippo: purchase.shippingQuote ? { ...purchase.shippingQuote } : null, paymentMethod: purchase.method, paypalFee: purchase.paypalFee, buyerSubtotal: purchase.buyerSubtotal, minimumBuyerFee: purchase.minimumBuyerFee, alcoholAgeConfirmedAt: purchase.alcoholRestricted ? now() : null, status, courier: '', trackingNumber: '', messages: [], history: [], createdAt: now(), updatedAt: now() };
 }
 app.post('/shipping/quote', required, async (req, res) => {
   try {
@@ -933,6 +970,20 @@ app.post('/shipping/quote', required, async (req, res) => {
     const quote = await liveShippoQuote({ listing, destination, selectedRateId: String(req.body.rateId || ''), carrier });
     const saved = createLiveShippingQuote(listing, req.user, destination, quote);
     res.json({ quoteId: saved.quoteId, amount: saved.amount, currency: saved.currency, provider: saved.provider, service: saved.service, expiresAt: saved.expiresAt });
+  } catch (error) { res.status(400).json({ error: error.message }); }
+});
+app.post('/tax/quote', required, async (req, res) => {
+  try {
+    const listing = store.data.listings.find(row => row.id === req.body.listingId && row.status === 'active');
+    if (!listing || listing.postType === 'showcase') throw new Error('Active listing not found.');
+    if (listing.ownerId === req.user.id) throw new Error('You cannot calculate tax for your own listing.');
+    const destination = shippoAddress(req.body.recipientAddress, 'delivery');
+    const shippingQuoteId = String(req.body.shippingQuoteId || '');
+    const shippingQuote = liveShippingQuotes.get(shippingQuoteId);
+    if (!shippingQuote || shippingQuote.expiresAt <= Date.now() || shippingQuote.listingId !== listing.id || shippingQuote.buyerId !== req.user.id || shippingQuote.destinationKey !== shippingAddressKey(destination)) throw new Error('Get a fresh live shipping quote before calculating tax.');
+    const quote = await liveTaxQuote({ listing, destination, shippingQuote });
+    const saved = createLiveTaxQuote(listing, req.user, destination, shippingQuoteId, quote);
+    res.json({ quoteId: saved.quoteId, amount: saved.amount, rate: saved.rate, taxableAmount: saved.taxableAmount, provider: saved.provider, expiresAt: saved.expiresAt });
   } catch (error) { res.status(400).json({ error: error.message }); }
 });
 app.post('/purchase', required, (req, res) => {
