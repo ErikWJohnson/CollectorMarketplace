@@ -636,6 +636,21 @@ function validateUspsShipment(listing, parcel) {
   if (restricted) throw new Error(`USPS delivery cannot be offered for listings tagged or described as “${restricted}.” Choose pickup or remove the unsupported claim.`);
   return packageDetails;
 }
+function enforceUspsPickupOnly(listing) {
+  if (listing?.fulfillment !== 'pickup_delivery' || listing?.postType === 'showcase') return null;
+  try {
+    listing.shippingParcel = validateUspsShipment(listing, listing.shippingParcel);
+    listing.uspsShippingRestriction = '';
+    return null;
+  } catch (error) {
+    listing.fulfillment = 'pickup';
+    listing.shippingParcel = null;
+    listing.uspsShippingRestriction = String(error.message || 'This item is not eligible for USPS delivery.');
+    return listing.uspsShippingRestriction;
+  }
+}
+const normalizedExistingListings = store.data.listings.some(listing => Boolean(enforceUspsPickupOnly(listing)));
+if (normalizedExistingListings) store.save();
 function listingRiskFlags(ownerId, listing, previousPrice = null) {
   const flags = [];
   const text = `${listing.title || ''} ${listing.description || ''} ${(listing.tags || []).join(' ')}`;
@@ -662,9 +677,11 @@ app.post('/listing', required, (req, res) => {
   if (upsPackagingCost > 1000) return res.status(400).json({ error: 'Packaging cost must be $1,000 or less.' });
   if (!['pickup', 'pickup_delivery'].includes(fulfillment)) return res.status(400).json({ error: 'Choose pickup or pickup and delivery for fulfillment.' });
   let parcel = null;
+  let effectiveFulfillment = fulfillment;
+  let uspsShippingRestriction = '';
   if (fulfillment === 'pickup_delivery' && postType !== 'showcase') {
     try { parcel = shippoParcel(shippingParcel); }
-    catch (error) { return res.status(400).json({ error: 'Add package length, width, height, and weight so buyers can receive a live USPS quote.' }); }
+    catch { effectiveFulfillment = 'pickup'; uspsShippingRestriction = 'USPS delivery was unavailable because package dimensions and weight were not provided. This listing is pickup only.'; }
   }
   if (!['marketplace', 'auction_only', 'marketplace_auction'].includes(listingMode)) return res.status(400).json({ error: 'Choose where this listing should appear.' });
   if (!['sale', 'showcase'].includes(postType)) return res.status(400).json({ error: 'Choose whether this is for sale or a collection post.' });
@@ -684,13 +701,13 @@ app.post('/listing', required, (req, res) => {
   const submittedTags = [...new Set([category.trim(), itemCondition, ...(Array.isArray(tags) ? tags : []).map(tag => typeof tag === 'string' ? tag.trim().replace(/^#/, '') : '').filter(Boolean)])];
   const validTags = submittedTags.length <= 8 && submittedTags.every(tag => tag.length <= 60);
   if (!validTags) return res.status(400).json({ error: 'Use up to 8 tags, each 60 characters or less.' });
-  if (fulfillment === 'pickup_delivery' && postType !== 'showcase') { try { validateUspsShipment({ title, description, category, tags: submittedTags }, parcel); } catch (error) { return res.status(400).json({ error: error.message }); } if (uspsShippingConfirmed !== true) return res.status(400).json({ error: 'Confirm that the item, tags, package details, and contents meet USPS mailing rules before offering delivery.' }); }
+  if (effectiveFulfillment === 'pickup_delivery' && postType !== 'showcase') { try { parcel = validateUspsShipment({ title, description, category, tags: submittedTags }, parcel); } catch (error) { effectiveFulfillment = 'pickup'; parcel = null; uspsShippingRestriction = `${error.message} This listing is pickup only.`; } if (effectiveFulfillment === 'pickup_delivery' && uspsShippingConfirmed !== true) return res.status(400).json({ error: 'Confirm that the item, tags, package details, and contents meet USPS mailing rules before offering delivery.' }); }
   if (isAlcoholListing({ title, description, category, tags: submittedTags }) && confirmedAlcoholAge !== true) return res.status(400).json({ error: 'Confirm that you are at least 21 years old before listing alcohol.' });
   if (!validImages) return res.status(400).json({ error: 'Add 1–5 valid image links or uploads.' });
   if (!validVideos) return res.status(400).json({ error: 'Add at most one valid uploaded video.' });
   const publicLocation = `${publicCity} ${publicZip}`;
   const locationTag = `US City/Town: ${publicCity}`;
-  const listing = { id: id(), ownerId: req.user.id, title: title.trim(), description: description.trim(), category: category.trim(), condition: itemCondition, tags: [...submittedTags, locationTag], location: publicLocation, sellerCity: publicCity, sellerZip: publicZip, locationCoordinates: coordinates, pickupRadiusMiles: pickupRadius, fulfillment, upsPackagingCost, shippingParcel: parcel, listingMode, postType, auctionStartPrice: listingMode === 'marketplace' ? null : startingBid, auctionEndAt: listingMode === 'marketplace' ? null : new Date(Date.now() + auctionHours * 3600000).toISOString(), auctionBids: 0, price: postType === 'showcase' ? 0 : Number(price) || 0, stockQuantity: quantity, stockRemaining: quantity, tradeOffer: postType === 'sale' && Boolean(tradeOffer) && quantity === 1, images, videos, alcoholAgeConfirmedAt: isAlcoholListing({ title, description, category, tags: submittedTags }) ? now() : null, status: 'active', likes: [], createdAt: now() };
+  const listing = { id: id(), ownerId: req.user.id, title: title.trim(), description: description.trim(), category: category.trim(), condition: itemCondition, tags: [...submittedTags, locationTag], location: publicLocation, sellerCity: publicCity, sellerZip: publicZip, locationCoordinates: coordinates, pickupRadiusMiles: pickupRadius, fulfillment: effectiveFulfillment, upsPackagingCost, shippingParcel: parcel, uspsShippingRestriction, listingMode, postType, auctionStartPrice: listingMode === 'marketplace' ? null : startingBid, auctionEndAt: listingMode === 'marketplace' ? null : new Date(Date.now() + auctionHours * 3600000).toISOString(), auctionBids: 0, price: postType === 'showcase' ? 0 : Number(price) || 0, stockQuantity: quantity, stockRemaining: quantity, tradeOffer: postType === 'sale' && Boolean(tradeOffer) && quantity === 1, images, videos, alcoholAgeConfirmedAt: isAlcoholListing({ title, description, category, tags: submittedTags }) ? now() : null, status: 'active', likes: [], createdAt: now() };
   listing.riskFlags = listingRiskFlags(req.user.id, listing); if (listing.riskFlags.length) { listing.reviewStatus = 'flagged'; securityLog('listing_flagged', req, { userId: req.user.id, listingId: listing.id, flags: listing.riskFlags }); }
   store.data.listings.unshift(listing); activity('listing', req.user.id, { listingId: listing.id }); store.save(); res.status(201).json(listing);
 });
@@ -762,7 +779,7 @@ app.put('/listing/:id', required, (req, res) => {
   }
   if (req.body.upsPackagingCost !== undefined) { const packaging = Math.round(Math.max(0, Number(req.body.upsPackagingCost) || 0) * 100) / 100; if (packaging > 1000) return res.status(400).json({ error: 'Packaging cost must be $1,000 or less.' }); listing.upsPackagingCost = packaging; }
   if (req.body.shippingParcel !== undefined) {
-    if (listing.fulfillment === 'pickup_delivery') { try { listing.shippingParcel = shippoParcel(req.body.shippingParcel); } catch (error) { return res.status(400).json({ error: 'Add positive package length, width, height, and weight for live USPS quotes.' }); } }
+    if (listing.fulfillment === 'pickup_delivery') listing.shippingParcel = req.body.shippingParcel;
     else listing.shippingParcel = null;
   }
   if (req.body.stockQuantity !== undefined) {
@@ -784,6 +801,7 @@ app.put('/listing/:id', required, (req, res) => {
   const manualTags = [...new Set([listing.category, ...(Array.isArray(listing.tags) ? listing.tags : [])].map(tag => typeof tag === 'string' ? tag.trim().replace(/^#/, '') : '').filter(tag => tag && !tag.startsWith('US City/Town: ')))];
   const locationTag = usCityTownTag(listing.location);
   listing.tags = [...manualTags, ...(locationTag ? [locationTag] : [])];
+  enforceUspsPickupOnly(listing);
   const flags = listingRiskFlags(req.user.id, listing, priorPrice); if (flags.length) { listing.riskFlags = [...new Set([...(listing.riskFlags || []), ...flags])]; listing.reviewStatus = 'flagged'; securityLog('listing_flagged', req, { userId: req.user.id, listingId: listing.id, flags }); }
   store.save(); res.json(listing);
 });
