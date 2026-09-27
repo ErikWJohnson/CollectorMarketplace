@@ -146,9 +146,9 @@ class Store {
     const testUser = this.data.users.find(user => String(user.username || '').trim().toLowerCase() === 'test');
     const testListing = testUser && this.data.listings.find(listing => listing.ownerId === testUser.id && listing.title === 'TEST 2');
     if (!testUser || !testListing) return;
-    // A non-residential sample origin and a small parcel make TEST 2 usable for
-    // exercising the live-rate screen without exposing a real collector address.
-    if (!testUser.shippingProfile && encryptionKey) testUser.shippingProfile = encryptPrivate({ name: 'TEST Seller', street1: '1 Market St', street2: '', city: 'San Francisco', state: 'CA', zip: '94105', country: 'US' });
+    // A non-residential San Diego sample origin and a small parcel make TEST 2
+    // usable for live-rate checks without exposing a real collector address.
+    if (encryptionKey) testUser.shippingProfile = encryptPrivate({ name: 'TEST Seller', street1: '100 Park Blvd', street2: '', city: 'San Diego', state: 'CA', zip: '92101', country: 'US' });
     testListing.fulfillment = 'pickup_delivery';
     testListing.postType = 'sale';
     testListing.shippingParcel = { length: 12, width: 10, height: 4, distance_unit: 'in', weight: 2, mass_unit: 'lb' };
