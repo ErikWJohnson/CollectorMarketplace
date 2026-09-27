@@ -54,7 +54,7 @@ const calculatedDeliveryFee = (miles, packaging) => Math.round((Math.max(
 const developerPassUsername = 'collectormarketplace';
 const hasDeveloperPass = user => user?.developerPass === true;
 const isMarketplaceModerator = user => String(user?.username || '').trim().toLowerCase() === developerPassUsername;
-const vipCuratorPrice = 20;
+const vipCuratorPrice = 5;
 const vipCuratorDays = 30;
 const hasActiveCuratorMembership = user => {
   if (user?.grandCurator === true) return true;
