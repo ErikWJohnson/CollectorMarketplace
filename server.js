@@ -330,7 +330,7 @@ async function liveShippoQuote({ listing, destination, selectedRateId = '' }) {
   const rates = (shipment.rates || []).filter(rate => Number.isFinite(Number(rate.amount)) && rate.object_id).sort((left, right) => Number(left.amount) - Number(right.amount));
   if (!rates.length) throw new Error('Shippo returned no carrier service for this address and package.');
   const rate = rates.find(row => row.object_id === selectedRateId) || rates[0];
-  const availableRates = rates.slice(0, 24).map(row => ({ rateId: row.object_id, amount: Math.round(Number(row.amount) * 100) / 100, currency: row.currency || 'USD', provider: row.provider || 'Carrier', service: row.servicelevel?.name || row.servicelevel_name || 'Standard shipping', estimatedDays: row.estimated_days ?? null }));
+  const availableRates = rates.map(row => ({ rateId: row.object_id, amount: Math.round(Number(row.amount) * 100) / 100, currency: row.currency || 'USD', provider: row.provider || 'Carrier', service: row.servicelevel?.name || row.servicelevel_name || 'Standard shipping', estimatedDays: row.estimated_days ?? null }));
   return { shipmentId: shipment.object_id, rateId: rate.object_id, amount: Math.round(Number(rate.amount) * 100) / 100, currency: rate.currency || 'USD', provider: rate.provider || 'Carrier', service: rate.servicelevel?.name || rate.servicelevel_name || 'Standard shipping', origin, destination, parcel, availableRates };
 }
 function createLiveShippingQuote(listing, buyer, destination, quote) {
