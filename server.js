@@ -624,7 +624,7 @@ const listingConditions = new Set(['New', 'New with Tags', 'Sealed', 'Like New',
 const prohibitedListingTerms = /\b(counterfeit|replica\s+as\s+authentic|stolen|gray[- ]?market|wholesale\s+lot|unlicensed\s+weapon|explosive)\b/i;
 const alcoholListingTerms = /\b(alcohol|aged alcohol|beer|wine|champagne|whiskey|whisky|bourbon|scotch|rum|tequila|gin|vodka|brandy|cognac|liqueur|mead|cider)\b/i;
 const isAlcoholListing = listing => alcoholListingTerms.test(`${listing?.title || ''} ${listing?.description || ''} ${listing?.category || ''} ${(listing?.tags || []).join(' ')}`);
-const uspsRestrictedTerms = /\b(alcohol|beer|wine|liquor|whiskey|whisky|vodka|firearm|handgun|rifle|ammunition|ammo|explosive|firework|gunpowder|gasoline|propane|corrosive|poison|controlled substance|cannabis|marijuana|hemp|tobacco|vape|e-cigarette|damaged lithium|defective lithium|recalled lithium)\b/i;
+const uspsRestrictedTerms = /\b(cars?|automobiles?|vehicles?|yachts?|alcohol|beer|wine|liquor|whiskey|whisky|vodka|firearm|handgun|rifle|ammunition|ammo|explosive|firework|gunpowder|gasoline|propane|corrosive|poison|controlled substance|cannabis|marijuana|hemp|tobacco|vape|e-cigarette|damaged lithium|defective lithium|recalled lithium)\b/i;
 const uspsListingText = listing => `${listing?.title || ''} ${listing?.description || ''} ${listing?.category || ''} ${(listing?.tags || []).join(' ')}`;
 function validateUspsShipment(listing, parcel) {
   const packageDetails = shippoParcel(parcel);
