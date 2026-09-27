@@ -1814,7 +1814,7 @@ const renderVisibleCheckoutEstimates = async () => {
     let quote = browseShippingQuotes.get(key);
     if (!quote || new Date(quote.expiresAt).valueOf() - Date.now() < 60_000) {
       try { let request = browseShippingQuoteRequests.get(key); if (!request) { request = api('/shipping/quote', { method: 'POST', body: JSON.stringify({ listingId: item.id, deliveryProvider: 'UPS Priority', recipientAddress: address }) }); browseShippingQuoteRequests.set(key, request); request.finally(() => browseShippingQuoteRequests.delete(key)).catch(() => {}); } quote = await request; browseShippingQuotes.set(key, quote); }
-      catch (error) { button.classList.add('is-buy-estimate'); button.innerHTML = '<span>BUY EST</span><b>UPS quote unavailable</b><small>view checkout</small>'; return; }
+      catch (error) { const reason = String(error?.message || 'Live carrier quote unavailable.').slice(0, 96); button.classList.add('is-buy-estimate'); button.innerHTML = `<span>BUY EST</span><b>UPS quote unavailable</b><small>${safe(reason)}</small>`; return; }
     }
     const price = Number(item.price) || 0; const shipping = Number(quote.amount) || 0; const subtotal = price + shipping + price * collectorFeeRate(session?.user); const total = subtotal + paypalProcessingFee(subtotal);
     button.classList.add('is-buy-estimate'); button.innerHTML = `<span>BUY EST</span><b>${money(total)}</b><small>${safe(quote.provider || 'UPS')} ${safe(quote.service || '')} · ${money(shipping)}</small>`;
