@@ -326,6 +326,7 @@ async function liveShippoQuote({ listing, destination, selectedRateId = '', carr
   let parcel;
   try { parcel = shippoParcel(listing.shippingParcel); }
   catch (error) { throw new Error('The seller needs to add package dimensions and weight before live Shippo rates can be quoted.'); }
+  validateUspsShipment(listing, parcel);
   const shipment = await shippoRequest('/shipments/', { address_from: origin, address_to: destination, parcels: [parcel], async: false, metadata: `CollectorMarketplace live quote · ${listing.id}` });
   const requestedCarrier = String(carrier || '').trim().toLowerCase();
   const carrierMatchers = { usps: /u\.?s\.?p\.?s/i, ups: /\bups\b/i, fedex: /fed\s*[-_]?\s*ex/i };
@@ -589,6 +590,18 @@ const listingConditions = new Set(['New', 'New with Tags', 'Sealed', 'Like New',
 const prohibitedListingTerms = /\b(counterfeit|replica\s+as\s+authentic|stolen|gray[- ]?market|wholesale\s+lot|unlicensed\s+weapon|explosive)\b/i;
 const alcoholListingTerms = /\b(alcohol|aged alcohol|beer|wine|champagne|whiskey|whisky|bourbon|scotch|rum|tequila|gin|vodka|brandy|cognac|liqueur|mead|cider)\b/i;
 const isAlcoholListing = listing => alcoholListingTerms.test(`${listing?.title || ''} ${listing?.description || ''} ${listing?.category || ''} ${(listing?.tags || []).join(' ')}`);
+const uspsRestrictedTerms = /\b(alcohol|beer|wine|liquor|whiskey|whisky|vodka|firearm|handgun|rifle|ammunition|ammo|explosive|firework|gunpowder|gasoline|propane|corrosive|poison|controlled substance|cannabis|marijuana|hemp|tobacco|vape|e-cigarette|damaged lithium|defective lithium|recalled lithium)\b/i;
+const uspsListingText = listing => `${listing?.title || ''} ${listing?.description || ''} ${listing?.category || ''} ${(listing?.tags || []).join(' ')}`;
+function validateUspsShipment(listing, parcel) {
+  const packageDetails = shippoParcel(parcel);
+  const dimensions = [packageDetails.length, packageDetails.width, packageDetails.height].sort((left, right) => right - left);
+  const lengthAndGirth = dimensions[0] + 2 * (dimensions[1] + dimensions[2]);
+  if (packageDetails.weight > 70) throw new Error('USPS delivery supports packages up to 70 lb. Choose pickup for this item.');
+  if (lengthAndGirth > 130) throw new Error('USPS delivery supports a maximum 130 inches for length plus girth. Choose pickup for this item.');
+  const restricted = uspsListingText(listing).match(uspsRestrictedTerms)?.[0];
+  if (restricted) throw new Error(`USPS delivery cannot be offered for listings tagged or described as “${restricted}.” Choose pickup or remove the unsupported claim.`);
+  return packageDetails;
+}
 function listingRiskFlags(ownerId, listing, previousPrice = null) {
   const flags = [];
   const text = `${listing.title || ''} ${listing.description || ''} ${(listing.tags || []).join(' ')}`;
@@ -599,7 +612,7 @@ function listingRiskFlags(ownerId, listing, previousPrice = null) {
   return flags;
 }
 app.post('/listing', required, (req, res) => {
-  const { title, description, category, condition, tags = [], price, tradeOffer, images = [], videos = [], sellerCity, sellerZip, locationCoordinates, pickupRadiusMiles, fulfillment, shippingPackagingCost, shippingParcel, listingMode = 'marketplace', postType = 'sale', auctionStartPrice, auctionDurationHours, stockQuantity = 1, confirmedAlcoholAge } = req.body;
+  const { title, description, category, condition, tags = [], price, tradeOffer, images = [], videos = [], sellerCity, sellerZip, locationCoordinates, pickupRadiusMiles, fulfillment, shippingPackagingCost, shippingParcel, listingMode = 'marketplace', postType = 'sale', auctionStartPrice, auctionDurationHours, stockQuantity = 1, confirmedAlcoholAge, uspsShippingConfirmed } = req.body;
   const validImages = Array.isArray(images) && images.length > 0 && images.length <= 5 && images.every(image => typeof image === 'string' && image.length <= 2_000_000 && (/^https?:\/\//i.test(image) || /^data:image\/(jpeg|png|webp);base64,/i.test(image)));
   const validVideos = Array.isArray(videos) && videos.length <= 1 && videos.every(video => typeof video === 'string' && video.length <= 6_000_000 && /^data:video\/(mp4|webm|quicktime);base64,/i.test(video));
   if (!title?.trim() || !description?.trim() || !category?.trim()) return res.status(400).json({ error: 'title, description, and category are required' });
@@ -617,7 +630,7 @@ app.post('/listing', required, (req, res) => {
   let parcel = null;
   if (fulfillment === 'pickup_delivery' && postType !== 'showcase') {
     try { parcel = shippoParcel(shippingParcel); }
-    catch (error) { return res.status(400).json({ error: 'Add package length, width, height, and weight so buyers can receive a live UPS quote.' }); }
+    catch (error) { return res.status(400).json({ error: 'Add package length, width, height, and weight so buyers can receive a live USPS quote.' }); }
   }
   if (!['marketplace', 'auction_only', 'marketplace_auction'].includes(listingMode)) return res.status(400).json({ error: 'Choose where this listing should appear.' });
   if (!['sale', 'showcase'].includes(postType)) return res.status(400).json({ error: 'Choose whether this is for sale or a collection post.' });
@@ -637,6 +650,7 @@ app.post('/listing', required, (req, res) => {
   const submittedTags = [...new Set([category.trim(), itemCondition, ...(Array.isArray(tags) ? tags : []).map(tag => typeof tag === 'string' ? tag.trim().replace(/^#/, '') : '').filter(Boolean)])];
   const validTags = submittedTags.length <= 8 && submittedTags.every(tag => tag.length <= 60);
   if (!validTags) return res.status(400).json({ error: 'Use up to 8 tags, each 60 characters or less.' });
+  if (fulfillment === 'pickup_delivery' && postType !== 'showcase') { try { validateUspsShipment({ title, description, category, tags: submittedTags }, parcel); } catch (error) { return res.status(400).json({ error: error.message }); } if (uspsShippingConfirmed !== true) return res.status(400).json({ error: 'Confirm that the item, tags, package details, and contents meet USPS mailing rules before offering delivery.' }); }
   if (isAlcoholListing({ title, description, category, tags: submittedTags }) && confirmedAlcoholAge !== true) return res.status(400).json({ error: 'Confirm that you are at least 21 years old before listing alcohol.' });
   if (!validImages) return res.status(400).json({ error: 'Add 1–5 valid image links or uploads.' });
   if (!validVideos) return res.status(400).json({ error: 'Add at most one valid uploaded video.' });
