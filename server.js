@@ -328,8 +328,11 @@ async function liveShippoQuote({ listing, destination, selectedRateId = '', carr
   catch (error) { throw new Error('The seller needs to add package dimensions and weight before live Shippo rates can be quoted.'); }
   const shipment = await shippoRequest('/shipments/', { address_from: origin, address_to: destination, parcels: [parcel], async: false, metadata: `CollectorMarketplace live quote · ${listing.id}` });
   const requestedCarrier = String(carrier || '').trim().toLowerCase();
-  const rates = (shipment.rates || []).filter(rate => Number.isFinite(Number(rate.amount)) && rate.object_id).filter(rate => requestedCarrier === 'shippo live rates' || String(rate.provider || '').toLowerCase().includes(requestedCarrier)).sort((left, right) => Number(left.amount) - Number(right.amount));
-  if (!rates.length) throw new Error(requestedCarrier === 'shippo live rates' ? 'Shippo returned no carrier service for this address and package.' : `Shippo returned no ${carrier} service. Connect ${carrier} in Shippo or choose another carrier.`);
+  const carrierMatchers = { usps: /u\.?s\.?p\.?s/i, ups: /\bups\b/i, fedex: /fed\s*[-_]?\s*ex/i };
+  const allRates = (shipment.rates || []).filter(rate => Number.isFinite(Number(rate.amount)) && rate.object_id);
+  const matchesCarrier = rate => requestedCarrier === 'shippo live rates' || (carrierMatchers[requestedCarrier] || new RegExp(requestedCarrier.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i')).test(String(rate.provider || ''));
+  const rates = allRates.filter(matchesCarrier).sort((left, right) => Number(left.amount) - Number(right.amount));
+  if (!rates.length) { const returned = [...new Set(allRates.map(rate => String(rate.provider || '').trim()).filter(Boolean))]; throw new Error(requestedCarrier === 'shippo live rates' ? 'Shippo returned no carrier service for this address and package.' : `Shippo returned no ${carrier} service. Returned carriers: ${returned.join(', ') || 'none'}. Verify the ${carrier} account is active for label purchasing and supports this route.`); }
   const rate = rates.find(row => row.object_id === selectedRateId) || rates[0];
   const availableRates = rates.map(row => ({ rateId: row.object_id, amount: Math.round(Number(row.amount) * 100) / 100, currency: row.currency || 'USD', provider: row.provider || 'Carrier', service: row.servicelevel?.name || row.servicelevel_name || 'Standard shipping', estimatedDays: row.estimated_days ?? null }));
   return { shipmentId: shipment.object_id, rateId: rate.object_id, amount: Math.round(Number(rate.amount) * 100) / 100, currency: rate.currency || 'USD', provider: rate.provider || 'Carrier', service: rate.servicelevel?.name || rate.servicelevel_name || 'Standard shipping', origin, destination, parcel, availableRates };
