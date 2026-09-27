@@ -39,7 +39,7 @@ const base32Secret = () => Array.from(crypto.randomBytes(20)).map(byte => base32
 const decodeBase32 = secret => { let bits = ''; for (const char of String(secret).toUpperCase().replace(/=+$/g, '')) { const index = base32Alphabet.indexOf(char); if (index >= 0) bits += index.toString(2).padStart(5, '0'); } return Buffer.from((bits.match(/.{1,8}/g) || []).filter(byte => byte.length === 8).map(byte => parseInt(byte, 2))); };
 const totpCode = (secret, at = Date.now()) => { const step = Math.floor(at / 30000); const counter = Buffer.alloc(8); counter.writeBigUInt64BE(BigInt(step)); const digest = crypto.createHmac('sha1', decodeBase32(secret)).update(counter).digest(); const offset = digest[digest.length - 1] & 15; return String(((digest.readUInt32BE(offset) & 0x7fffffff) % 1000000)).padStart(6, '0'); };
 const verifyTotp = (secret, code) => { const normalized = String(code || '').replace(/\D/g, '').slice(0, 6).padStart(6, '0'); return [-1, 0, 1].some(offset => crypto.timingSafeEqual(Buffer.from(totpCode(secret, Date.now() + offset * 30000)), Buffer.from(normalized))); };
-const deliveryProviders = Object.fromEntries(['Shippo live rates', 'USPS', 'UPS', 'FedEx'].map(provider => [provider, { type: 'carrier', trackingRequired: true }]));
+const deliveryProviders = { USPS: { type: 'carrier', trackingRequired: true } };
 const paymentMethods = new Set(['PayPal']);
 const paypalProcessingRate = 0.0349;
 const paypalProcessingFixed = 0.49;
@@ -317,7 +317,7 @@ async function paypalRequest(method, pathname, body, requestId) {
 function shippoAddress(input, label) { const value = input && typeof input === 'object' ? input : {}; const required = ['name', 'street1', 'city', 'state', 'zip']; if (required.some(key => !String(value[key] || '').trim())) throw new Error(`Add a complete ${label} address.`); return { name: String(value.name).trim(), street1: String(value.street1).trim(), street2: String(value.street2 || '').trim(), city: String(value.city).trim(), state: String(value.state).trim(), zip: String(value.zip).trim(), country: String(value.country || 'US').trim().toUpperCase() }; }
 function shippoParcel(input) { const value = input && typeof input === 'object' ? input : {}; const keys = ['length', 'width', 'height', 'weight']; if (keys.some(key => !(Number(value[key]) > 0))) throw new Error('Add positive package dimensions and weight.'); return { length: Number(value.length), width: Number(value.width), height: Number(value.height), distance_unit: 'in', weight: Number(value.weight), mass_unit: 'lb' }; }
 const shippingAddressKey = address => [address.name, address.street1, address.street2, address.city, address.state, address.zip, address.country].map(value => String(value || '').trim().toUpperCase()).join('|');
-async function liveShippoQuote({ listing, destination, selectedRateId = '', carrier = 'Shippo live rates' }) {
+async function liveShippoQuote({ listing, destination, selectedRateId = '', carrier = 'USPS' }) {
   if (listing.fulfillment !== 'pickup_delivery') throw new Error('This listing is available for local pickup only.');
   let origin;
   try { origin = shippoAddress(decryptPrivate(store.data.users.find(user => user.id === listing.ownerId)?.shippingProfile), 'seller shipping profile'); }
@@ -332,7 +332,7 @@ async function liveShippoQuote({ listing, destination, selectedRateId = '', carr
   const allRates = (shipment.rates || []).filter(rate => Number.isFinite(Number(rate.amount)) && rate.object_id);
   const matchesCarrier = rate => requestedCarrier === 'shippo live rates' || (carrierMatchers[requestedCarrier] || new RegExp(requestedCarrier.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i')).test(String(rate.provider || ''));
   const rates = allRates.filter(matchesCarrier).sort((left, right) => Number(left.amount) - Number(right.amount));
-  if (!rates.length) { const returned = [...new Set(allRates.map(rate => String(rate.provider || '').trim()).filter(Boolean))]; throw new Error(requestedCarrier === 'shippo live rates' ? 'Shippo returned no carrier service for this address and package.' : `Shippo returned no ${carrier} service. Returned carriers: ${returned.join(', ') || 'none'}. Verify the ${carrier} account is active for label purchasing and supports this route.`); }
+  if (!rates.length) { const returned = [...new Set(allRates.map(rate => String(rate.provider || '').trim()).filter(Boolean))]; throw new Error(`Shippo returned no USPS service. Returned carriers: ${returned.join(', ') || 'none'}. Verify USPS is active for this route.`); }
   const rate = rates.find(row => row.object_id === selectedRateId) || rates[0];
   const availableRates = rates.map(row => ({ rateId: row.object_id, amount: Math.round(Number(row.amount) * 100) / 100, currency: row.currency || 'USD', provider: row.provider || 'Carrier', service: row.servicelevel?.name || row.servicelevel_name || 'Standard shipping', estimatedDays: row.estimated_days ?? null }));
   return { shipmentId: shipment.object_id, rateId: rate.object_id, amount: Math.round(Number(rate.amount) * 100) / 100, currency: rate.currency || 'USD', provider: rate.provider || 'Carrier', service: rate.servicelevel?.name || rate.servicelevel_name || 'Standard shipping', origin, destination, parcel, availableRates };
@@ -890,7 +890,7 @@ function preparePurchase(user, body) {
   const provider = typeof deliveryProvider === 'string' ? deliveryProvider.trim() : '';
   if (!provider || !deliveryProviders[provider]) throw new Error('Choose one of the supported delivery options.');
   if (!address || address.length > 500) throw new Error(address ? 'Keep the delivery address under 500 characters.' : 'A delivery address is required');
-  if (deliveryProviders[provider]?.type === 'carrier' && !destination) throw new Error('Add a complete delivery address for live carrier rates.');
+  if (deliveryProviders[provider]?.type === 'carrier' && !destination) throw new Error('Add a complete delivery address for live USPS rates.');
   if (listing.fulfillment === 'pickup' && provider !== 'Local pickup') throw new Error('This listing is available for local pickup only.');
   const method = typeof paymentMethod === 'string' ? paymentMethod.trim() : '';
   if (!paymentMethods.has(method)) throw new Error('Choose one of the supported payment methods.');
@@ -914,7 +914,7 @@ app.post('/shipping/quote', required, async (req, res) => {
     if (!listing || listing.postType === 'showcase') throw new Error('Active listing not found.');
     if (listing.ownerId === req.user.id) throw new Error('You cannot quote shipping for your own listing.');
     const carrier = String(req.body.deliveryProvider || '').trim();
-    if (!deliveryProviders[carrier]) throw new Error('Choose USPS, UPS, FedEx, or all Shippo live rates.');
+    if (!deliveryProviders[carrier]) throw new Error('Choose USPS for a live carrier quote.');
     const destination = shippoAddress(req.body.recipientAddress, 'delivery');
     const quote = await liveShippoQuote({ listing, destination, selectedRateId: String(req.body.rateId || ''), carrier });
     const saved = createLiveShippingQuote(listing, req.user, destination, quote);
