@@ -19,6 +19,7 @@ const now = () => new Date().toISOString();
 const loginAttempts = new Map();
 const twoFactorChallenges = new Map();
 const twoFactorEnrollments = new Map();
+const liveShippingQuotes = new Map();
 const securityEvents = [];
 const blockedIpHashes = new Set(String(process.env.BLOCKED_IP_HASHES || '').split(',').map(value => value.trim()).filter(Boolean));
 const sessionLifetimeMs = 1000 * 60 * 60 * 24 * 14;
@@ -43,10 +44,8 @@ const paymentMethods = new Set(['PayPal']);
 const paypalProcessingRate = 0.0349;
 const paypalProcessingFixed = 0.49;
 const paypalProcessingFee = amount => Math.round((Math.max(0, Number(amount) || 0) * paypalProcessingRate + paypalProcessingFixed) * 100) / 100;
-// The marketplace UPS Priority estimate is intentionally shared by purchases,
-// trades, and the checkout preview so a buyer never sees conflicting delivery math.
-// Shippo's label quote remains the carrier's final live charge once parcel details
-// and the seller's origin address are supplied.
+// Mileage is retained only for legacy trade planning. Buyer checkout uses a
+// time-limited Shippo carrier quote and never charges this estimate as shipping.
 const upsPriorityEstimate = Object.freeze({ floor: 8, perMile: 0.10 });
 const calculatedDeliveryFee = (miles, packaging) => Math.round((Math.max(
   upsPriorityEstimate.floor,
@@ -304,6 +303,28 @@ async function paypalRequest(method, pathname, body, requestId) {
 }
 function shippoAddress(input, label) { const value = input && typeof input === 'object' ? input : {}; const required = ['name', 'street1', 'city', 'state', 'zip']; if (required.some(key => !String(value[key] || '').trim())) throw new Error(`Add a complete ${label} address.`); return { name: String(value.name).trim(), street1: String(value.street1).trim(), street2: String(value.street2 || '').trim(), city: String(value.city).trim(), state: String(value.state).trim(), zip: String(value.zip).trim(), country: String(value.country || 'US').trim().toUpperCase() }; }
 function shippoParcel(input) { const value = input && typeof input === 'object' ? input : {}; const keys = ['length', 'width', 'height', 'weight']; if (keys.some(key => !(Number(value[key]) > 0))) throw new Error('Add positive package dimensions and weight.'); return { length: Number(value.length), width: Number(value.width), height: Number(value.height), distance_unit: 'in', weight: Number(value.weight), mass_unit: 'lb' }; }
+const shippingAddressKey = address => [address.name, address.street1, address.street2, address.city, address.state, address.zip, address.country].map(value => String(value || '').trim().toUpperCase()).join('|');
+async function liveUpsQuote({ listing, destination }) {
+  if (listing.fulfillment !== 'pickup_delivery') throw new Error('This listing is available for local pickup only.');
+  let origin;
+  try { origin = shippoAddress(decryptPrivate(store.data.users.find(user => user.id === listing.ownerId)?.shippingProfile), 'seller shipping profile'); }
+  catch (error) { throw new Error('The seller has not configured their private shipping address for live UPS checkout yet.'); }
+  if (!origin) throw new Error('The seller has not configured their private shipping address for live UPS checkout yet.');
+  let parcel;
+  try { parcel = shippoParcel(listing.shippingParcel); }
+  catch (error) { throw new Error('The seller needs to add package dimensions and weight before a live UPS rate can be quoted.'); }
+  const shipment = await shippoRequest('/shipments/', { address_from: origin, address_to: destination, parcels: [parcel], async: false, metadata: `CollectorMarketplace live quote · ${listing.id}` });
+  const upsRates = (shipment.rates || []).filter(rate => /ups/i.test(`${rate.provider || ''} ${rate.servicelevel?.name || ''}`));
+  const rate = upsRates.sort((left, right) => Number(left.amount || Infinity) - Number(right.amount || Infinity))[0];
+  if (!rate || !Number.isFinite(Number(rate.amount))) throw new Error('Shippo returned no UPS service for this address and package.');
+  return { shipmentId: shipment.object_id, rateId: rate.object_id, amount: Math.round(Number(rate.amount) * 100) / 100, currency: rate.currency || 'USD', provider: rate.provider || 'UPS', service: rate.servicelevel?.name || 'UPS', origin, destination, parcel };
+}
+function createLiveShippingQuote(listing, buyer, destination, quote) {
+  for (const [quoteId, saved] of liveShippingQuotes) if (saved.expiresAt <= Date.now()) liveShippingQuotes.delete(quoteId);
+  const quoteId = id();
+  liveShippingQuotes.set(quoteId, { quoteId, listingId: listing.id, buyerId: buyer.id, destinationKey: shippingAddressKey(destination), quote, expiresAt: Date.now() + 15 * 60 * 1000 });
+  return { quoteId, ...quote, expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString() };
+}
 const googleOAuthReady = () => Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 const googleRedirectUri = req => `${req.protocol}://${req.get('host')}/auth/google/callback`;
 const readCookie = (req, name) => String(req.headers.cookie || '').split(';').map(value => value.trim()).find(value => value.startsWith(`${name}=`))?.slice(name.length + 1) || '';
@@ -560,7 +581,7 @@ function listingRiskFlags(ownerId, listing, previousPrice = null) {
   return flags;
 }
 app.post('/listing', required, (req, res) => {
-  const { title, description, category, condition, tags = [], price, tradeOffer, images = [], videos = [], sellerCity, sellerZip, locationCoordinates, pickupRadiusMiles, fulfillment, shippingPackagingCost, listingMode = 'marketplace', postType = 'sale', auctionStartPrice, auctionDurationHours, stockQuantity = 1, confirmedAlcoholAge } = req.body;
+  const { title, description, category, condition, tags = [], price, tradeOffer, images = [], videos = [], sellerCity, sellerZip, locationCoordinates, pickupRadiusMiles, fulfillment, shippingPackagingCost, shippingParcel, listingMode = 'marketplace', postType = 'sale', auctionStartPrice, auctionDurationHours, stockQuantity = 1, confirmedAlcoholAge } = req.body;
   const validImages = Array.isArray(images) && images.length > 0 && images.length <= 5 && images.every(image => typeof image === 'string' && image.length <= 2_000_000 && (/^https?:\/\//i.test(image) || /^data:image\/(jpeg|png|webp);base64,/i.test(image)));
   const validVideos = Array.isArray(videos) && videos.length <= 1 && videos.every(video => typeof video === 'string' && video.length <= 6_000_000 && /^data:video\/(mp4|webm|quicktime);base64,/i.test(video));
   if (!title?.trim() || !description?.trim() || !category?.trim()) return res.status(400).json({ error: 'title, description, and category are required' });
@@ -575,6 +596,11 @@ app.post('/listing', required, (req, res) => {
   const upsPackagingCost = Math.round(Math.max(0, Number(shippingPackagingCost) || 0) * 100) / 100;
   if (upsPackagingCost > 1000) return res.status(400).json({ error: 'UPS packaging cost must be $1,000 or less.' });
   if (!['pickup', 'pickup_delivery'].includes(fulfillment)) return res.status(400).json({ error: 'Choose pickup or pickup and delivery for fulfillment.' });
+  let parcel = null;
+  if (fulfillment === 'pickup_delivery' && postType !== 'showcase') {
+    try { parcel = shippoParcel(shippingParcel); }
+    catch (error) { return res.status(400).json({ error: 'Add package length, width, height, and weight so buyers can receive a live UPS quote.' }); }
+  }
   if (!['marketplace', 'auction_only', 'marketplace_auction'].includes(listingMode)) return res.status(400).json({ error: 'Choose where this listing should appear.' });
   if (!['sale', 'showcase'].includes(postType)) return res.status(400).json({ error: 'Choose whether this is for sale or a collection post.' });
   if (postType === 'showcase' && listingMode !== 'marketplace') return res.status(400).json({ error: 'Collection posts cannot be auction listings.' });
@@ -598,7 +624,7 @@ app.post('/listing', required, (req, res) => {
   if (!validVideos) return res.status(400).json({ error: 'Add at most one valid uploaded video.' });
   const publicLocation = `${publicCity} ${publicZip}`;
   const locationTag = `US City/Town: ${publicCity}`;
-  const listing = { id: id(), ownerId: req.user.id, title: title.trim(), description: description.trim(), category: category.trim(), condition: itemCondition, tags: [...submittedTags, locationTag], location: publicLocation, sellerCity: publicCity, sellerZip: publicZip, locationCoordinates: coordinates, pickupRadiusMiles: pickupRadius, fulfillment, upsPackagingCost, listingMode, postType, auctionStartPrice: listingMode === 'marketplace' ? null : startingBid, auctionEndAt: listingMode === 'marketplace' ? null : new Date(Date.now() + auctionHours * 3600000).toISOString(), auctionBids: 0, price: postType === 'showcase' ? 0 : Number(price) || 0, stockQuantity: quantity, stockRemaining: quantity, tradeOffer: postType === 'sale' && Boolean(tradeOffer) && quantity === 1, images, videos, alcoholAgeConfirmedAt: isAlcoholListing({ title, description, category, tags: submittedTags }) ? now() : null, status: 'active', likes: [], createdAt: now() };
+  const listing = { id: id(), ownerId: req.user.id, title: title.trim(), description: description.trim(), category: category.trim(), condition: itemCondition, tags: [...submittedTags, locationTag], location: publicLocation, sellerCity: publicCity, sellerZip: publicZip, locationCoordinates: coordinates, pickupRadiusMiles: pickupRadius, fulfillment, upsPackagingCost, shippingParcel: parcel, listingMode, postType, auctionStartPrice: listingMode === 'marketplace' ? null : startingBid, auctionEndAt: listingMode === 'marketplace' ? null : new Date(Date.now() + auctionHours * 3600000).toISOString(), auctionBids: 0, price: postType === 'showcase' ? 0 : Number(price) || 0, stockQuantity: quantity, stockRemaining: quantity, tradeOffer: postType === 'sale' && Boolean(tradeOffer) && quantity === 1, images, videos, alcoholAgeConfirmedAt: isAlcoholListing({ title, description, category, tags: submittedTags }) ? now() : null, status: 'active', likes: [], createdAt: now() };
   listing.riskFlags = listingRiskFlags(req.user.id, listing); if (listing.riskFlags.length) { listing.reviewStatus = 'flagged'; securityLog('listing_flagged', req, { userId: req.user.id, listingId: listing.id, flags: listing.riskFlags }); }
   store.data.listings.unshift(listing); activity('listing', req.user.id, { listingId: listing.id }); store.save(); res.status(201).json(listing);
 });
@@ -669,6 +695,10 @@ app.put('/listing/:id', required, (req, res) => {
     listing.fulfillment = req.body.fulfillment;
   }
   if (req.body.upsPackagingCost !== undefined) { const packaging = Math.round(Math.max(0, Number(req.body.upsPackagingCost) || 0) * 100) / 100; if (packaging > 1000) return res.status(400).json({ error: 'UPS packaging cost must be $1,000 or less.' }); listing.upsPackagingCost = packaging; }
+  if (req.body.shippingParcel !== undefined) {
+    if (listing.fulfillment === 'pickup_delivery') { try { listing.shippingParcel = shippoParcel(req.body.shippingParcel); } catch (error) { return res.status(400).json({ error: 'Add positive package length, width, height, and weight for live UPS quotes.' }); } }
+    else listing.shippingParcel = null;
+  }
   if (req.body.stockQuantity !== undefined) {
     const quantity = Math.floor(Number(req.body.stockQuantity));
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10000) return res.status(400).json({ error: 'Stock quantity must be a whole number from 1 to 10,000.' });
@@ -829,7 +859,7 @@ function recordDeliveryUpdate(delivery, userId, status, note = '') {
   delivery.history.push(record); delivery.updatedAt = now();
 }
 function preparePurchase(user, body) {
-  const { listingId, shippingAddress, recipientAddress, deliveryProvider, deliveryMiles, paymentMethod, confirmedAlcoholAge } = body;
+  const { listingId, shippingAddress, recipientAddress, deliveryProvider, deliveryMiles, shippingQuoteId, paymentMethod, confirmedAlcoholAge } = body;
   const listing = store.data.listings.find(row => row.id === listingId && row.status === 'active');
   if (!listing) throw new Error('Active listing not found');
   if (listing.postType === 'showcase') throw new Error('This is a collection post, not a listing for sale. Contact the collector to ask about it.');
@@ -848,16 +878,30 @@ function preparePurchase(user, body) {
   if (!paymentMethods.has(method)) throw new Error('Choose one of the supported payment methods.');
   const miles = Math.min(20000, Math.max(0, Number(deliveryMiles) || 0));
   const packing = Math.min(1000, Math.max(0, Number(listing.upsPackagingCost) || 0));
-  const courierPay = calculatedDeliveryFee(miles, packing);
+  const savedQuote = liveShippingQuotes.get(String(shippingQuoteId || ''));
+  if (provider === 'UPS Priority' && (!savedQuote || savedQuote.expiresAt <= Date.now() || savedQuote.listingId !== listing.id || savedQuote.buyerId !== user.id || savedQuote.destinationKey !== shippingAddressKey(destination))) throw new Error('Get a fresh live UPS shipping quote before paying.');
+  const courierPay = provider === 'UPS Priority' ? savedQuote.quote.amount : calculatedDeliveryFee(miles, packing);
   const itemPrice = Number(listing.price) || 0; const seller = store.data.users.find(candidate => candidate.id === listing.ownerId);
   const fees = { buyer: { rate: tradeFeeRate(user), amount: itemPrice * tradeFeeRate(user) }, seller: { rate: tradeFeeRate(seller), amount: itemPrice * tradeFeeRate(seller) } };
   const buyerSubtotal = itemPrice + fees.buyer.amount + courierPay;
   const paypalFee = paypalProcessingFee(buyerSubtotal);
-  return { listing, address, destination, provider, method, miles, packing, courierPay, itemPrice, fees, buyerSubtotal, minimumBuyerFee: 0, paypalFee, alcoholRestricted, total: Math.round((buyerSubtotal + paypalFee) * 100) / 100 };
+  return { listing, address, destination, provider, method, miles, packing, courierPay, shippingQuote: provider === 'UPS Priority' ? savedQuote.quote : null, itemPrice, fees, buyerSubtotal, minimumBuyerFee: 0, paypalFee, alcoholRestricted, total: Math.round((buyerSubtotal + paypalFee) * 100) / 100 };
 }
 function purchaseDelivery(purchase, buyer, status) {
-  return { id: id(), listingId: purchase.listing.id, buyerId: buyer.id, sellerId: purchase.listing.ownerId, shippingAddress: purchase.address, recipientAddress: purchase.destination, itemPrice: purchase.itemPrice, fees: purchase.fees, deliveryProvider: purchase.provider, deliveryMiles: purchase.miles, packagingCost: purchase.packing, courierPay: purchase.courierPay, deliveryFee: purchase.courierPay, paymentMethod: purchase.method, paypalFee: purchase.paypalFee, buyerSubtotal: purchase.buyerSubtotal, minimumBuyerFee: purchase.minimumBuyerFee, alcoholAgeConfirmedAt: purchase.alcoholRestricted ? now() : null, status, courier: '', trackingNumber: '', messages: [], history: [], createdAt: now(), updatedAt: now() };
+  return { id: id(), listingId: purchase.listing.id, buyerId: buyer.id, sellerId: purchase.listing.ownerId, shippingAddress: purchase.address, recipientAddress: purchase.destination, itemPrice: purchase.itemPrice, fees: purchase.fees, deliveryProvider: purchase.provider, deliveryMiles: purchase.miles, packagingCost: purchase.packing, courierPay: purchase.courierPay, deliveryFee: purchase.courierPay, shippo: purchase.shippingQuote ? { ...purchase.shippingQuote } : null, paymentMethod: purchase.method, paypalFee: purchase.paypalFee, buyerSubtotal: purchase.buyerSubtotal, minimumBuyerFee: purchase.minimumBuyerFee, alcoholAgeConfirmedAt: purchase.alcoholRestricted ? now() : null, status, courier: '', trackingNumber: '', messages: [], history: [], createdAt: now(), updatedAt: now() };
 }
+app.post('/shipping/quote', required, async (req, res) => {
+  try {
+    const listing = store.data.listings.find(row => row.id === req.body.listingId && row.status === 'active');
+    if (!listing || listing.postType === 'showcase') throw new Error('Active listing not found.');
+    if (listing.ownerId === req.user.id) throw new Error('You cannot quote shipping for your own listing.');
+    if (String(req.body.deliveryProvider || '') !== 'UPS Priority') throw new Error('Choose UPS Priority for a live carrier quote.');
+    const destination = shippoAddress(req.body.recipientAddress, 'delivery');
+    const quote = await liveUpsQuote({ listing, destination });
+    const saved = createLiveShippingQuote(listing, req.user, destination, quote);
+    res.json({ quoteId: saved.quoteId, amount: saved.amount, currency: saved.currency, provider: saved.provider, service: saved.service, expiresAt: saved.expiresAt });
+  } catch (error) { res.status(400).json({ error: error.message }); }
+});
 app.post('/purchase', required, (req, res) => {
   res.status(410).json({ error: 'Direct checkout is disabled. Create a PayPal order first.' });
 });
