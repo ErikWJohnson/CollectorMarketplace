@@ -1670,7 +1670,7 @@ const calculateCheckoutDeliveryFromAddress = async field => {
   const provider = form.querySelector('#delivery-provider')?.value;
   const address = checkoutRecipientAddress(form);
   const complete = address && ['name', 'street1', 'city', 'state', 'zip'].every(key => String(address[key] || '').trim());
-  delete form.dataset.shippingQuoteId; delete form.dataset.shippingQuoteAmount; delete form.dataset.shippingQuoteService; delete form.dataset.taxQuoteId; delete form.dataset.taxQuoteAmount; delete form.dataset.taxQuoteRate;
+  delete form.dataset.shippingQuoteId; delete form.dataset.shippingQuoteAmount; delete form.dataset.shippingQuoteService; delete form.dataset.taxQuoteId; delete form.dataset.taxQuoteAmount; delete form.dataset.taxQuoteRate; delete form.dataset.taxQuoteProvider;
   const taxInput = form.querySelector('#tax'); if (taxInput) taxInput.value = '0';
   if (provider !== 'USPS' || !complete) { if (note) note.textContent = 'Choose USPS and complete the delivery address to get a live quote.'; updateFeeSummary(); return; }
   try {
@@ -1682,9 +1682,9 @@ const calculateCheckoutDeliveryFromAddress = async field => {
     if ((quote.availableRates || []).length > 1 && note) note.insertAdjacentHTML('afterend', `<label class="shipping-rate-choice">Shipping service<select id="shipping-rate-option">${quote.availableRates.map(rate => `<option value="${safe(rate.rateId)}" ${rate.rateId === quote.rateId ? 'selected' : ''}>${safe(rate.provider)} · ${safe(rate.service)} — ${money(rate.amount)}${rate.estimatedDays ? ` (${safe(rate.estimatedDays)} days)` : ''}</option>`).join('')}</select></label>`);
     if (note) note.textContent = `Live ${quote.provider || 'Carrier'} ${quote.service || ''} quote · ${money(quote.amount)}. Calculating sales tax…`;
     const tax = await api('/tax/quote', { method: 'POST', body: JSON.stringify({ listingId: form.dataset.listing, shippingQuoteId: quote.quoteId, recipientAddress: address }) });
-    form.dataset.taxQuoteId = tax.quoteId; form.dataset.taxQuoteAmount = String(tax.amount); form.dataset.taxQuoteRate = tax.rate === null || tax.rate === undefined ? '' : String(tax.rate);
+    form.dataset.taxQuoteId = tax.quoteId; form.dataset.taxQuoteAmount = String(tax.amount); form.dataset.taxQuoteRate = tax.rate === null || tax.rate === undefined ? '' : String(tax.rate); form.dataset.taxQuoteProvider = tax.provider || 'tax provider';
     if (taxInput) taxInput.value = String(tax.amount);
-    if (note) note.textContent = `Live ${quote.provider || 'Carrier'} ${quote.service || ''} quote · ${money(quote.amount)}. Automatic sales tax: ${money(tax.amount)}${tax.rate === null || tax.rate === undefined ? '' : ` (${(Number(tax.rate) * 100).toFixed(3).replace(/0+$/, '').replace(/\.$/, '')}%)`}. Quotes hold for 15 minutes.`;
+    if (note) note.textContent = `Live ${quote.provider || 'Carrier'} ${quote.service || ''} quote · ${money(quote.amount)}. Verified ${tax.provider || 'sales-tax'} amount: ${money(tax.amount)}${tax.rate === null || tax.rate === undefined ? '' : ` (${(Number(tax.rate) * 100).toFixed(3).replace(/0+$/, '').replace(/\.$/, '')}%)`}. Quotes hold for 15 minutes.`;
   } catch (error) { if (note) note.textContent = error.message || 'A live carrier quote is unavailable for this order.'; }
   updateFeeSummary();
 };
@@ -1813,6 +1813,8 @@ const deliveryCharge = (miles, packaging = 0) => Math.round((Math.max(
 )) * 100) / 100;
 const browseShippingQuotes = new Map();
 const browseShippingQuoteRequests = new Map();
+const browseTaxQuotes = new Map();
+const browseTaxQuoteRequests = new Map();
 const renderVisibleCheckoutEstimates = async () => {
   const address = checkoutPreferences.recipientAddress;
   if (!checkoutPreferences.estimateEnabled || !address?.street1 || !deliveryCarriers.includes(checkoutPreferences.deliveryProvider) || !session) return;
@@ -1824,10 +1826,17 @@ const renderVisibleCheckoutEstimates = async () => {
     let quote = browseShippingQuotes.get(key);
     if (!quote || new Date(quote.expiresAt).valueOf() - Date.now() < 60_000) {
       try { let request = browseShippingQuoteRequests.get(key); if (!request) { request = api('/shipping/quote', { method: 'POST', body: JSON.stringify({ listingId: item.id, deliveryProvider: checkoutPreferences.deliveryProvider, recipientAddress: address }) }); browseShippingQuoteRequests.set(key, request); request.finally(() => browseShippingQuoteRequests.delete(key)).catch(() => {}); } quote = await request; browseShippingQuotes.set(key, quote); }
-      catch (error) { const reason = String(error?.message || 'Live carrier quote unavailable.').slice(0, 96); button.classList.add('is-buy-estimate'); button.innerHTML = `<span>BUY EST</span><b>Shippo quote unavailable</b><small>${safe(reason)}</small>`; return; }
+      catch (error) { const reason = String(error?.message || 'Live carrier quote unavailable.').slice(0, 96); button.classList.add('is-buy-estimate'); button.innerHTML = `<span>BUY EST</span><b>${money(Number(item.price) || 0)}</b><small>Item price · ${safe(reason)}</small>`; return; }
     }
-    const price = Number(item.price) || 0; const shipping = Number(quote.amount) || 0; const subtotal = price + shipping + price * collectorFeeRate(session?.user); const total = subtotal + paypalProcessingFee(subtotal);
-    button.classList.add('is-buy-estimate'); button.innerHTML = `<span>BUY EST</span><b>${money(total)}</b><small>${safe(quote.provider || 'Carrier')} ${safe(quote.service || '')} · ${money(shipping)}</small>`;
+    const taxKey = `${item.id}:${quote.quoteId}`;
+    let tax = browseTaxQuotes.get(taxKey);
+    if (!tax || new Date(tax.expiresAt).valueOf() - Date.now() < 60_000) {
+      try { let request = browseTaxQuoteRequests.get(taxKey); if (!request) { request = api('/tax/quote', { method: 'POST', body: JSON.stringify({ listingId: item.id, shippingQuoteId: quote.quoteId, recipientAddress: address }) }); browseTaxQuoteRequests.set(taxKey, request); request.finally(() => browseTaxQuoteRequests.delete(taxKey)).catch(() => {}); } tax = await request; browseTaxQuotes.set(taxKey, tax); }
+      catch { tax = null; }
+    }
+    const price = Number(item.price) || 0; const shipping = Number(quote.amount) || 0; const salesTax = Number(tax?.amount) || 0; const subtotal = price + shipping + price * collectorFeeRate(session?.user) + salesTax; const total = subtotal + paypalProcessingFee(subtotal);
+    const taxLabel = tax ? `Tax ${money(salesTax)} verified` : 'Tax calculated at checkout';
+    button.classList.add('is-buy-estimate'); button.innerHTML = `<span>BUY EST</span><b>${money(total)}</b><small>${safe(quote.provider || 'Carrier')} ${safe(quote.service || '')} · ${money(shipping)} · ${safe(taxLabel)}</small>`;
   }));
 };
 
@@ -2228,10 +2237,10 @@ function feeCalculator(item, type, shippingProfile = {}) {
 function updateFeeSummary() {
   const box = document.querySelector('.fee-calculator'); if (!box) return;
   const type = box.dataset.type; const buyerValue = Number(document.querySelector('#buyer-value')?.value || 0); const sellerValue = Number(document.querySelector('#seller-value')?.value || buyerValue); const seller = accounts.find(account => account.id === box.dataset.seller); const buyerRate = type === 'purchase' ? collectorFeeRate(session?.user) : document.querySelector('#buyer-curator')?.checked ? .01 : .04; const sellerRate = type === 'purchase' ? collectorFeeRate(seller) : document.querySelector('#seller-curator')?.checked ? .01 : .04; const tax = Number(document.querySelector('#tax')?.value || 0); const packaging = Number(document.querySelector('#packaging')?.value || 0); const miles = Number(document.querySelector('#delivery-miles')?.value || 0); const hasLiveQuote = Boolean(box.dataset.shippingQuoteId) && Number.isFinite(Number(box.dataset.shippingQuoteAmount)); const courier = type === 'purchase' ? (hasLiveQuote ? Number(box.dataset.shippingQuoteAmount) : 0) : deliveryCharge(miles, packaging);
-  const hasLiveTax = Boolean(box.dataset.taxQuoteId) && Number.isFinite(Number(box.dataset.taxQuoteAmount)); const liveTax = hasLiveTax ? Number(box.dataset.taxQuoteAmount) : 0;
+  const hasLiveTax = Boolean(box.dataset.taxQuoteId) && Number.isFinite(Number(box.dataset.taxQuoteAmount)); const liveTax = hasLiveTax ? Number(box.dataset.taxQuoteAmount) : 0; const taxProvider = box.dataset.taxQuoteProvider || 'tax provider';
   const paymentMethod = document.querySelector('[name="paymentMethod"]:checked')?.value || 'Select a payment method'; const deliveryFee = document.querySelector('#delivery-fee'); if (deliveryFee) deliveryFee.textContent = type === 'purchase' ? (hasLiveQuote ? `Live Shippo ${safe(box.dataset.shippingQuoteService || '')} quote · ${money(courier)}` : 'Live Shippo quote required before payment · enter a complete delivery address.') : `Live carrier estimate · ${money(courier)}`;
   const buyerMarketplaceFee = buyerValue * buyerRate; const buyerSubtotal = buyerValue + buyerMarketplaceFee + tax + courier; const paypalFee = paypalProcessingFee(buyerSubtotal);
-  document.querySelector('#fee-summary').innerHTML = type === 'trade' ? `<b>Trade valuation estimate</b><span>Buyer-side fee (${buyerRate * 100}%): ${money(buyerValue * buyerRate)}</span><span>Other-side fee (${sellerRate * 100}%): ${money(sellerValue * sellerRate)}</span><strong>Total valuation fees: ${money(buyerValue * buyerRate + sellerValue * sellerRate)}</strong>` : `<b>Purchase estimate</b><span>Payment method: ${safe(paymentMethod)}</span><span>Buyer marketplace fee (${buyerRate * 100}%): ${money(buyerMarketplaceFee)}</span><span>Seller marketplace fee (${sellerRate * 100}%): ${money(buyerValue * sellerRate)}</span><span>${hasLiveQuote ? `Live USPS ${safe(box.dataset.shippingQuoteService || '')} shipping: ${money(courier)}` : 'Shipping: get a live USPS quote before payment'}</span><span>Automatic sales tax: ${hasLiveTax ? money(liveTax) : 'calculating / required before payment'} · Buyer shipping: ${hasLiveQuote ? money(courier) : 'pending live quote'}</span><span>PayPal processing (3.49% + $0.49): ${money(paypalFee)}</span><strong>Buyer due: ${hasLiveQuote && hasLiveTax ? money(buyerSubtotal + paypalFee) : 'pending live shipping and tax quotes'}</strong><strong>Seller fee: ${money(buyerValue * sellerRate)}</strong>`;
+  document.querySelector('#fee-summary').innerHTML = type === 'trade' ? `<b>Trade valuation estimate</b><span>Buyer-side fee (${buyerRate * 100}%): ${money(buyerValue * buyerRate)}</span><span>Other-side fee (${sellerRate * 100}%): ${money(sellerValue * sellerRate)}</span><strong>Total valuation fees: ${money(buyerValue * buyerRate + sellerValue * sellerRate)}</strong>` : `<b>Purchase estimate</b><span>Payment method: ${safe(paymentMethod)}</span><span>Buyer marketplace fee (${buyerRate * 100}%): ${money(buyerMarketplaceFee)}</span><span>Seller marketplace fee (${sellerRate * 100}%): ${money(buyerValue * sellerRate)}</span><span>${hasLiveQuote ? `Live USPS ${safe(box.dataset.shippingQuoteService || '')} shipping: ${money(courier)}` : 'Shipping: get a live USPS quote before payment'}</span><span>Automatic sales tax: ${hasLiveTax ? `${money(liveTax)} · verified by ${safe(taxProvider)}` : 'calculating / required before payment'} · Buyer shipping: ${hasLiveQuote ? money(courier) : 'pending live quote'}</span><span>PayPal processing (3.49% + $0.49): ${money(paypalFee)}</span><strong>Buyer due: ${hasLiveQuote && hasLiveTax ? money(buyerSubtotal + paypalFee) : 'pending live shipping and tax quotes'}</strong><strong>Seller fee: ${money(buyerValue * sellerRate)}</strong>`;
 }
 function openPurchasePage(item, shippingProfile = {}, updateRoute = true) {
   if (!item) return;
