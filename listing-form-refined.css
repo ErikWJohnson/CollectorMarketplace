@@ -291,3 +291,24 @@ body.app-section-listing.listing-page .listing-publish-bar {
   body.app-section-listing .listing-image-preview { min-height: 230px; }
   body.app-section-listing .preview-empty { min-height: 190px; }
 }
+
+/* Native option menus need explicit colors; otherwise some browsers render
+   the Condition choices as black text on the marketplace's dark background. */
+body.app-section-listing .listing-form select,
+.listing-dialog .listing-editor-form select[name="condition"] {
+  color-scheme: dark;
+  color: #f5f2e9;
+  background-color: #101113;
+}
+
+body.app-section-listing .listing-form select option,
+.listing-dialog .listing-editor-form select[name="condition"] option {
+  color: #f5f2e9;
+  background: #16181b;
+}
+
+body.app-section-listing .listing-form select option:checked,
+.listing-dialog .listing-editor-form select[name="condition"] option:checked {
+  color: #101113;
+  background: #e3c25c;
+}
