@@ -2537,6 +2537,32 @@ const baseOpenListingEditor = openListingEditor;
 openListingEditor = async listingId => { await baseOpenListingEditor(listingId); const editor = modal.querySelector('.listing-editor-form'); const price = editor?.querySelector('[name="price"]'); if (price) price.min = '150'; if (price && !editor.querySelector('[name="stockQuantity"]')) price.closest('label')?.insertAdjacentHTML('afterend', '<label>Stock quantity <input required name="stockQuantity" type="number" min="1" max="10000" step="1" value="1"></label>'); if (editor) { const imageList = editor.querySelector('[name="images"]'); if (imageList) imageList.maxLength = 10000000; const item = await api(`/listing/${listingId}`); const input = editor.querySelector('[name="stockQuantity"]'); if (input) input.value = String(item.stockQuantity || 1); if (!editor.querySelector('[name="parcelLength"]')) editor.querySelector('[name="upsPackagingCost"]')?.closest('label')?.insertAdjacentHTML('afterend', `<fieldset class="listing-parcel-field"><legend>UPS package for live rates</legend><label>Length (in)<input name="parcelLength" type="number" min="0.1" step="0.1" value="${safe(item.shippingParcel?.length || '')}"></label><label>Width (in)<input name="parcelWidth" type="number" min="0.1" step="0.1" value="${safe(item.shippingParcel?.width || '')}"></label><label>Height (in)<input name="parcelHeight" type="number" min="0.1" step="0.1" value="${safe(item.shippingParcel?.height || '')}"></label><label>Weight (lb)<input name="parcelWeight" type="number" min="0.1" step="0.1" value="${safe(item.shippingParcel?.weight || '')}"></label><small>Required for delivery listings so checkout can obtain a live UPS rate.</small></fieldset>`); } };
 const openListingEditorWithPackageDetails = openListingEditor;
 openListingEditor = async listingId => { await openListingEditorWithPackageDetails(listingId); setupParcelRangeControl(modal.querySelector('.listing-editor-form')); };
+const openListingEditorWithParcelRange = openListingEditor;
+openListingEditor = async listingId => {
+  await openListingEditorWithParcelRange(listingId);
+  const editor = modal.querySelector('.listing-editor-form');
+  if (!editor || editor.querySelector('.relist-shippo-origin')) return;
+  const profile = await api('/account/shipping-profile').catch(() => ({}));
+  editor.querySelector('button[type="submit"]')?.insertAdjacentHTML('beforebegin', `<fieldset class="listing-parcel-field relist-shippo-origin"><legend>Private Shippo sender address</legend><p>Your address is encrypted and never shown on the listing. Shippo uses it only as the sender origin for USPS rates and labels.</p><label>Sender name<input required name="sellerShippingName" maxlength="120" autocomplete="shipping name" value="${safe(profile.name || '')}"></label><label>Street address<input required name="sellerShippingStreet1" maxlength="160" autocomplete="shipping street-address" value="${safe(profile.street1 || '')}"></label><label>Address line 2 <i>Optional</i><input name="sellerShippingStreet2" maxlength="120" autocomplete="shipping address-line2" value="${safe(profile.street2 || '')}"></label><div class="listing-location-grid"><label>City<input required name="sellerShippingCity" maxlength="80" autocomplete="shipping address-level2" value="${safe(profile.city || '')}"></label><label>State<input required name="sellerShippingState" maxlength="2" pattern="[A-Za-z]{2}" autocomplete="shipping address-level1" value="${safe(profile.state || '')}"></label><label>ZIP code<input required name="sellerShippingZip" maxlength="10" pattern="[0-9]{5}(-[0-9]{4})?" inputmode="numeric" autocomplete="shipping postal-code" value="${safe(profile.zip || '')}"></label></div><button type="button" data-relist-shippo-save>Save private Shippo address</button><small data-relist-shippo-status>${profile.street1 ? 'Private Shippo address saved.' : 'Add and save this before publishing delivery with Shippo.'}</small></fieldset>`);
+};
+document.addEventListener('click', event => {
+  const saveOrigin = event.target.closest('[data-relist-shippo-save]');
+  if (!saveOrigin) return;
+  const editor = saveOrigin.closest('.listing-editor-form');
+  const status = editor?.querySelector('[data-relist-shippo-status]');
+  if (!editor) return;
+  const value = name => String(editor.querySelector(`[name="${name}"]`)?.value || '').trim();
+  saveOrigin.disabled = true;
+  saveOrigin.textContent = 'Saving private address…';
+  api('/account/shipping-profile', { method: 'PUT', body: JSON.stringify({ name: value('sellerShippingName'), street1: value('sellerShippingStreet1'), street2: value('sellerShippingStreet2'), city: value('sellerShippingCity'), state: value('sellerShippingState').toUpperCase(), zip: value('sellerShippingZip'), country: 'US' }) }).then(() => {
+    saveOrigin.textContent = 'Private Shippo address saved';
+    if (status) status.textContent = 'Saved privately. This listing can now request Shippo USPS rates once its package range is set.';
+  }).catch(error => {
+    saveOrigin.disabled = false;
+    saveOrigin.textContent = 'Save private Shippo address';
+    if (status) status.textContent = error.message;
+  });
+}, true);
 const renderAccountPanelWithModeratorTools = openAccountPanel;
 openAccountPanel = async (...args) => { const result = await renderAccountPanelWithModeratorTools(...args); if (String(session?.user?.username || '').toLowerCase() === 'collectormarketplace') { const profile = stream.querySelector('.profile-workspace'); const hero = profile?.querySelector('.profile-hero'); const footer = profile?.querySelector('.profile-footer'); if (hero && !hero.querySelector('[data-brand-pass-manager]')) hero.insertAdjacentHTML('beforeend', '<button type="button" class="entity-primary" data-brand-pass-manager>Brand Pass Admin</button>'); if (footer && !footer.querySelector('[data-brand-pass-manager]')) footer.insertAdjacentHTML('afterbegin', '<button type="button" class="entity-primary" data-brand-pass-manager>Manage Brand Passes</button>'); } return result; };
 const renderAccountPanelWithStory = openAccountPanel;
