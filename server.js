@@ -788,9 +788,40 @@ app.put('/listing/:id', required, (req, res) => {
     if (publicLocation.length < 2 || publicLocation.length > 120 || /^\d{1,6}\s+|\b(street|st\.?|avenue|ave\.?|road|rd\.?|boulevard|blvd\.?|drive|dr\.?|apartment|apt\.?|suite|unit|zip)\b/i.test(publicLocation)) return res.status(400).json({ error: 'Use a city, region, and country only—do not post a street address.' });
     listing.location = publicLocation;
   }
+  if (req.body.sellerCity !== undefined || req.body.sellerZip !== undefined) {
+    const city = String(req.body.sellerCity ?? listing.sellerCity ?? '').trim();
+    const zip = String(req.body.sellerZip ?? listing.sellerZip ?? '').trim();
+    if (!city || city.length > 80 || !/^\d{5}(?:-\d{4})?$/.test(zip)) return res.status(400).json({ error: 'Enter a city and a valid ZIP code for the listing location.' });
+    listing.sellerCity = city;
+    listing.sellerZip = zip;
+    listing.location = `${city} ${zip}`;
+  }
+  if (req.body.locationCoordinates !== undefined) {
+    const point = req.body.locationCoordinates;
+    listing.locationCoordinates = point && Number.isFinite(Number(point.lat)) && Number.isFinite(Number(point.lng)) ? { lat: Number(point.lat), lng: Number(point.lng) } : null;
+  }
   if (req.body.fulfillment !== undefined) {
     if (!['pickup', 'pickup_delivery'].includes(req.body.fulfillment)) return res.status(400).json({ error: 'Choose pickup or pickup and delivery for fulfillment.' });
     listing.fulfillment = req.body.fulfillment;
+  }
+  if (req.body.postType !== undefined) {
+    if (!['sale', 'showcase'].includes(req.body.postType)) return res.status(400).json({ error: 'Choose a valid post type.' });
+    listing.postType = req.body.postType;
+    if (listing.postType === 'showcase') { listing.price = 0; listing.tradeOffer = false; listing.listingMode = 'marketplace'; }
+  }
+  if (req.body.listingMode !== undefined) {
+    if (!['marketplace', 'auction_only', 'marketplace_auction'].includes(req.body.listingMode)) return res.status(400).json({ error: 'Choose where this listing should appear.' });
+    if (listing.postType !== 'showcase') listing.listingMode = req.body.listingMode;
+  }
+  if (req.body.auctionStartPrice !== undefined && listing.postType !== 'showcase') {
+    const start = Number(req.body.auctionStartPrice);
+    if (!Number.isFinite(start) || start < 150) return res.status(400).json({ error: 'Auction starting bids must be at least $150.' });
+    listing.auctionStartPrice = Math.round(start * 100) / 100;
+  }
+  if (req.body.auctionDurationHours !== undefined && listing.postType !== 'showcase') {
+    const hours = Math.min(720, Math.max(1, Number(req.body.auctionDurationHours) || 72));
+    listing.auctionDurationHours = hours;
+    if (listing.listingMode !== 'marketplace' && !listing.auctionEndless) listing.auctionEndAt = new Date(Date.now() + hours * 3600000).toISOString();
   }
   if (req.body.upsPackagingCost !== undefined) { const packaging = Math.round(Math.max(0, Number(req.body.upsPackagingCost) || 0) * 100) / 100; if (packaging > 1000) return res.status(400).json({ error: 'Packaging cost must be $1,000 or less.' }); listing.upsPackagingCost = packaging; }
   if (req.body.shippingParcel !== undefined) {
