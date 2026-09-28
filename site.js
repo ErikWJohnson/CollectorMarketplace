@@ -1385,7 +1385,7 @@ const voiceChat = {
 const safe = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const accountAvatar = (user, className = 'account-avatar') => { const fallback = String(user?.avatar || user?.username || 'C').slice(0, 2).toUpperCase(); const image = String(user?.avatar || ''); return /^(https?:\/\/|data:image\/)/i.test(image) ? `<span class="${className}"><img src="${safe(image)}" alt="${safe(user?.username || 'Collector')} profile image"></span>` : `<span class="${className}">${safe(fallback)}</span>`; };
 const formatListingDate = value => { const date = new Date(value); return Number.isNaN(date.valueOf()) ? 'Recently listed' : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }); };
-const deliveryCarriers = ['Local pickup', 'USPS'];
+const deliveryCarriers = ['USPS'];
 const tagGroups = { 'Sports & Autographs': ['Sports Cards', 'Sports Memorabilia', 'Sports Trophies', 'Baseball Bats', 'Baseballs', 'Autographs', 'Fishing Gear', 'Horse Saddles', 'Horse Shoes', 'Gym Equipment', 'Weights', 'Gym Machines'], 'Fashion & Luxury': ['Fashion', 'Male', 'Female', 'Unisex', 'Cosplay', 'Fur Suits', 'Animal Furs', 'Sneakers', 'Dress Shoes', 'Sunglasses', 'Suits', 'Dresses', 'T-Shirts', 'Button-Ups', 'Pants', 'Coats', 'Jackets', 'Socks', 'Underwear', 'Hats', 'Boots', 'Handbags', 'Purses', 'Wigs', 'Pomade & Hair', 'Perfume & Cologne', 'Designing Tools', 'Watches', 'Fine Jewelry', 'Real Gemstones'], 'Vehicles & Transport': ['Cars', 'Exotic Cars', 'Electric Cars', 'Automotive Parts', 'Motorcycles', 'Biker Helmets', 'Yachts', 'Super Yachts', 'Sailboats', 'Sails', 'Boat Equipment', 'Jet Skis', 'Watercraft', 'Submarines', 'Aircraft'], 'Art, History & Materials': ['Fine Art', 'Fine Sculptures', 'Statues', 'Sketches', 'Art', 'Cards', 'Tapestry', 'Looms', 'Cloth', 'Historical Artifacts', 'Religious', 'Occult', 'Retired Museum Pieces', 'Legal Human Remains (Verified)', 'Coins', 'Metal', 'Marble & Stones', 'Memorabilia', 'Vintage'], 'Home, Decor & Kitchen': ['Furniture', 'Tables', 'Chairs', 'Stools', 'Beds', 'Mattresses', 'Curtains', 'Bookshelves', 'Displays', 'Tableware', 'Glassware', 'Cooking Equipment & Appliances', 'Cookbooks', 'Tea Cups', 'Clocks', 'Decor'], 'Food & Drink': ['Bread', 'Beverages', 'Bottles', 'Candy', 'Crackers', 'Creatine', 'Freeze-Dried Food', 'Frozen Sea Creatures', 'Meats', 'Protein Powder', 'Rations', 'Salami', 'Soda', 'Sorbet', 'Sparkling Water', 'Supplements'], 'Artisan Alcohol (21+ Only)': ['Artisan Alcohol', 'Aged Alcohol', 'Whiskey', 'Bourbon', 'Scotch', 'Rum', 'Tequila', 'Gin', 'Vodka', 'Craft Beer', 'Wine', 'Champagne', 'Vintage Bottles'], 'Artisan Cheese': ['Artisan Cheese', 'Edam Cheese', 'Swiss Cheese', 'Cheddar Cheese', 'Brie Cheese', 'Gouda Cheese', 'Parmesan Cheese', 'Blue Cheese', 'Camembert Cheese', 'Manchego Cheese', 'Mozzarella Cheese'], 'Adult Only (18+)': ['Adult Only (18+)', 'Age Restricted Collectibles', 'Adult Books & Magazines', 'Adult Comics', 'Adult Film CDs', 'Adult Toys', 'Adult Tech', 'Adult Protection', 'Adult Decor', 'Adult Furniture', 'Adult Manga Books', 'Adult Manga Comics', 'Adult Manga CD Films', 'Adult Manga Merch'], 'Toys & Games': ['Dolls', 'Toys', 'Squirt Guns', 'Airsoft', 'Action Figures', 'Building Toy Sets', 'Bobbleheads', 'Board Games', 'Tabletop', 'Miniature Trains'], 'Science & Nature': ['Telescopes', 'Space Rocks', 'Fossils', 'Geodes', 'Crystals', 'Plant Seeds', 'Taxidermy'], 'Weapons & Armor': ['Armor', 'Arrows', 'Ballistic Vests (Legal Buyers)', 'Bows', 'Crossbows', 'Hunting Gear', 'Knives', 'Martial Arts Equipment', 'Martial Blades', 'Throwing Equipment'], 'Technology': ['Electronics', 'Computers', 'FPV Drones (No Explosives)', 'Phones'], 'Gaming': ['Consoles', 'VR Headsets', 'Controllers', 'Gaming Chairs', 'Arcade Machines', 'Toys-to-Life', 'Video Games', 'Gaming Merch', 'Influencer Merch'], 'Top Brands': [], 'Media & Entertainment': ['Set Props', 'Movies', 'Movie Posters', 'Vinyl', 'Records', 'CDs', 'Books', 'Comics', 'Manga Books', 'Manga Comics', 'Manga CD Films', 'Manga Merch', 'Newspapers', 'Instruments'] };
 tagGroups.Location = [];
 tagGroups.Gaming.push('Physical Video Game Copies', 'Retro Video Game Copies');
@@ -1491,12 +1491,10 @@ async function renderPayPalButtonForPurchase(form) {
     const item = listings.find(row => row.id === form.dataset.listing);
     if (item?.ownerId === session?.user?.id) return 'You cannot purchase your own listing.';
     if (alcoholRestrictedClientListing(item) && !form.querySelector('[name="confirmedAlcoholAge"]')?.checked) return 'Confirm that you are at least 21 years old before purchasing alcohol.';
-    if (!form.reportValidity()) return 'Complete the required checkout details first.';
-    const provider = form.querySelector('#delivery-provider')?.value;
-    if (!provider) return 'Choose a pickup or delivery option before paying.';
-    if (provider !== 'Local pickup' && provider !== 'USPS') return 'Choose USPS or local pickup before paying.';
-    if (provider === 'USPS' && !form.dataset.shippingQuoteId) return 'Get a live Shippo shipping quote before paying.';
-    if (provider === 'USPS' && !form.dataset.taxQuoteId) return 'Calculate the automatic sales tax before paying.';
+    if (!form.reportValidity()) return 'Choose USPS and complete every delivery address field first.';
+    if (form.querySelector('#delivery-provider')?.value !== 'USPS') return 'Choose USPS before paying.';
+    if (!form.dataset.shippingQuoteId) return 'Get a live Shippo shipping quote before paying.';
+    if (!form.dataset.taxQuoteId) return 'Calculate the automatic sales tax before paying.';
     return '';
   };
   try {
@@ -1674,9 +1672,6 @@ const calculateCheckoutDeliveryFromAddress = async field => {
   const complete = address && ['name', 'street1', 'city', 'state', 'zip'].every(key => String(address[key] || '').trim());
   delete form.dataset.shippingQuoteId; delete form.dataset.shippingQuoteAmount; delete form.dataset.shippingQuoteService; delete form.dataset.taxQuoteId; delete form.dataset.taxQuoteAmount; delete form.dataset.taxQuoteRate; delete form.dataset.taxQuoteProvider;
   const taxInput = form.querySelector('#tax'); if (taxInput) taxInput.value = '0';
-  const pickup = provider === 'Local pickup';
-  form.querySelectorAll('#shipping-name, #shipping-street1, #shipping-city, #shipping-state, #shipping-zip').forEach(input => { input.required = !pickup; });
-  if (pickup) { form.querySelector('.shipping-rate-choice')?.remove(); if (note) note.textContent = 'Local pickup selected · $0 shipping and 0% marketplace fees for both buyer and seller.'; updateFeeSummary(); return; }
   if (provider !== 'USPS' || !complete) { if (note) note.textContent = 'Choose USPS and complete the delivery address to get a live quote.'; updateFeeSummary(); return; }
   try {
     if (note) note.textContent = 'Getting live Shippo rates…'; updateFeeSummary();
@@ -2230,8 +2225,7 @@ function feeCalculator(item, type, shippingProfile = {}) {
   const trade = type === 'trade';
   const calculatedDistance = distanceFromViewer(item);
   const estimatedMiles = Number.isFinite(calculatedDistance) ? calculatedDistance.toFixed(1) : '0';
-  const eligibleProviders = item.fulfillment === 'pickup' ? ['Local pickup'] : deliveryCarriers;
-  const providerOptions = eligibleProviders.map(provider => `<option value="${safe(provider)}" ${(item.fulfillment === 'pickup' || checkoutPreferences.deliveryProvider === provider) ? 'selected' : ''}>${safe(provider)}</option>`).join('');
+  const providerOptions = deliveryCarriers.map(provider => `<option value="${safe(provider)}" ${checkoutPreferences.deliveryProvider === provider ? 'selected' : ''}>${safe(provider)}</option>`).join('');
   const paymentMethods = [['PayPal', 'PayPal account']];
   const paymentChoices = `<fieldset class="payment-methods"><legend>Payment method <small>Choose how you want to pay</small></legend><div>${paymentMethods.map(([method, detail], index) => `<label class="payment-method"><input type="radio" name="paymentMethod" value="${method}" ${index === 0 ? 'checked' : ''}><span><b>${method}</b><small>${detail}</small></span></label>`).join('')}</div></fieldset>`;
   const fields = trade ? `<label>Your trade valuation<input id="buyer-value" type="number" min="0" value="${item.price}"></label><label>Other side’s valuation<input id="seller-value" type="number" min="0" value="${item.price}"></label><label>Offer note<input required id="offer-note" placeholder="Describe the item you are offering"></label>` : `<label>Item price<input id="buyer-value" type="number" min="0" value="${item.price}" readonly aria-readonly="true"></label><label class="purchase-delivery-option">Delivery option<select id="delivery-provider" required><option value="" selected disabled>Choose a delivery provider</option>${providerOptions}</select></label><input id="delivery-miles" type="hidden" value="${estimatedMiles}"><input id="packaging" type="hidden" value="${safe(item.upsPackagingCost || 0)}"><small id="delivery-distance-note">Choose USPS and complete the delivery address to see available USPS services.</small><output id="delivery-fee" class="delivery-fee-preview" aria-live="polite"></output><label>Automatic sales tax<input id="tax" type="number" min="0" value="0" readonly aria-readonly="true"></label>`;
@@ -2260,7 +2254,6 @@ function openPurchasePage(item, shippingProfile = {}, updateRoute = true) {
   if (updateRoute) setWorkspaceHash(`purchase/${item.id}`);
   openAppSection('purchase', `Buy ${safe(item.title)}`, 'A private, secure checkout with delivery details and payment in one place.', feeCalculator(item, 'purchase', shippingProfile));
   const checkout = stream.querySelector('.purchase-checkout');
-  if (item.fulfillment === 'pickup' && checkout?.querySelector('#delivery-provider')) checkout.querySelector('#delivery-provider').value = 'Local pickup';
   if (alcoholRestrictedClientListing(item) && checkout && !checkout.querySelector('[name="confirmedAlcoholAge"]')) checkout.querySelector('.purchase-review')?.insertAdjacentHTML('beforeend', '<label class="check alcohol-age-attestation"><input required name="confirmedAlcoholAge" type="checkbox"> I confirm that I am at least 21 years old and legally allowed to purchase alcohol.</label>');
   updateFeeSummary();
   const checkoutField = checkout?.querySelector('#delivery-provider, #shipping-zip');
