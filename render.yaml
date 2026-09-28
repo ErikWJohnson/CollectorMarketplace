@@ -18,5 +18,7 @@ services:
         sync: false
       - key: PAYPAL_ENV
         sync: false
-      - key: PUBLIC_BASE_URL
+      - key: DATA_ENCRYPTION_KEY
+        sync: false
+      - key: PUBLIC_SITE_URL
         value: https://collectormarketplace.net
