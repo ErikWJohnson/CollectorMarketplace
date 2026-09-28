@@ -2610,13 +2610,13 @@ openListingEditor = async listingId => {
   if (!editor) throw new Error('The relisting editor could not be prepared. Please try again.');
   const markup = editor.outerHTML;
   beginWorkspaceRoute('listing');
-  setWorkspaceHash(`relist/${listingId}`);
   if (modal.open) modal.close();
   openAppSection('listing', 'Relist & edit item', 'Update every listing detail in one workspace. Your private sender address and USPS package information are used only for Shippo rates and labels.', markup);
   document.body.classList.add('listing-page');
   const pageEditor = stream.querySelector('.listing-editor-form');
   setupParcelRangeControl(pageEditor);
   pageEditor?.querySelector('[name="postType"]:checked')?.dispatchEvent(new Event('change', { bubbles: true }));
+  setWorkspaceHash(`relist/${listingId}`);
 };
 const renderAccountPanelWithModeratorTools = openAccountPanel;
 openAccountPanel = async (...args) => { const result = await renderAccountPanelWithModeratorTools(...args); if (String(session?.user?.username || '').toLowerCase() === 'collectormarketplace') { const profile = stream.querySelector('.profile-workspace'); const hero = profile?.querySelector('.profile-hero'); const footer = profile?.querySelector('.profile-footer'); if (hero && !hero.querySelector('[data-brand-pass-manager]')) hero.insertAdjacentHTML('beforeend', '<button type="button" class="entity-primary" data-brand-pass-manager>Brand Pass Admin</button>'); if (footer && !footer.querySelector('[data-brand-pass-manager]')) footer.insertAdjacentHTML('afterbegin', '<button type="button" class="entity-primary" data-brand-pass-manager>Manage Brand Passes</button>'); } return result; };
