@@ -71,10 +71,10 @@ const collectiveCatalog = [
 ];
 const brandCatalog = [];
 const chatRoomCatalog = [
-  { id: 'collector-lounge', name: 'Collector Lounge', description: 'A relaxed place to meet collectors and talk through today’s finds.', tags: ['Collectors', 'General', 'Community'], members: 84 },
-  { id: 'card-table', name: 'Card Table', description: 'Live conversation for sports cards, TCG, grading, and swaps.', tags: ['Sports Cards', 'Cards', 'Trading'], members: 46 },
-  { id: 'art-salon', name: 'Art Salon', description: 'Discuss art, design, antiques, and museum-worthy objects.', tags: ['Art', 'Fine Art', 'Vintage'], members: 31 },
-  { id: 'watch-club', name: 'Watch Club', description: 'A room for timepieces, jewelry, luxury, and craftsmanship.', tags: ['Watches', 'Fine Jewelry', 'Luxury'], members: 29 }
+  { id: 'collector-lounge', name: 'Collector Lounge', description: 'A relaxed place to meet collectors and talk through today’s finds.', tags: ['Collectors', 'General', 'Community'] },
+  { id: 'card-table', name: 'Card Table', description: 'Live conversation for sports cards, TCG, grading, and swaps.', tags: ['Sports Cards', 'Cards', 'Trading'] },
+  { id: 'art-salon', name: 'Art Salon', description: 'Discuss art, design, antiques, and museum-worthy objects.', tags: ['Art', 'Fine Art', 'Vintage'] },
+  { id: 'watch-club', name: 'Watch Club', description: 'A room for timepieces, jewelry, luxury, and craftsmanship.', tags: ['Watches', 'Fine Jewelry', 'Luxury'] }
 ];
 const artifactLoreCache = new Map();
 const fandomWikis = [
@@ -514,15 +514,15 @@ const listingStatistics = (listing, includePrivateAudience = false) => { const v
 app.get('/user/:id/listings', required, (req, res) => { if (req.user.id !== req.params.id) return res.status(403).json({ error: 'Not allowed' }); const rows = store.data.listings.filter(listing => listing.ownerId === req.user.id).map(listing => ({ ...publicListing(listing), owner: publicUser(req.user), likeCount: Array.isArray(listing.likes) ? listing.likes.length : 0, commentCount: store.data.comments.filter(comment => comment.listingId === listing.id).length, statistics: listingStatistics(listing, true) })); res.json(rows); });
 app.get('/users/suggestions', required, (req, res) => { const excluded = new Set([req.user.id, ...req.user.following]); const users = store.data.users.filter(user => !excluded.has(user.id)).sort((a, b) => (b.reputation || 0) - (a.reputation || 0) || a.username.localeCompare(b.username)).slice(0, 8).map(user => ({ ...publicUser(user), activeListingCount: store.data.listings.filter(listing => listing.ownerId === user.id && listing.status === 'active').length })); res.json(users); });
 app.get('/users', (req, res) => res.json(store.data.users.map(user => ({ ...directoryUser(user), activeListingCount: store.data.listings.filter(listing => listing.ownerId === user.id && listing.status === 'active').length, followingCount: Array.isArray(user.following) ? user.following.length : 0 }))));
-const collectiveActivity = collectiveId => {
-  const posts = store.data.communityPosts.filter(post => post.type === 'collectives' && post.entityId === collectiveId);
+const communityActivity = (type, entityId) => {
+  const posts = store.data.communityPosts.filter(post => post.type === type && post.entityId === entityId);
   const contributors = new Set(posts.flatMap(post => [post.authorId, ...(post.replies || []).map(reply => reply.authorId)]).filter(Boolean));
   return { postCount: posts.length, contributorCount: contributors.size };
 };
-app.get('/collectives', (req, res) => res.json(collectiveCatalog.map(collective => ({ ...collective, ...collectiveActivity(collective.id) }))));
+app.get('/collectives', (req, res) => res.json(collectiveCatalog.map(collective => ({ ...collective, ...communityActivity('collectives', collective.id) }))));
 app.get('/brands', (req, res) => res.json(brandCatalog));
 app.get('/couriers', (req, res) => res.json(Object.entries(deliveryProviders).map(([name, details]) => ({ id: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''), name, category: details.type.replaceAll('_', ' '), description: details.trackingRequired ? 'Tracking-supported delivery option for collector purchases.' : 'Local handoff delivery option for collector purchases.', tags: ['Courier', 'Delivery', details.type.replaceAll('_', ' ')] }))));
-app.get('/chatrooms', (req, res) => res.json(chatRoomCatalog));
+app.get('/chatrooms', (req, res) => res.json(chatRoomCatalog.map(room => ({ ...room, ...communityActivity('chatrooms', room.id) }))));
 function communityEntity(type, entityId) { if (type === 'accounts') return store.data.users.find(user => user.id === entityId) ? { id: entityId, name: `@${store.data.users.find(user => user.id === entityId).username}` } : null; if (type === 'collectives') return collectiveCatalog.find(entity => entity.id === entityId) || null; if (type === 'brands') return brandCatalog.find(entity => entity.id === entityId) || null; if (type === 'chatrooms') return chatRoomCatalog.find(entity => entity.id === entityId) || null; return null; }
 function communityPostView(post) { return { ...post, author: directoryUser(store.data.users.find(user => user.id === post.authorId)), replies: (post.replies || []).map(reply => ({ ...reply, author: directoryUser(store.data.users.find(user => user.id === reply.authorId)) })) }; }
 app.get('/community/:type/:entityId', (req, res) => { const entity = communityEntity(req.params.type, req.params.entityId); if (!entity) return res.status(404).json({ error: 'Discussion space not found.' }); res.json({ entity, posts: store.data.communityPosts.filter(post => post.type === req.params.type && post.entityId === req.params.entityId).sort((left, right) => right.createdAt.localeCompare(left.createdAt)).map(communityPostView) }); });
