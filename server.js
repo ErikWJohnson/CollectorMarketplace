@@ -64,10 +64,10 @@ const hasActiveCuratorMembership = user => {
   return !expiresAt || new Date(expiresAt).valueOf() > Date.now();
 };
 const collectiveCatalog = [
-  { id: 'card-vault', name: 'Card Vault', description: 'Sports cards, TCG, and grading talk for serious collectors.', tags: ['Sports Cards', 'Cards', 'Autographs'], members: 1284 },
-  { id: 'modern-relics', name: 'Modern Relics', description: 'Design, art, books, and objects with a lasting story.', tags: ['Art', 'Books', 'Vintage'], members: 846 },
-  { id: 'timekeepers', name: 'Timekeepers', description: 'Watches, jewelry, and collectible craftsmanship.', tags: ['Watches', 'Fine Jewelry', 'Luxury'], members: 619 },
-  { id: 'pixel-arcade', name: 'Pixel Arcade', description: 'Gaming hardware, retro games, and console collectors.', tags: ['Gaming', 'Consoles', 'Arcade Machines'], members: 932 }
+  { id: 'card-vault', name: 'Card Vault', description: 'Sports cards, TCG, and grading talk for serious collectors.', tags: ['Sports Cards', 'Cards', 'Autographs'] },
+  { id: 'modern-relics', name: 'Modern Relics', description: 'Design, art, books, and objects with a lasting story.', tags: ['Art', 'Books', 'Vintage'] },
+  { id: 'timekeepers', name: 'Timekeepers', description: 'Watches, jewelry, and collectible craftsmanship.', tags: ['Watches', 'Fine Jewelry', 'Luxury'] },
+  { id: 'pixel-arcade', name: 'Pixel Arcade', description: 'Gaming hardware, retro games, and console collectors.', tags: ['Gaming', 'Consoles', 'Arcade Machines'] }
 ];
 const brandCatalog = [];
 const chatRoomCatalog = [
@@ -514,7 +514,12 @@ const listingStatistics = (listing, includePrivateAudience = false) => { const v
 app.get('/user/:id/listings', required, (req, res) => { if (req.user.id !== req.params.id) return res.status(403).json({ error: 'Not allowed' }); const rows = store.data.listings.filter(listing => listing.ownerId === req.user.id).map(listing => ({ ...publicListing(listing), owner: publicUser(req.user), likeCount: Array.isArray(listing.likes) ? listing.likes.length : 0, commentCount: store.data.comments.filter(comment => comment.listingId === listing.id).length, statistics: listingStatistics(listing, true) })); res.json(rows); });
 app.get('/users/suggestions', required, (req, res) => { const excluded = new Set([req.user.id, ...req.user.following]); const users = store.data.users.filter(user => !excluded.has(user.id)).sort((a, b) => (b.reputation || 0) - (a.reputation || 0) || a.username.localeCompare(b.username)).slice(0, 8).map(user => ({ ...publicUser(user), activeListingCount: store.data.listings.filter(listing => listing.ownerId === user.id && listing.status === 'active').length })); res.json(users); });
 app.get('/users', (req, res) => res.json(store.data.users.map(user => ({ ...directoryUser(user), activeListingCount: store.data.listings.filter(listing => listing.ownerId === user.id && listing.status === 'active').length, followingCount: Array.isArray(user.following) ? user.following.length : 0 }))));
-app.get('/collectives', (req, res) => res.json(collectiveCatalog.map(collective => ({ ...collective, postCount: store.data.communityPosts.filter(post => post.type === 'collectives' && post.entityId === collective.id).length }))));
+const collectiveActivity = collectiveId => {
+  const posts = store.data.communityPosts.filter(post => post.type === 'collectives' && post.entityId === collectiveId);
+  const contributors = new Set(posts.flatMap(post => [post.authorId, ...(post.replies || []).map(reply => reply.authorId)]).filter(Boolean));
+  return { postCount: posts.length, contributorCount: contributors.size };
+};
+app.get('/collectives', (req, res) => res.json(collectiveCatalog.map(collective => ({ ...collective, ...collectiveActivity(collective.id) }))));
 app.get('/brands', (req, res) => res.json(brandCatalog));
 app.get('/couriers', (req, res) => res.json(Object.entries(deliveryProviders).map(([name, details]) => ({ id: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''), name, category: details.type.replaceAll('_', ' '), description: details.trackingRequired ? 'Tracking-supported delivery option for collector purchases.' : 'Local handoff delivery option for collector purchases.', tags: ['Courier', 'Delivery', details.type.replaceAll('_', ' ')] }))));
 app.get('/chatrooms', (req, res) => res.json(chatRoomCatalog));
