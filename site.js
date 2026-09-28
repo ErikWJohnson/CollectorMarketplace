@@ -1302,6 +1302,8 @@ const applyHashLocation = () => {
   const hash = location.hash.slice(1).toLowerCase();
   const listingWorkspace = hash.match(/^listing\/([^/]+)\/(promotion|statistics)$/);
   if (listingWorkspace) { if (!session) return openAuthPanel('login'); const [, listingId, page] = listingWorkspace; return (page === 'promotion' ? openListingAdvertising(listingId, false) : openListingStatistics(listingId, false)).catch(showError); }
+  const relistWorkspace = hash.match(/^relist\/([^/]+)$/);
+  if (relistWorkspace) { if (!session) return openAuthPanel('login'); if (stream.querySelector('.listing-editor-form')?.dataset.listingEditor === relistWorkspace[1]) return; return openListingEditor(relistWorkspace[1]).catch(showError); }
   if (hash.startsWith('purchase/')) { const listingId = hash.slice('purchase/'.length); const item = listings.find(listing => String(listing.id).toLowerCase() === listingId); if (!item) return; if (!session) return openAuthPanel('login'); if (item.ownerId === session.user.id) return openModal('Your own listing', 'You cannot buy your own listing. Use your account page to edit, archive, or manage it instead.'); const routeId = beginWorkspaceRoute('purchase'); api('/account/shipping-profile').catch(() => ({})).then(profile => { if (routeId === workspaceRouteId && location.hash.slice(1).toLowerCase() === hash) openPurchasePage(item, profile, false); }).catch(showError); return; }
   if (hash === 'help') { openHelpPage(false); return; }
   if (hash === 'search' || hash === 'tags') { openDiscoveryShortcut(hash); return; }
@@ -2557,7 +2559,7 @@ modal.addEventListener('close', () => {
   }
 });
 const baseOpenListingEditor = openListingEditor;
-openListingEditor = async listingId => { await baseOpenListingEditor(listingId); const editor = modal.querySelector('.listing-editor-form'); const price = editor?.querySelector('[name="price"]'); if (price) price.min = '150'; if (price && !editor.querySelector('[name="stockQuantity"]')) price.closest('label')?.insertAdjacentHTML('afterend', '<label>Stock quantity <input required name="stockQuantity" type="number" min="1" max="10000" step="1" value="1"></label>'); if (editor) { const imageList = editor.querySelector('[name="images"]'); if (imageList) imageList.maxLength = 10000000; const item = await api(`/listing/${listingId}`); const input = editor.querySelector('[name="stockQuantity"]'); if (input) input.value = String(item.stockQuantity || 1); if (!editor.querySelector('[name="parcelLength"]')) editor.querySelector('[name="upsPackagingCost"]')?.closest('label')?.insertAdjacentHTML('afterend', `<fieldset class="listing-parcel-field"><legend>UPS package for live rates</legend><label>Length (in)<input name="parcelLength" type="number" min="0.1" step="0.1" value="${safe(item.shippingParcel?.length || '')}"></label><label>Width (in)<input name="parcelWidth" type="number" min="0.1" step="0.1" value="${safe(item.shippingParcel?.width || '')}"></label><label>Height (in)<input name="parcelHeight" type="number" min="0.1" step="0.1" value="${safe(item.shippingParcel?.height || '')}"></label><label>Weight (lb)<input name="parcelWeight" type="number" min="0.1" step="0.1" value="${safe(item.shippingParcel?.weight || '')}"></label><small>Required for delivery listings so checkout can obtain a live UPS rate.</small></fieldset>`); } };
+openListingEditor = async listingId => { await baseOpenListingEditor(listingId); const editor = modal.querySelector('.listing-editor-form'); const price = editor?.querySelector('[name="price"]'); if (price) price.min = '150'; if (price && !editor.querySelector('[name="stockQuantity"]')) price.closest('label')?.insertAdjacentHTML('afterend', '<label>Stock quantity <input required name="stockQuantity" type="number" min="1" max="10000" step="1" value="1"></label>'); if (editor) { const imageList = editor.querySelector('[name="images"]'); if (imageList) imageList.maxLength = 10000000; const item = await api(`/listing/${listingId}`); const input = editor.querySelector('[name="stockQuantity"]'); if (input) input.value = String(item.stockQuantity || 1); if (!editor.querySelector('[name="parcelLength"]')) editor.querySelector('[name="upsPackagingCost"]')?.closest('label')?.insertAdjacentHTML('afterend', `<fieldset class="listing-parcel-field"><legend>USPS package for live rates</legend><label>Length (in)<input name="parcelLength" type="number" min="0.1" step="0.1" value="${safe(item.shippingParcel?.length || '')}"></label><label>Width (in)<input name="parcelWidth" type="number" min="0.1" step="0.1" value="${safe(item.shippingParcel?.width || '')}"></label><label>Height (in)<input name="parcelHeight" type="number" min="0.1" step="0.1" value="${safe(item.shippingParcel?.height || '')}"></label><label>Weight (lb)<input name="parcelWeight" type="number" min="0.1" step="0.1" value="${safe(item.shippingParcel?.weight || '')}"></label><small>Required for delivery listings so checkout can obtain a live USPS rate through Shippo.</small></fieldset>`); } };
 const openListingEditorWithPackageDetails = openListingEditor;
 openListingEditor = async listingId => { await openListingEditorWithPackageDetails(listingId); setupParcelRangeControl(modal.querySelector('.listing-editor-form')); };
 const openListingEditorWithParcelRange = openListingEditor;
@@ -2586,6 +2588,21 @@ document.addEventListener('click', event => {
     if (status) status.textContent = error.message;
   });
 }, true);
+const openListingEditorInDialog = openListingEditor;
+openListingEditor = async listingId => {
+  await openListingEditorInDialog(listingId);
+  const editor = modalContent.querySelector('.listing-editor-form');
+  if (!editor) throw new Error('The relisting editor could not be prepared. Please try again.');
+  const markup = editor.outerHTML;
+  beginWorkspaceRoute('listing');
+  setWorkspaceHash(`relist/${listingId}`);
+  if (modal.open) modal.close();
+  openAppSection('listing', 'Relist & edit item', 'Update every listing detail in one workspace. Your private sender address and USPS package information are used only for Shippo rates and labels.', markup);
+  document.body.classList.add('listing-page');
+  const pageEditor = stream.querySelector('.listing-editor-form');
+  setupParcelRangeControl(pageEditor);
+  pageEditor?.querySelector('[name="postType"]:checked')?.dispatchEvent(new Event('change', { bubbles: true }));
+};
 const renderAccountPanelWithModeratorTools = openAccountPanel;
 openAccountPanel = async (...args) => { const result = await renderAccountPanelWithModeratorTools(...args); if (String(session?.user?.username || '').toLowerCase() === 'collectormarketplace') { const profile = stream.querySelector('.profile-workspace'); const hero = profile?.querySelector('.profile-hero'); const footer = profile?.querySelector('.profile-footer'); if (hero && !hero.querySelector('[data-brand-pass-manager]')) hero.insertAdjacentHTML('beforeend', '<button type="button" class="entity-primary" data-brand-pass-manager>Brand Pass Admin</button>'); if (footer && !footer.querySelector('[data-brand-pass-manager]')) footer.insertAdjacentHTML('afterbegin', '<button type="button" class="entity-primary" data-brand-pass-manager>Manage Brand Passes</button>'); } return result; };
 const renderAccountPanelWithStory = openAccountPanel;
@@ -2632,7 +2649,7 @@ document.addEventListener('submit', async event => {
     const button = editor.querySelector('button[type="submit"]'); if (button) { button.disabled = true; button.textContent = 'Saving…'; }
     await api(`/listing/${editor.dataset.listingEditor}`, { method: 'PUT', body: JSON.stringify({ title: fields.get('title'), category, condition: fields.get('condition'), price: Number(fields.get('price') || 0), stockQuantity: quantity, tags, images, description: fields.get('description'), sellerCity: fields.get('sellerCity'), sellerZip: fields.get('sellerZip'), fulfillment, postType, listingMode: fields.get('listingMode'), auctionStartPrice: fields.get('auctionStartPrice'), auctionDurationHours: fields.get('auctionDurationHours'), upsPackagingCost: Number(fields.get('upsPackagingCost') || 0), shippingParcel: { length: fields.get('parcelLength'), width: fields.get('parcelWidth'), height: fields.get('parcelHeight'), weight: fields.get('parcelWeight') }, tradeOffer: fields.get('tradeOffer') === 'on' }) });
     await loadMarket(); await openAccountPanel();
-  } catch (error) { modalContent.querySelector('.form-submit-error')?.remove(); modalContent.insertAdjacentHTML('afterbegin', `<p class="modal-copy form-submit-error" role="alert">${safe(error.message)}</p>`); const button = editor.querySelector('button[type="submit"]'); if (button) { button.disabled = false; button.textContent = 'Save listing changes'; } }
+  } catch (error) { const host = editor.closest('.app-section-content') || modalContent; host.querySelector('.form-submit-error')?.remove(); host.insertAdjacentHTML('afterbegin', `<p class="modal-copy form-submit-error" role="alert">${safe(error.message)}</p>`); const button = editor.querySelector('button[type="submit"]'); if (button) { button.disabled = false; button.textContent = 'Save listing changes'; } }
 }, true);
 document.addEventListener('submit', async event => {
   const listingForm = event.target.closest?.('.listing-form');
