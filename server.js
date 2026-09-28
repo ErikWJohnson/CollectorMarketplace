@@ -40,7 +40,10 @@ const base32Secret = () => Array.from(crypto.randomBytes(20)).map(byte => base32
 const decodeBase32 = secret => { let bits = ''; for (const char of String(secret).toUpperCase().replace(/=+$/g, '')) { const index = base32Alphabet.indexOf(char); if (index >= 0) bits += index.toString(2).padStart(5, '0'); } return Buffer.from((bits.match(/.{1,8}/g) || []).filter(byte => byte.length === 8).map(byte => parseInt(byte, 2))); };
 const totpCode = (secret, at = Date.now()) => { const step = Math.floor(at / 30000); const counter = Buffer.alloc(8); counter.writeBigUInt64BE(BigInt(step)); const digest = crypto.createHmac('sha1', decodeBase32(secret)).update(counter).digest(); const offset = digest[digest.length - 1] & 15; return String(((digest.readUInt32BE(offset) & 0x7fffffff) % 1000000)).padStart(6, '0'); };
 const verifyTotp = (secret, code) => { const normalized = String(code || '').replace(/\D/g, '').slice(0, 6).padStart(6, '0'); return [-1, 0, 1].some(offset => crypto.timingSafeEqual(Buffer.from(totpCode(secret, Date.now() + offset * 30000)), Buffer.from(normalized))); };
-const deliveryProviders = { USPS: { type: 'carrier', trackingRequired: true } };
+const deliveryProviders = {
+  USPS: { type: 'carrier', trackingRequired: true },
+  'Local pickup': { type: 'pickup', trackingRequired: false }
+};
 const paymentMethods = new Set(['PayPal']);
 const paypalProcessingRate = 0.0349;
 const paypalProcessingFixed = 0.49;
@@ -1042,10 +1045,14 @@ function preparePurchase(user, body) {
   if (deliveryProviders[provider]?.type === 'carrier' && (!savedQuote || savedQuote.expiresAt <= Date.now() || savedQuote.listingId !== listing.id || savedQuote.buyerId !== user.id || savedQuote.destinationKey !== shippingAddressKey(destination))) throw new Error('Get a fresh live shipping quote before paying.');
   const savedTaxQuote = liveTaxQuotes.get(String(taxQuoteId || ''));
   if (deliveryProviders[provider]?.type === 'carrier' && (!savedTaxQuote || savedTaxQuote.expiresAt <= Date.now() || savedTaxQuote.listingId !== listing.id || savedTaxQuote.buyerId !== user.id || savedTaxQuote.destinationKey !== shippingAddressKey(destination) || savedTaxQuote.shippingQuoteId !== String(shippingQuoteId || ''))) throw new Error('Calculate a fresh automatic sales-tax quote before paying.');
-  const courierPay = deliveryProviders[provider]?.type === 'carrier' ? savedQuote.quote.amount : calculatedDeliveryFee(miles, packing);
+  const isOnlinePickup = deliveryProviders[provider]?.type === 'pickup';
+  const courierPay = isOnlinePickup ? 0 : deliveryProviders[provider]?.type === 'carrier' ? savedQuote.quote.amount : calculatedDeliveryFee(miles, packing);
   const salesTax = deliveryProviders[provider]?.type === 'carrier' ? savedTaxQuote.quote.amount : 0;
   const itemPrice = Number(listing.price) || 0; const seller = store.data.users.find(candidate => candidate.id === listing.ownerId);
-  const fees = { buyer: { rate: tradeFeeRate(user), amount: itemPrice * tradeFeeRate(user) }, seller: { rate: tradeFeeRate(seller), amount: itemPrice * tradeFeeRate(seller) } };
+  // Online pickup is a flat platform fee: memberships and passes never alter it.
+  const buyerFeeRate = isOnlinePickup ? .01 : tradeFeeRate(user);
+  const sellerFeeRate = isOnlinePickup ? .01 : tradeFeeRate(seller);
+  const fees = { buyer: { rate: buyerFeeRate, amount: itemPrice * buyerFeeRate }, seller: { rate: sellerFeeRate, amount: itemPrice * sellerFeeRate } };
   const buyerSubtotal = itemPrice + fees.buyer.amount + courierPay + salesTax;
   const paypalFee = paypalProcessingFee(buyerSubtotal);
   return { listing, address, destination, provider, method, miles, packing, courierPay, salesTax, taxQuote: deliveryProviders[provider]?.type === 'carrier' ? savedTaxQuote.quote : null, shippingQuote: deliveryProviders[provider]?.type === 'carrier' ? savedQuote.quote : null, itemPrice, fees, buyerSubtotal, minimumBuyerFee: 0, paypalFee, alcoholRestricted, total: Math.round((buyerSubtotal + paypalFee) * 100) / 100 };
@@ -1059,7 +1066,7 @@ app.post('/shipping/quote', required, async (req, res) => {
     if (!listing || listing.postType === 'showcase') throw new Error('Active listing not found.');
     if (listing.ownerId === req.user.id) throw new Error('You cannot quote shipping for your own listing.');
     const carrier = String(req.body.deliveryProvider || '').trim();
-    if (!deliveryProviders[carrier]) throw new Error('Choose USPS for a live carrier quote.');
+    if (deliveryProviders[carrier]?.type !== 'carrier') throw new Error('Choose USPS for a live carrier quote.');
     const destination = shippoAddress(req.body.recipientAddress, 'delivery');
     const quote = await liveShippoQuote({ listing, destination, selectedRateId: String(req.body.rateId || ''), carrier });
     const saved = createLiveShippingQuote(listing, req.user, destination, quote);
