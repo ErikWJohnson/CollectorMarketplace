@@ -193,7 +193,6 @@ class Store {
     console.log('Connected to collector-db.');
   }
   save() {
-    this.data.users.forEach(user => refreshGrandCurator(user));
     fs.writeFileSync(dataFile, JSON.stringify(this.data, null, 2));
     if (this.pool) this.writeQueue = this.writeQueue.then(() => this.pool.query('INSERT INTO marketplace_state (id, data, updated_at) VALUES ($1, $2::jsonb, NOW()) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()', ['primary', JSON.stringify(this.data)])).catch(error => console.error('Postgres save failed:', error));
     return this.writeQueue;
