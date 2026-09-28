@@ -825,8 +825,38 @@ app.put('/listing/:id', required, (req, res) => {
   const locationTag = usCityTownTag(listing.location);
   listing.tags = [...manualTags, ...(locationTag ? [locationTag] : [])];
   enforceUspsPickupOnly(listing);
+  if (req.body.status === 'archived') {
+    listing.archivedAt = now();
+    listing.archivedReason = 'owner_takedown';
+  } else if (req.body.status === 'active') {
+    listing.archivedAt = null;
+    listing.archivedReason = null;
+  }
   const flags = listingRiskFlags(req.user.id, listing, priorPrice); if (flags.length) { listing.riskFlags = [...new Set([...(listing.riskFlags || []), ...flags])]; listing.reviewStatus = 'flagged'; securityLog('listing_flagged', req, { userId: req.user.id, listingId: listing.id, flags }); }
   store.save(); res.json(listing);
+});
+app.post('/listing/:id/move-to-auction', required, (req, res) => {
+  const listing = store.data.listings.find(row => row.id === req.params.id);
+  if (!listing) return res.status(404).json({ error: 'Listing not found' });
+  if (listing.ownerId !== req.user.id) return res.status(403).json({ error: 'Only the listing owner can move it to auction.' });
+  if (!['active', 'archived'].includes(listing.status)) return res.status(400).json({ error: 'Only an active or archived listing can be moved to auction.' });
+  if (listing.postType === 'showcase') return res.status(400).json({ error: 'Showcase posts cannot be moved to auction.' });
+  if (Number(listing.stockRemaining ?? listing.stockQuantity ?? 1) !== 1) return res.status(400).json({ error: 'Auctions require exactly one item in stock.' });
+  const startingBid = Number(req.body.auctionStartPrice ?? listing.price);
+  if (!Number.isFinite(startingBid) || startingBid < 0) return res.status(400).json({ error: 'Add a valid auction starting bid.' });
+  const auctionHours = Math.min(720, Math.max(1, Number(req.body.auctionDurationHours) || 72));
+  listing.listingMode = 'auction_only';
+  listing.auctionStartPrice = Math.round(startingBid * 100) / 100;
+  listing.auctionDurationHours = auctionHours;
+  listing.auctionEndAt = new Date(Date.now() + auctionHours * 60 * 60 * 1000).toISOString();
+  listing.auctionBids = 0;
+  listing.auctionEndless = false;
+  listing.status = 'active';
+  listing.archivedAt = null;
+  listing.archivedReason = null;
+  activity('listing_moved_to_auction', req.user.id, { listingId: listing.id, title: listing.title, startingBid: listing.auctionStartPrice });
+  store.save();
+  res.json(listing);
 });
 app.delete('/listing/:id', required, (req, res) => { const i = store.data.listings.findIndex(l => l.id === req.params.id && l.ownerId === req.user.id); if (i < 0) return res.status(404).json({ error: 'Listing not found' }); store.data.listings.splice(i, 1); store.save(); res.status(204).end(); });
 app.post('/listing/:id/like', required, (req, res) => { const listing = store.data.listings.find(l => l.id === req.params.id); if (!listing) return res.status(404).json({ error: 'Listing not found' }); const i = listing.likes.indexOf(req.user.id); if (i < 0) { listing.likes.push(req.user.id); if (listing.ownerId !== req.user.id) notify(listing.ownerId, 'like', `${req.user.username} liked “${listing.title}”`, `/listing/${listing.id}`); activity('like', req.user.id, { listingId: listing.id }); } else listing.likes.splice(i, 1); store.save(); res.json({ liked: i < 0, likeCount: listing.likes.length }); });
