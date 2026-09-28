@@ -709,12 +709,14 @@ app.post('/listing', required, (req, res) => {
   if (!['marketplace', 'auction_only', 'marketplace_auction'].includes(listingMode)) return res.status(400).json({ error: 'Choose where this listing should appear.' });
   if (!['sale', 'showcase'].includes(postType)) return res.status(400).json({ error: 'Choose whether this is for sale or a collection post.' });
   if (postType === 'showcase' && listingMode !== 'marketplace') return res.status(400).json({ error: 'Collection posts cannot be auction listings.' });
+  const salePrice = Number(price);
+  if (postType === 'sale' && listingMode !== 'auction_only' && (!Number.isFinite(salePrice) || salePrice < 150)) return res.status(400).json({ error: 'Listings for sale must be priced at $150 or more.' });
   const quantity = Math.floor(Number(stockQuantity));
   if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10000) return res.status(400).json({ error: 'Stock quantity must be a whole number between 1 and 10,000.' });
   if (listingMode !== 'marketplace' && quantity !== 1) return res.status(400).json({ error: 'Auction listings must have a stock quantity of 1.' });
   const auctionHours = Math.min(720, Math.max(1, Number(auctionDurationHours) || 72));
   const startingBid = Number(auctionStartPrice);
-  if (listingMode !== 'marketplace' && (!Number.isFinite(startingBid) || startingBid < 0)) return res.status(400).json({ error: 'Add a valid auction starting bid.' });
+  if (listingMode !== 'marketplace' && (!Number.isFinite(startingBid) || startingBid < 150)) return res.status(400).json({ error: 'Auction starting bids must be at least $150.' });
   let coordinates = null;
   if (locationCoordinates !== null && locationCoordinates !== undefined) {
     const lat = Number(locationCoordinates.lat); const lng = Number(locationCoordinates.lng);
@@ -816,6 +818,7 @@ app.put('/listing/:id', required, (req, res) => {
   }
   if (req.body.status !== undefined && !['active', 'archived'].includes(req.body.status)) return res.status(400).json({ error: 'Listings can only be set to active or archived here.' });
   if (req.body.condition !== undefined && !listingConditions.has(String(req.body.condition))) return res.status(400).json({ error: 'Choose a valid item condition.' });
+  if (req.body.price !== undefined && listing.postType !== 'showcase' && (!Number.isFinite(Number(req.body.price)) || Number(req.body.price) < 150)) return res.status(400).json({ error: 'Listings for sale must be priced at $150 or more.' });
   const priorPrice = listing.price;
   ['title', 'description', 'category', 'condition', 'tags', 'price', 'tradeOffer', 'images', 'videos', 'status'].forEach(key => {
     if (req.body[key] !== undefined) listing[key] = req.body[key];
@@ -843,7 +846,7 @@ app.post('/listing/:id/move-to-auction', required, (req, res) => {
   if (listing.postType === 'showcase') return res.status(400).json({ error: 'Showcase posts cannot be moved to auction.' });
   if (Number(listing.stockRemaining ?? listing.stockQuantity ?? 1) !== 1) return res.status(400).json({ error: 'Auctions require exactly one item in stock.' });
   const startingBid = Number(req.body.auctionStartPrice ?? listing.price);
-  if (!Number.isFinite(startingBid) || startingBid < 0) return res.status(400).json({ error: 'Add a valid auction starting bid.' });
+  if (!Number.isFinite(startingBid) || startingBid < 150) return res.status(400).json({ error: 'Auction starting bids must be at least $150.' });
   const auctionHours = Math.min(720, Math.max(1, Number(req.body.auctionDurationHours) || 72));
   listing.listingMode = 'auction_only';
   listing.auctionStartPrice = Math.round(startingBid * 100) / 100;
