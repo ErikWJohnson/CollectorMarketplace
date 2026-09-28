@@ -58,7 +58,6 @@ const isMarketplaceModerator = user => String(user?.username || '').trim().toLow
 const vipCuratorPrice = 5;
 const vipCuratorDays = 30;
 const hasActiveCuratorMembership = user => {
-  if (user?.grandCurator === true) return true;
   if (!(user?.curator === true || user?.membership === 'curator')) return false;
   const expiresAt = user?.curatorMembershipExpiresAt;
   return !expiresAt || new Date(expiresAt).valueOf() > Date.now();
@@ -221,22 +220,13 @@ const baseAccountAwards = user => {
     { id: 'pro-gamer', name: 'Pro Gamer', earned: proGamer, discount: .0025, detail: 'Reached a platform scoreboard · 0.25% lifetime fee reduction.' }
   ];
 };
-function refreshGrandCurator(user) {
-  if (!user?.grandCurator && baseAccountAwards(user).every(award => award.earned)) user.grandCurator = true;
-  return Boolean(user?.grandCurator);
-}
-const accountAwards = user => {
-  const baseAwards = baseAccountAwards(user);
-  const grandCurator = refreshGrandCurator(user);
-  return [...baseAwards, { id: 'grand-curator', name: 'Grand Curator', earned: grandCurator, discount: .004, detail: grandCurator ? 'All awards collected · lifetime VIP Curator and 0.40% fee reduction.' : 'Collect every other award at least once to unlock lifetime VIP Curator and 0.40% off.' }];
-};
+const accountAwards = user => baseAccountAwards(user);
 const marketplaceFeeRate = user => {
   if (hasDeveloperPass(user)) return 0;
   if (user?.brandPass === true) return .0075;
   const awards = accountAwards(user);
   const proGamerDiscount = awards.find(award => award.id === 'pro-gamer' && award.earned)?.discount || 0;
-  const grandCuratorDiscount = awards.find(award => award.id === 'grand-curator' && award.earned)?.discount || 0;
-  if (hasActiveCuratorMembership(user)) return Math.max(0, .01 - proGamerDiscount - grandCuratorDiscount);
+  if (hasActiveCuratorMembership(user)) return Math.max(0, .01 - proGamerDiscount);
   return Math.max(0, .04 - awards.filter(award => award.earned).reduce((total, award) => total + award.discount, 0));
 };
 // Voice audio stays peer-to-peer. These short-lived rooms only carry WebRTC
@@ -260,7 +250,7 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '2mb' }));
 app.get('/healthz', (req, res) => res.status(200).json({ ok: true, service: 'CollectorMarketplace.net', database: store.pool ? 'collector-db' : 'local' }));
 
-function publicUser(user) { if (!user) return null; const { password, email, shippingProfile, lobbySong, profileViewHistory, galleries, ...safe } = user; return { ...safe, awards: accountAwards(user), marketplaceFeeRate: marketplaceFeeRate(user) }; }
+function publicUser(user) { if (!user) return null; const { password, email, shippingProfile, lobbySong, profileViewHistory, galleries, grandCurator, ...safe } = user; return { ...safe, awards: accountAwards(user), marketplaceFeeRate: marketplaceFeeRate(user) }; }
 function publicListing(listing) { const { impressionVisitors, viewVisitors, ...safe } = listing; return safe; }
 function publicGalleries(user) {
   const ownedActive = new Map(store.data.listings.filter(listing => listing.ownerId === user.id && listing.status === 'active').map(listing => [listing.id, publicListing(listing)]));
@@ -272,7 +262,7 @@ function publicGalleries(user) {
     items: (gallery.listingIds || []).map(listingId => ownedActive.get(listingId)).filter(Boolean)
   })).filter(gallery => gallery.items.length);
 }
-function directoryUser(user) { if (!user) return null; const { password, email, following, shippingProfile, lobbySong, ...safe } = user; return safe; }
+function directoryUser(user) { if (!user) return null; const { password, email, following, shippingProfile, lobbySong, grandCurator, ...safe } = user; return safe; }
 function touchUserLastOnline(user) { if (!user) return false; const previous = new Date(user.lastOnlineAt || 0).valueOf(); if (Number.isFinite(previous) && Date.now() - previous < 30 * 1000) return false; user.lastOnlineAt = now(); return true; }
 function currentUser(req) { const token = req.headers.authorization?.replace('Bearer ', ''); const tokenHash = sessionTokenHash(token); const session = (store.data.sessions || []).find(entry => entry.tokenHash === tokenHash); if (!session || session.expiresAt < Date.now()) { if (session) { store.data.sessions = store.data.sessions.filter(entry => entry !== session); store.save(); } return null; } const user = store.data.users.find(entry => entry.id === session.userId) || null; if (touchUserLastOnline(user)) store.save(); return user; }
 function uniqueListingVisitor(req, metric) { const user = currentUser(req); const deviceId = String(req.get('X-Device-Id') || '').trim(); const identity = user ? `account:${user.id}` : deviceId.length >= 20 && deviceId.length <= 200 ? `device:${deviceId}` : ''; if (!identity) return ''; return crypto.createHash('sha256').update(`${metric}:${identity}`).digest('hex'); }
