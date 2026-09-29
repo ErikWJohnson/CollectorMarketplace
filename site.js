@@ -2672,7 +2672,14 @@ document.addEventListener('submit', async event => {
     if (tags.length > 8) throw new Error('Use up to 8 tags, including categories and condition.');
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10000) throw new Error('Stock quantity must be a whole number from 1 to 10,000.');
     if (postType === 'sale' && Number(fields.get('price')) < 150) throw new Error('Listings for sale must be priced at $150 or more.');
-    if (fulfillment === 'pickup_delivery' && postType === 'sale') await saveShippoOriginFromForm(editor);
+    if (fulfillment === 'pickup_delivery' && postType === 'sale') {
+      const parcel = ['parcelLength', 'parcelWidth', 'parcelHeight', 'parcelWeight'].map(name => Number(fields.get(name)));
+      if (parcel.some(value => !Number.isFinite(value) || value <= 0)) throw new Error('Enter positive USPS package length, width, height, and weight before enabling delivery.');
+      if (parcel[3] > 70) throw new Error('USPS delivery supports packages up to 70 lb. Choose pickup only for this item.');
+      const dimensions = [...parcel.slice(0, 3)].sort((left, right) => right - left);
+      if (dimensions[0] + 2 * (dimensions[1] + dimensions[2]) > 130) throw new Error('USPS delivery supports a maximum 130 inches for length plus girth. Choose pickup only or use a smaller parcel.');
+      await saveShippoOriginFromForm(editor);
+    }
     const button = editor.querySelector('button[type="submit"]'); if (button) { button.disabled = true; button.textContent = 'Saving…'; }
     await api(`/listing/${editor.dataset.listingEditor}`, { method: 'PUT', body: JSON.stringify({ title: fields.get('title'), category, condition: fields.get('condition'), price: Number(fields.get('price') || 0), stockQuantity: quantity, tags, images, description: fields.get('description'), sellerCity: fields.get('sellerCity'), sellerZip: fields.get('sellerZip'), fulfillment, postType, listingMode: fields.get('listingMode'), auctionStartPrice: fields.get('auctionStartPrice'), auctionDurationHours: fields.get('auctionDurationHours'), upsPackagingCost: Number(fields.get('upsPackagingCost') || 0), shippingParcel: { length: fields.get('parcelLength'), width: fields.get('parcelWidth'), height: fields.get('parcelHeight'), weight: fields.get('parcelWeight') }, tradeOffer: fields.get('tradeOffer') === 'on' }) });
     await loadMarket(); await openAccountPanel();
