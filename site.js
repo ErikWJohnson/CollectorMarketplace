@@ -2620,6 +2620,7 @@ openListingEditor = async listingId => {
   await openListingEditorInDialog(listingId);
   const editor = modalContent.querySelector('.listing-editor-form');
   if (!editor) throw new Error('The relisting editor could not be prepared. Please try again.');
+  editor.classList.add('listing-editor-page');
   const markup = editor.outerHTML;
   beginWorkspaceRoute('listing');
   if (modal.open) modal.close();
