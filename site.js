@@ -1896,7 +1896,15 @@ function openAppSection(kind, title, copy, content = '') {
   queueMicrotask(() => { modal.className = ''; document.body.classList.remove('chat-open', 'account-open'); });
   requestAnimationFrame(() => { if (kind === 'chat') mountJungleChatGame(); window.scrollTo({ top: 0, behavior: 'smooth' }); const thread = stream.querySelector('.collector-thread'); if (thread) thread.scrollTop = thread.scrollHeight; stream.querySelector('.collector-message-form textarea')?.focus({ preventScroll: true }); });
 }
+let stagingFullPageListingEditor = false;
 function openModal(title, copy, form) {
+  // Relisting uses the mature editor markup below, but it must never flash as a
+  // dialog before the dedicated seller workspace replaces the current page.
+  if (stagingFullPageListingEditor && title.startsWith('Edit · ')) {
+    modal.className = 'listing-dialog';
+    modalContent.innerHTML = `<h2 class="modal-title">${title}</h2><p class="modal-copy">${copy}</p>${form || ''}`;
+    return;
+  }
   const sectionKind = title === 'Messages' || title.startsWith('Chat · @') ? 'chat' : copy === 'Manage your collector profile and marketplace activity.' ? 'account' : '';
   if (sectionKind && workspaceIntent !== sectionKind) return;
   if (sectionKind) return openAppSection(sectionKind, title, copy, form);
@@ -2617,7 +2625,12 @@ async function saveShippoOriginFromForm(form) {
 }
 const openListingEditorInDialog = openListingEditor;
 openListingEditor = async listingId => {
-  await openListingEditorInDialog(listingId);
+  stagingFullPageListingEditor = true;
+  try {
+    await openListingEditorInDialog(listingId);
+  } finally {
+    stagingFullPageListingEditor = false;
+  }
   const editor = modalContent.querySelector('.listing-editor-form');
   if (!editor) throw new Error('The relisting editor could not be prepared. Please try again.');
   editor.classList.add('listing-editor-page');
