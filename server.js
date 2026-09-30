@@ -864,6 +864,17 @@ app.put('/listing/:id', required, (req, res) => {
   const manualTags = [...new Set([listing.category, ...(Array.isArray(listing.tags) ? listing.tags : [])].map(tag => typeof tag === 'string' ? tag.trim().replace(/^#/, '') : '').filter(tag => tag && !tag.startsWith('US City/Town: ')))];
   const locationTag = usCityTownTag(listing.location);
   listing.tags = [...manualTags, ...(locationTag ? [locationTag] : [])];
+  // Do not silently turn a delivery relist into pickup-only. A relisted item
+  // needs a complete parcel and private sender profile so Buy EST can return a
+  // USPS rate as soon as a buyer supplies their delivery address.
+  if (req.body.status === 'active' && listing.fulfillment === 'pickup_delivery' && listing.postType === 'sale') {
+    try {
+      listing.shippingParcel = validateUspsShipment(listing, listing.shippingParcel);
+      shippoAddress(decryptPrivate(req.user.shippingProfile), 'private Shippo sender');
+    } catch (error) {
+      return res.status(400).json({ error: `Finish USPS delivery details before relisting: ${error.message}` });
+    }
+  }
   enforceUspsPickupOnly(listing);
   if (req.body.status === 'archived') {
     listing.archivedAt = now();

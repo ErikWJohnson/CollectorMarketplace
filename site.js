@@ -1833,6 +1833,13 @@ const browseShippingQuotes = new Map();
 const browseShippingQuoteRequests = new Map();
 const browseTaxQuotes = new Map();
 const browseTaxQuoteRequests = new Map();
+// A relisted item retains its ID. Include shipment details so an older rate is
+// never reused after the seller changes the parcel or packaging.
+const browseShippingQuoteFingerprint = item => [
+  item.fulfillment,
+  Number(item.upsPackagingCost || 0),
+  ...['length', 'width', 'height', 'weight'].map(key => Number(item.shippingParcel?.[key] || 0))
+].join(':');
 const renderVisibleCheckoutEstimates = async () => {
   const address = checkoutPreferences.recipientAddress;
   if (!checkoutPreferences.estimateEnabled || !address?.street1 || !deliveryCarriers.includes(checkoutPreferences.deliveryProvider) || !session) return;
@@ -1840,7 +1847,7 @@ const renderVisibleCheckoutEstimates = async () => {
   await Promise.all(buttons.map(async button => {
     const item = listings.find(row => row.id === button.dataset.purchase);
     if (!item || item.ownerId === session.user.id || item.fulfillment !== 'pickup_delivery') return;
-    const key = `${item.id}:${checkoutPreferences.deliveryProvider}:${[address.name, address.street1, address.street2, address.city, address.state, address.zip].join('|')}`;
+    const key = `${item.id}:${browseShippingQuoteFingerprint(item)}:${checkoutPreferences.deliveryProvider}:${[address.name, address.street1, address.street2, address.city, address.state, address.zip].join('|')}`;
     let quote = browseShippingQuotes.get(key);
     if (!quote || new Date(quote.expiresAt).valueOf() - Date.now() < 60_000) {
       try { let request = browseShippingQuoteRequests.get(key); if (!request) { request = api('/shipping/quote', { method: 'POST', body: JSON.stringify({ listingId: item.id, deliveryProvider: checkoutPreferences.deliveryProvider, recipientAddress: address }) }); browseShippingQuoteRequests.set(key, request); request.finally(() => browseShippingQuoteRequests.delete(key)).catch(() => {}); } quote = await request; browseShippingQuotes.set(key, quote); }
@@ -2752,19 +2759,20 @@ document.addEventListener('submit', async event => {
     if (tags.length > 8) throw new Error('Use up to 8 tags, including categories and condition.');
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10000) throw new Error('Stock quantity must be a whole number from 1 to 10,000.');
     if (postType === 'sale' && Number(fields.get('price')) < 150) throw new Error('Listings for sale must be priced at $150 or more.');
+    const relisting = event.submitter?.value === 'relist';
+    const returnToMarketplace = event.submitter?.value === 'marketplace';
     const parcelValues = ['parcelLength', 'parcelWidth', 'parcelHeight', 'parcelWeight'].map(name => Number(fields.get(name)));
     const hasParcelDetails = parcelValues.some(value => Number.isFinite(value) && value > 0);
     const senderFields = ['sellerShippingName', 'sellerShippingStreet1', 'sellerShippingCity', 'sellerShippingState', 'sellerShippingZip'];
     const hasSenderDetails = senderFields.some(name => String(fields.get(name) || '').trim());
-    if (fulfillment === 'pickup_delivery' && postType === 'sale' && hasParcelDetails) {
-      if (parcelValues.some(value => !Number.isFinite(value) || value <= 0)) throw new Error('Complete every USPS package measurement, or clear them all to keep the existing package details.');
+    const deliveryRelist = relisting && fulfillment === 'pickup_delivery' && postType === 'sale';
+    if (fulfillment === 'pickup_delivery' && postType === 'sale' && (hasParcelDetails || deliveryRelist)) {
+      if (parcelValues.some(value => !Number.isFinite(value) || value <= 0)) throw new Error(deliveryRelist ? 'Add every USPS package measurement before relisting so buyers can see Buy EST.' : 'Complete every USPS package measurement, or clear them all to keep the existing package details.');
       if (parcelValues[3] > 70) throw new Error('USPS delivery supports packages up to 70 lb. Choose pickup only for this item.');
       const dimensions = [...parcelValues.slice(0, 3)].sort((left, right) => right - left);
       if (dimensions[0] + 2 * (dimensions[1] + dimensions[2]) > 130) throw new Error('USPS delivery supports a maximum 130 inches for length plus girth. Choose pickup only or use a smaller parcel.');
     }
-    if (hasSenderDetails) await saveShippoOriginFromForm(editor);
-    const relisting = event.submitter?.value === 'relist';
-    const returnToMarketplace = event.submitter?.value === 'marketplace';
+    if (hasSenderDetails || deliveryRelist) await saveShippoOriginFromForm(editor);
     const listingMode = returnToMarketplace ? 'marketplace' : fields.get('listingMode');
     const button = event.submitter || editor.querySelector('button[type="submit"]');
     editor.querySelectorAll('button[type="submit"]').forEach(control => { control.disabled = true; });
@@ -2775,7 +2783,7 @@ document.addEventListener('submit', async event => {
     await loadMarket();
     editor.dataset.saved = 'true';
     const notice = editor.querySelector('.listing-publish-bar span');
-    if (notice) notice.textContent = relisting ? 'Saved and relisted. Your item is active in the marketplace again.' : updated.listingMode === 'marketplace' ? 'Saved. This item is now a regular marketplace listing and has been removed from the auction floor.' : 'Saved to your listing. You can keep editing or return when you are done.';
+    if (notice) notice.textContent = relisting ? 'Saved and relisted. Buy EST is ready for buyers after they enter a delivery address.' : updated.listingMode === 'marketplace' ? 'Saved. This item is now a regular marketplace listing and has been removed from the auction floor.' : 'Saved to your listing. You can keep editing or return when you are done.';
     editor.querySelectorAll('button[type="submit"]').forEach(control => { control.disabled = false; control.textContent = control.dataset.saveAndRelist ? 'Save & relist' : control.dataset.saveAsMarketplace ? 'Save as marketplace listing' : 'Saved changes ✓'; });
   } catch (error) { const host = editor.closest('.app-section-content') || modalContent; host.querySelector('.form-submit-error')?.remove(); host.insertAdjacentHTML('afterbegin', `<p class="modal-copy form-submit-error" role="alert">${safe(error.message)}</p>`); editor.querySelectorAll('button[type="submit"]').forEach(control => { control.disabled = false; control.textContent = control.dataset.saveAndRelist ? 'Save & relist' : control.dataset.saveAsMarketplace ? 'Save as marketplace listing' : 'Save listing changes'; }); }
 }, true);
