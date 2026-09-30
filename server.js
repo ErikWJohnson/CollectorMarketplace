@@ -813,14 +813,25 @@ app.put('/listing/:id', required, (req, res) => {
   }
   if (req.body.listingMode !== undefined) {
     if (!['marketplace', 'auction_only', 'marketplace_auction'].includes(req.body.listingMode)) return res.status(400).json({ error: 'Choose where this listing should appear.' });
-    if (listing.postType !== 'showcase') listing.listingMode = req.body.listingMode;
+    if (listing.postType !== 'showcase') {
+      listing.listingMode = req.body.listingMode;
+      // A collector can take a lot off the auction floor and return it to a
+      // normal marketplace listing without leaving stale auction state behind.
+      if (listing.listingMode === 'marketplace') {
+        listing.auctionStartPrice = null;
+        listing.auctionDurationHours = null;
+        listing.auctionEndAt = null;
+        listing.auctionEndless = false;
+        listing.auctionBids = 0;
+      }
+    }
   }
-  if (req.body.auctionStartPrice !== undefined && listing.postType !== 'showcase') {
+  if (req.body.auctionStartPrice !== undefined && listing.postType !== 'showcase' && listing.listingMode !== 'marketplace') {
     const start = Number(req.body.auctionStartPrice);
     if (!Number.isFinite(start) || start < 150) return res.status(400).json({ error: 'Auction starting bids must be at least $150.' });
     listing.auctionStartPrice = Math.round(start * 100) / 100;
   }
-  if (req.body.auctionDurationHours !== undefined && listing.postType !== 'showcase') {
+  if (req.body.auctionDurationHours !== undefined && listing.postType !== 'showcase' && listing.listingMode !== 'marketplace') {
     const hours = Math.min(720, Math.max(1, Number(req.body.auctionDurationHours) || 72));
     listing.auctionDurationHours = hours;
     if (listing.listingMode !== 'marketplace' && !listing.auctionEndless) listing.auctionEndAt = new Date(Date.now() + hours * 3600000).toISOString();
