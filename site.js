@@ -2646,6 +2646,26 @@ document.addEventListener('click', event => {
     if (status) status.textContent = error.message;
   });
 }, true);
+document.addEventListener('click', async event => {
+  const estimate = event.target.closest('[data-relist-delivery-estimate]');
+  if (!estimate) return;
+  const editor = estimate.closest('.listing-editor-form');
+  const quoteOutput = editor?.querySelector('[data-relist-delivery-quote]');
+  if (!editor) return;
+  const value = name => String(editor.querySelector(`[name="${name}"]`)?.value || '').trim();
+  const recipientAddress = { name: value('previewRecipientName'), street1: value('previewRecipientStreet1'), city: value('previewRecipientCity'), state: value('previewRecipientState').toUpperCase(), zip: value('previewRecipientZip'), country: 'US' };
+  const shippingParcel = { length: value('parcelLength'), width: value('parcelWidth'), height: value('parcelHeight'), weight: value('parcelWeight') };
+  const fulfillment = editor.querySelector('[name="fulfillment"]:checked')?.value || 'pickup_delivery';
+  estimate.disabled = true;
+  estimate.textContent = 'Getting live USPS rate…';
+  if (quoteOutput) quoteOutput.textContent = 'Contacting Shippo for the current USPS services…';
+  try {
+    const quote = await api(`/listing/${editor.dataset.listingEditor}/shipping-preview`, { method: 'POST', body: JSON.stringify({ deliveryProvider: 'USPS', recipientAddress, shippingParcel, fulfillment }) });
+    const options = (quote.availableRates || []).map(rate => `${rate.provider} ${rate.service} · ${money(rate.amount)}${rate.estimatedDays ? ` · about ${rate.estimatedDays} day${Number(rate.estimatedDays) === 1 ? '' : 's'}` : ''}`).join(' · ');
+    if (quoteOutput) quoteOutput.textContent = `Live ${quote.provider} ${quote.service} · ${money(quote.amount)}${quote.estimatedDays ? ` · about ${quote.estimatedDays} day${Number(quote.estimatedDays) === 1 ? '' : 's'}` : ''}.${options ? ` Other USPS services: ${options}` : ''}`;
+  } catch (error) { if (quoteOutput) quoteOutput.textContent = error.message || 'A live USPS estimate is unavailable.'; }
+  finally { estimate.disabled = false; estimate.textContent = 'Refresh live USPS estimate'; }
+}, true);
 async function attachShippoOriginToListingForm(form) {
   if (!form || form.querySelector('.listing-shippo-origin')) return;
   const profile = await api('/account/shipping-profile').catch(() => ({}));
@@ -2675,6 +2695,8 @@ openListingEditor = async listingId => {
   const listing = await api(`/listing/${listingId}`);
   if (listing.status === 'archived' && !editor.querySelector('[data-save-and-relist]')) editor.querySelector('.listing-publish-bar')?.insertAdjacentHTML('beforeend', '<button type="submit" value="relist" data-save-and-relist>Save & relist</button>');
   if (['auction_only', 'marketplace_auction'].includes(listing.listingMode) && !editor.querySelector('[data-save-as-marketplace]')) editor.querySelector('.listing-publish-bar')?.insertAdjacentHTML('beforeend', '<button type="submit" value="marketplace" data-save-as-marketplace>Save as marketplace listing</button>');
+  const deliveryPanel = editor.querySelector('.listing-media-panel');
+  if (deliveryPanel && !editor.querySelector('[data-relist-delivery-estimate]')) deliveryPanel.insertAdjacentHTML('beforeend', `<fieldset class="listing-parcel-field relist-delivery-estimate"><legend>Live USPS delivery estimate</legend><p>Preview the buyer-visible Shippo rate before you relist. This uses the package details currently entered above; the final rate is based on each buyer’s address at checkout.</p><label>Sample recipient name<input name="previewRecipientName" maxlength="120" autocomplete="off" placeholder="Recipient name"></label><label>Sample street address<input name="previewRecipientStreet1" maxlength="160" autocomplete="off" placeholder="Street and number"></label><div class="listing-location-grid"><label>City<input name="previewRecipientCity" maxlength="80" autocomplete="off" placeholder="City"></label><label>State<input name="previewRecipientState" maxlength="2" pattern="[A-Za-z]{2}" autocomplete="off" placeholder="CA"></label><label>ZIP code<input name="previewRecipientZip" maxlength="10" pattern="[0-9]{5}(-[0-9]{4})?" inputmode="numeric" autocomplete="off" placeholder="92101"></label></div><button type="button" data-relist-delivery-estimate>Get live USPS estimate</button><output data-relist-delivery-quote aria-live="polite">Enter a sample destination to preview the delivery rate.</output></fieldset>`);
   const markup = editor.outerHTML;
   beginWorkspaceRoute('listing');
   if (modal.open) modal.close();

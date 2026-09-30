@@ -1071,6 +1071,19 @@ function preparePurchase(user, body) {
 function purchaseDelivery(purchase, buyer, status) {
   return { id: id(), listingId: purchase.listing.id, buyerId: buyer.id, sellerId: purchase.listing.ownerId, shippingAddress: purchase.address, recipientAddress: purchase.destination, itemPrice: purchase.itemPrice, fees: purchase.fees, deliveryProvider: purchase.provider, deliveryMiles: purchase.miles, packagingCost: purchase.packing, courierPay: purchase.courierPay, deliveryFee: purchase.courierPay, salesTax: purchase.salesTax, taxQuote: purchase.taxQuote ? { ...purchase.taxQuote } : null, shippo: purchase.shippingQuote ? { ...purchase.shippingQuote } : null, paymentMethod: purchase.method, paypalFee: purchase.paypalFee, buyerSubtotal: purchase.buyerSubtotal, minimumBuyerFee: purchase.minimumBuyerFee, alcoholAgeConfirmedAt: purchase.alcoholRestricted ? now() : null, status, courier: '', trackingNumber: '', messages: [], history: [], createdAt: now(), updatedAt: now() };
 }
+app.post('/listing/:id/shipping-preview', required, async (req, res) => {
+  try {
+    const listing = store.data.listings.find(row => row.id === req.params.id);
+    if (!listing || listing.ownerId !== req.user.id) throw new Error('Your listing was not found.');
+    const carrier = String(req.body.deliveryProvider || 'USPS').trim();
+    if (carrier !== 'USPS') throw new Error('Choose USPS for a live delivery estimate.');
+    const destination = shippoAddress(req.body.recipientAddress, 'sample delivery');
+    const previewListing = { ...listing, fulfillment: req.body.fulfillment ?? listing.fulfillment, shippingParcel: req.body.shippingParcel ?? listing.shippingParcel };
+    const quote = await liveShippoQuote({ listing: previewListing, destination, selectedRateId: String(req.body.rateId || ''), carrier });
+    // Never return the private sender address from a seller preview.
+    res.json({ amount: quote.amount, currency: quote.currency, provider: quote.provider, service: quote.service, estimatedDays: quote.estimatedDays, availableRates: quote.availableRates });
+  } catch (error) { res.status(400).json({ error: error.message }); }
+});
 app.post('/shipping/quote', required, async (req, res) => {
   try {
     const listing = store.data.listings.find(row => row.id === req.body.listingId && row.status === 'active');
