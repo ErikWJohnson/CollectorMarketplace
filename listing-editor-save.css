@@ -21,6 +21,8 @@
 /* This separate action is deliberately outside the form so it remains the
    unmistakable final control after every editing and shipping section. */
 .app-section-listing .listing-editor-bottom-save {
+  position: relative;
+  overflow: hidden;
   display: flex;
   width: 100%;
   box-sizing: border-box;
@@ -28,35 +30,42 @@
   justify-content: space-between;
   gap: 20px;
   margin: 24px 0 132px;
-  border: 1px solid #806d37;
-  border-radius: 8px;
-  padding: 20px clamp(18px, 3vw, 38px);
-  background: linear-gradient(110deg, #1e1a10, #272117);
-  box-shadow: 0 18px 38px #0008;
+  border: 1px solid #a58a42;
+  border-radius: 10px;
+  padding: 23px clamp(22px, 3.2vw, 42px);
+  background: radial-gradient(circle at 10% 0%, #f2cc5a18, transparent 38%), linear-gradient(115deg, #16130d, #282115 52%, #15130f);
+  box-shadow: inset 0 1px #fff1b112, 0 18px 38px #0008;
 }
 
-.listing-editor-bottom-save div { display: grid; gap: 5px; }
-.listing-editor-bottom-save b { color: #f5d267; font: 800 .78rem/1 "DM Mono", monospace; text-transform: uppercase; }
-.listing-editor-bottom-save span { color: #c8c2b7; font: .82rem/1.45 "DM Sans", sans-serif; }
+.listing-editor-bottom-save::after { position: absolute; top: -110%; right: 26%; width: 180px; height: 340%; content: ""; transform: rotate(22deg); background: linear-gradient(90deg, transparent, #f7d86a0a, transparent); pointer-events: none; }
+.listing-editor-bottom-save > * { position: relative; z-index: 1; }
+.listing-editor-bottom-save div { display: grid; gap: 7px; }
+.listing-editor-bottom-save b { display: flex; align-items: center; gap: 8px; color: #ffe183; font: 800 .82rem/1 "DM Mono", monospace; letter-spacing: .085em; text-transform: uppercase; }
+.listing-editor-bottom-save b::before { display: grid; width: 19px; height: 19px; place-items: center; border: 1px solid #f5cf60; border-radius: 50%; content: "✓"; color: #18130b; background: #f5cf60; font: 900 .74rem/1 Arial, sans-serif; }
+.listing-editor-bottom-save span { max-width: 580px; color: #cac4b8; font: .86rem/1.5 "DM Sans", sans-serif; }
 .listing-editor-bottom-save button {
-  min-width: 250px;
-  min-height: 52px;
-  border: 1px solid #f3cf58;
-  border-radius: 4px;
-  background: #f3cf58;
+  min-width: 276px;
+  min-height: 56px;
+  border: 1px solid #ffe48a;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #fff0a0, #efbd38 48%, #d99a1f);
   color: #17140b;
-  font: 800 .76rem/1 "DM Mono", monospace;
-  letter-spacing: .04em;
+  box-shadow: inset 0 1px #fff9d0, inset 0 -2px #b17613, 0 8px 20px #0008;
+  font: 900 .78rem/1 "DM Mono", monospace;
+  letter-spacing: .075em;
   text-transform: uppercase;
   cursor: pointer;
+  transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
 }
 .listing-editor-bottom-save button:hover,
-.listing-editor-bottom-save button:focus-visible { background: #ffe27d; outline: 0; }
+.listing-editor-bottom-save button:focus-visible { outline: 0; filter: brightness(1.08); transform: translateY(-2px); box-shadow: inset 0 1px #fffbe0, inset 0 -2px #b17613, 0 12px 26px #000b; }
+.listing-editor-bottom-save button:active { transform: translateY(0); box-shadow: inset 0 2px #b17613, 0 4px 10px #0008; }
+.listing-editor-bottom-save button:disabled { cursor: wait; filter: saturate(.45); opacity: .72; transform: none; }
 
 @media (max-width: 760px) {
   .app-section-listing .listing-editor-page .listing-editor-save-bar {
     margin-bottom: 16px;
   }
   .app-section-listing .listing-editor-bottom-save { align-items: stretch; flex-direction: column; margin-bottom: 108px; }
-  .listing-editor-bottom-save button { width: 100%; }
+  .listing-editor-bottom-save button { width: 100%; min-width: 0; }
 }
