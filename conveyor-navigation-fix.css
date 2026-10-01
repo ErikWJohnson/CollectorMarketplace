@@ -1,0 +1,17 @@
+/* The conveyor status is content, not a second bottom dock. Keeping it in
+   document flow prevents it from cutting across the persistent navigation. */
+body.browse-conveyor #sentinel {
+  position: relative !important;
+  inset: auto !important;
+  bottom: auto !important;
+  z-index: 1 !important;
+  min-height: 44px !important;
+  margin: 0 !important;
+  padding: 14px 12px !important;
+}
+
+/* The five primary actions are always the frontmost bottom layer. */
+body.browse-conveyor .bottom-nav {
+  z-index: 2147483000 !important;
+  isolation: isolate;
+}
