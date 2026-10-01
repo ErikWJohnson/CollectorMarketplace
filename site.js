@@ -2713,6 +2713,10 @@ openListingEditor = async listingId => {
   openAppSection('listing', 'Relist & edit item', 'Update every listing detail in one workspace. Your private sender address and USPS package information are used only for Shippo rates and labels.', markup);
   document.body.classList.add('listing-page');
   const pageEditor = stream.querySelector('.listing-editor-form');
+  const saveBar = pageEditor?.querySelector('.listing-publish-bar');
+  saveBar?.classList.add('listing-editor-save-bar');
+  saveBar?.setAttribute('aria-label', 'Save listing');
+  saveBar?.querySelector('button[type="submit"]')?.setAttribute('data-save-listing', '');
   setupParcelRangeControl(pageEditor);
   pageEditor?.querySelector('[name="postType"]:checked')?.dispatchEvent(new Event('change', { bubbles: true }));
   setWorkspaceHash(`relist/${listingId}`);

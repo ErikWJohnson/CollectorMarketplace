@@ -1,0 +1,25 @@
+/* The relisting editor is a full workspace. Its save action belongs at the
+   real end of the form, safely above the bottom navigation. */
+.app-section-listing .listing-editor-page .listing-editor-save-bar {
+  position: static;
+  z-index: auto;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 8px;
+  border: 1px solid #656565;
+  border-radius: 6px;
+  padding: 18px clamp(18px, 3vw, 38px);
+  background: #252525;
+  box-shadow: 0 12px 28px #0006;
+}
+
+.app-section-listing .listing-editor-page .listing-editor-save-bar button {
+  min-width: 230px;
+  min-height: 48px;
+}
+
+@media (max-width: 760px) {
+  .app-section-listing .listing-editor-page .listing-editor-save-bar {
+    margin-bottom: 16px;
+  }
+}
