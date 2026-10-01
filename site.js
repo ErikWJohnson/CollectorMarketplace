@@ -2713,6 +2713,11 @@ openListingEditor = async listingId => {
   openAppSection('listing', 'Relist & edit item', 'Update every listing detail in one workspace. Your private sender address and USPS package information are used only for Shippo rates and labels.', markup);
   document.body.classList.add('listing-page');
   const pageEditor = stream.querySelector('.listing-editor-form');
+  if (pageEditor && !pageEditor.nextElementSibling?.classList.contains('listing-editor-bottom-save')) {
+    const formId = `listing-editor-${listing.id}`;
+    pageEditor.id = formId;
+    pageEditor.insertAdjacentHTML('afterend', `<footer class="listing-editor-bottom-save"><div><b>Ready to save?</b><span>Your listing stays in its current gallery and keeps its statistics.</span></div><button type="submit" form="${safe(formId)}" data-page-save-listing>Save listing changes</button></footer>`);
+  }
   const saveBar = pageEditor?.querySelector('.listing-publish-bar');
   saveBar?.classList.add('listing-editor-save-bar');
   saveBar?.setAttribute('aria-label', 'Save listing');
@@ -2779,7 +2784,8 @@ document.addEventListener('submit', async event => {
     if (hasSenderDetails || deliveryRelist) await saveShippoOriginFromForm(editor);
     const listingMode = returnToMarketplace ? 'marketplace' : fields.get('listingMode');
     const button = event.submitter || editor.querySelector('button[type="submit"]');
-    editor.querySelectorAll('button[type="submit"]').forEach(control => { control.disabled = true; });
+    const saveControls = [...editor.querySelectorAll('button[type="submit"]'), ...(editor.closest('.app-section-content')?.querySelectorAll('[data-page-save-listing]') || [])];
+    saveControls.forEach(control => { control.disabled = true; });
     if (button) button.textContent = relisting ? 'Relisting…' : returnToMarketplace ? 'Returning to marketplace…' : 'Saving…';
     const updated = await api(`/listing/${editor.dataset.listingEditor}`, { method: 'PUT', body: JSON.stringify({ title: fields.get('title'), category, condition: fields.get('condition'), price: Number(fields.get('price') || 0), stockQuantity: quantity, tags, images, description: fields.get('description'), sellerCity: fields.get('sellerCity'), sellerZip: fields.get('sellerZip'), fulfillment, postType, listingMode, auctionStartPrice: fields.get('auctionStartPrice'), auctionDurationHours: fields.get('auctionDurationHours'), upsPackagingCost: Number(fields.get('upsPackagingCost') || 0), ...(hasParcelDetails ? { shippingParcel: { length: fields.get('parcelLength'), width: fields.get('parcelWidth'), height: fields.get('parcelHeight'), weight: fields.get('parcelWeight') } } : {}), tradeOffer: fields.get('tradeOffer') === 'on', ...(relisting ? { status: 'active' } : {}) }) });
     const updatedLot = { ...updated, image: updated.images?.[0] || '', currentBid: Number(updated.auctionStartPrice || updated.price || 0), bids: Number(updated.auctionBids || 0), endAt: updated.auctionEndless ? Infinity : new Date(updated.auctionEndAt).valueOf() };
@@ -2788,8 +2794,8 @@ document.addEventListener('submit', async event => {
     editor.dataset.saved = 'true';
     const notice = editor.querySelector('.listing-publish-bar span');
     if (notice) notice.textContent = relisting ? 'Saved and relisted. Buy EST is ready for buyers after they enter a delivery address.' : updated.listingMode === 'marketplace' ? 'Saved. This item is now a regular marketplace listing and has been removed from the auction floor.' : 'Saved to your listing. You can keep editing or return when you are done.';
-    editor.querySelectorAll('button[type="submit"]').forEach(control => { control.disabled = false; control.textContent = control.dataset.saveAndRelist ? 'Save & relist' : control.dataset.saveAsMarketplace ? 'Save as marketplace listing' : 'Saved changes ✓'; });
-  } catch (error) { const host = editor.closest('.app-section-content') || modalContent; host.querySelector('.form-submit-error')?.remove(); host.insertAdjacentHTML('afterbegin', `<p class="modal-copy form-submit-error" role="alert">${safe(error.message)}</p>`); editor.querySelectorAll('button[type="submit"]').forEach(control => { control.disabled = false; control.textContent = control.dataset.saveAndRelist ? 'Save & relist' : control.dataset.saveAsMarketplace ? 'Save as marketplace listing' : 'Save listing changes'; }); }
+    saveControls.forEach(control => { control.disabled = false; control.textContent = control.dataset.saveAndRelist ? 'Save & relist' : control.dataset.saveAsMarketplace ? 'Save as marketplace listing' : 'Saved changes ✓'; });
+  } catch (error) { const host = editor.closest('.app-section-content') || modalContent; host.querySelector('.form-submit-error')?.remove(); host.insertAdjacentHTML('afterbegin', `<p class="modal-copy form-submit-error" role="alert">${safe(error.message)}</p>`); const saveControls = [...editor.querySelectorAll('button[type="submit"]'), ...(editor.closest('.app-section-content')?.querySelectorAll('[data-page-save-listing]') || [])]; saveControls.forEach(control => { control.disabled = false; control.textContent = control.dataset.saveAndRelist ? 'Save & relist' : control.dataset.saveAsMarketplace ? 'Save as marketplace listing' : 'Save listing changes'; }); }
 }, true);
 document.addEventListener('submit', async event => {
   const listingForm = event.target.closest?.('.listing-form');
