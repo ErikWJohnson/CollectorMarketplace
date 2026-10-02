@@ -23,6 +23,7 @@ const liveShippingQuotes = new Map();
 const liveTaxQuotes = new Map();
 const securityEvents = [];
 const blockedIpHashes = new Set(String(process.env.BLOCKED_IP_HASHES || '').split(',').map(value => value.trim()).filter(Boolean));
+const shippoWebhookSecret = String(process.env.SHIPPO_WEBHOOK_SECRET || '').trim();
 const sessionLifetimeMs = 1000 * 60 * 60 * 24 * 14;
 const encryptionKey = process.env.DATA_ENCRYPTION_KEY ? crypto.createHash('sha256').update(process.env.DATA_ENCRYPTION_KEY).digest() : null;
 const securityLog = (type, req, details = {}) => {
@@ -1046,6 +1047,60 @@ function recordDeliveryUpdate(delivery, userId, status, note = '') {
   record.hash = crypto.createHash('sha256').update(JSON.stringify(record)).digest('hex');
   delivery.history.push(record); delivery.updatedAt = now();
 }
+
+function webhookSecretMatches(req) {
+  const supplied = String(req.query.token || req.get('X-Collector-Webhook-Secret') || '').trim();
+  if (!shippoWebhookSecret || !supplied) return false;
+  const expectedBuffer = Buffer.from(shippoWebhookSecret);
+  const suppliedBuffer = Buffer.from(supplied);
+  return expectedBuffer.length === suppliedBuffer.length && crypto.timingSafeEqual(expectedBuffer, suppliedBuffer);
+}
+
+function shippoTrackingDetails(payload) {
+  const source = payload?.data && typeof payload.data === 'object' ? payload.data : (payload || {});
+  const tracking = source.tracking_status && typeof source.tracking_status === 'object' ? source.tracking_status : {};
+  const value = (...keys) => keys.map(key => source[key] ?? tracking[key]).find(item => item !== undefined && item !== null && String(item).trim() !== '');
+  const nestedId = value('transaction', 'transaction_id', 'transactionId');
+  return {
+    event: String(payload?.event || payload?.event_type || 'tracking_updated'),
+    transactionId: typeof nestedId === 'object' ? String(nestedId.object_id || nestedId.id || '') : String(nestedId || ''),
+    shipmentId: String(value('shipment', 'shipment_id', 'shipmentId') || ''),
+    trackingNumber: String(value('tracking_number', 'trackingNumber') || ''),
+    status: String(value('status') || 'UNKNOWN').toUpperCase(),
+    statusDate: String(value('status_date', 'object_updated', 'object_created') || now()),
+    details: String(value('status_details', 'details', 'message') || '').slice(0, 500),
+    eta: String(value('eta') || '')
+  };
+}
+
+// Shippo sends tracking updates to this endpoint. The delivery is never marked
+// completed automatically: the buyer must still confirm receipt before a sale
+// closes, while carrier movement remains visible in the delivery timeline.
+app.post('/webhooks/shippo', (req, res) => {
+  if (!shippoWebhookSecret) return res.status(503).json({ error: 'Shippo webhook is not configured.' });
+  if (!webhookSecretMatches(req)) { securityLog('shippo_webhook_rejected', req); return res.status(401).json({ error: 'Invalid webhook secret.' }); }
+  const update = shippoTrackingDetails(req.body);
+  const delivery = store.data.deliveries.find(row => {
+    const shippo = row.shippo || {};
+    return (update.transactionId && shippo.transactionId === update.transactionId)
+      || (update.shipmentId && shippo.shipmentId === update.shipmentId)
+      || (update.trackingNumber && row.trackingNumber === update.trackingNumber);
+  });
+  if (!delivery) { securityLog('shippo_webhook_unmatched', req, { event: update.event }); return res.status(200).json({ received: true, matched: false }); }
+  const fingerprint = [update.status, update.statusDate, update.details].join('|');
+  if (!Array.isArray(delivery.carrierUpdates)) delivery.carrierUpdates = [];
+  if (!delivery.carrierUpdates.some(entry => entry.fingerprint === fingerprint)) {
+    delivery.carrierUpdates.push({ ...update, fingerprint, receivedAt: now() });
+    delivery.carrierUpdates = delivery.carrierUpdates.slice(-100);
+    delivery.shippo = { ...delivery.shippo, trackingStatus: update.status, trackingStatusDetails: update.details, trackingStatusDate: update.statusDate, eta: update.eta || delivery.shippo?.eta || '' };
+    if (update.trackingNumber) delivery.trackingNumber = update.trackingNumber;
+    recordDeliveryUpdate(delivery, null, 'carrier_update', `${delivery.shippo.provider || 'Carrier'} · ${update.status.replaceAll('_', ' ').toLowerCase()}${update.details ? ` — ${update.details}` : ''}`);
+    [delivery.buyerId, delivery.sellerId].forEach(userId => notify(userId, 'delivery_tracking', `Carrier update: ${update.status.replaceAll('_', ' ').toLowerCase()} for “${store.data.listings.find(row => row.id === delivery.listingId)?.title || 'your order'}”`, `/delivery/${delivery.id}`));
+    securityLog('shippo_tracking_updated', req, { deliveryId: delivery.id, status: update.status });
+    store.save();
+  }
+  res.status(200).json({ received: true, matched: true });
+});
 function preparePurchase(user, body) {
   const { listingId, shippingAddress, recipientAddress, deliveryProvider, deliveryMiles, shippingQuoteId, taxQuoteId, paymentMethod, confirmedAlcoholAge } = body;
   const listing = store.data.listings.find(row => row.id === listingId && row.status === 'active');
