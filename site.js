@@ -1288,7 +1288,7 @@ document.addEventListener('keydown', event => {
   const direction = event.key === ',' ? -1 : 1;
   setSearchScope(searchScopes[(current + direction + searchScopes.length) % searchScopes.length]);
 });
-const bottomNavigation = ['home', 'auction', 'chat', 'sell', 'account', 'raffles'];
+const bottomNavigation = ['home', 'auction', 'raffles', 'chat', 'sell', 'account'];
 document.addEventListener('keydown', event => {
   const key = event.key.toLowerCase();
   if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || !canUseAutoScroll(event.target) || !['z', 'x'].includes(key)) return;
