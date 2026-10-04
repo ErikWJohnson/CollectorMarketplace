@@ -1234,7 +1234,7 @@ document.addEventListener('keydown', event => {
   event.preventDefault();
   toggleAutoScroll();
 });
-const keyboardNavigation = { l: { selector: '[data-sell]', hash: 'list-item' }, a: { selector: '[data-auction]', hash: 'auction-house' }, b: { selector: '[data-home]', hash: 'browse' }, c: { selector: '[data-chat]', hash: 'chat' }, u: { selector: '[data-account]', hash: 'account' }, r: { selector: '[data-raffles]', hash: 'raffles' } };
+const keyboardNavigation = { l: { selector: '[data-sell]', hash: 'list-item' }, a: { selector: '[data-auction]', hash: 'auction-house' }, b: { selector: '[data-home]', hash: 'browse' }, c: { selector: '[data-chat]', hash: 'chat' }, u: { selector: '[data-account]', hash: 'account' }, f: { selector: '[data-raffles]', hash: 'raffles' } };
 const modalWorkspaceHashes = new Set(['list-item', 'vip-curator', 'fees']);
 let restoringWorkspaceHistory = false;
 // Async page loads must not be allowed to overwrite a page the visitor chose
