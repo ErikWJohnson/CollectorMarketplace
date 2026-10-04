@@ -338,10 +338,10 @@ html body.browse-doomscroll .listing-stream { overflow-x: clip !important; overf
 html body.browse-doomscroll .listing-stream::-webkit-scrollbar { display: none; }
 html body.browse-doomscroll #sentinel { position: static !important; }
 
-/* Persistent dock uses flex for its five navigation buttons; grid inherited
+/* Persistent dock uses flex for its six navigation buttons; grid inherited
    an older four-column layout and made the bar collapse in Doomscroll. */
 html body.browse-doomscroll .bottom-nav { display: flex !important; align-items: stretch; background: linear-gradient(100deg,#ffe4b9f2,#ffc9afea 55%,#df8a91ed) !important; border-top-color: #c97073 !important; }
-html body.browse-doomscroll .bottom-nav button { flex: 1 1 20% !important; width: 20% !important; color: #6b4655 !important; background: transparent !important; border-right-color: #ce8e8c !important; }
+html body.browse-doomscroll .bottom-nav button { flex: 1 1 16.6667% !important; width: 16.6667% !important; color: #6b4655 !important; background: transparent !important; border-right-color: #ce8e8c !important; }
 html body.browse-doomscroll .bottom-nav button.active { color: #54273d !important; background: linear-gradient(180deg,#ffe1a1b5,#f6b17c8c) !important; }
 
 /* Discovery metadata is a first-class part of Doomscroll, not dark Conveyor

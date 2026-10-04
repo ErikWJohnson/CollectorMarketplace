@@ -1,4 +1,4 @@
-/* Final navigation geometry: the five primary controls must never inherit a
+/* Final navigation geometry: the six primary controls must never inherit a
    narrow app-shell width or a page theme's compact scaling. */
 body { padding-bottom: 98px; }
 
@@ -14,7 +14,7 @@ body { padding-bottom: 98px; }
   padding: 0 !important;
   transform: none !important;
   display: grid !important;
-  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
   align-items: stretch !important;
 }
 
