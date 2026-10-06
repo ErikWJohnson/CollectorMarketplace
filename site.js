@@ -3004,7 +3004,7 @@ const renderTaggedAuctionHouse = () => {
   if (observer) observer.disconnect();
   sentinel.hidden = true;
   const lots = filteredAuctions();
-  stream.innerHTML = `<section class="auction-house"><header class="auction-head"><div><p>Live bidding</p><h1>Auction House</h1></div><p>${lots.length} matching lot${lots.length === 1 ? '' : 's'} open now</p></header>${lots.length ? `<div class="auction-grid">${lots.map(lot => `<article class="auction-card"><img src="${safe(lot.image)}" alt="${safe(lot.title)}"><div class="auction-info"><h2>${safe(lot.title)}</h2><p>${safe(lot.category)}</p><div class="auction-stats"><div>Current bid<strong>${money(lot.currentBid)}</strong></div><div>Ends in<strong>${safe(lot.ends)}</strong></div><div>${lot.bids} bids</div></div><button class="auction-bid" data-bid="${lot.id}">Place bid</button></div></article>`).join('')}</div>` : '<p class="load-state">No active auction lots match those tags. Try removing a tag or choose ANY matching.</p>'}</section>`;
+  stream.innerHTML = `<section class="auction-house"><header class="auction-head"><div><p>Live bidding</p><h1>Auction House</h1></div><p>${lots.length} matching lot${lots.length === 1 ? '' : 's'} open now</p></header>${lots.length ? `<div class="auction-grid">${lots.map(lot => `<article class="auction-card"><img src="${safe(lot.image)}" alt="${safe(lot.title)}"><div class="auction-info"><h2>${safe(lot.title)}</h2><p>${safe(lot.category)}</p><div class="auction-stats"><div>Current bid<strong>${money(lot.currentBid)}</strong></div><div>Ends in<strong>${safe(lot.ends)}</strong></div><div>${lot.bids} bids</div></div><button class="auction-bid" data-bid="${lot.id}">Place bid</button></div></article>`).join('')}</div>` : `<p class="load-state">${auctions.length ? 'No active auction lots match those tags. Try removing a tag or choose ANY matching.' : 'No listings at the moment.'}</p>`}</section>`;
   mountAuctionBlocks();
   syncAuctionWaterfallControl();
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -3012,7 +3012,7 @@ const renderTaggedAuctionHouse = () => {
 let auctionTagView = false;
 const renderFilteredAuctionHouse = () => {
   const visibleLots = filteredAuctions();
-  if (!visibleLots.length) { stream.innerHTML = '<section class="auction-house"><header class="auction-head"><div><p>Live bidding floor</p><h1>Auction House</h1></div></header><p class="load-state">No active auction lots match those tags. Try removing a tag or choose ANY matching.</p></section>'; return; }
+  if (!visibleLots.length) { const message = auctions.length ? 'No active auction lots match those tags. Try removing a tag or choose ANY matching.' : 'No listings at the moment.'; stream.innerHTML = `<section class="auction-house"><header class="auction-head"><div><p>Live bidding floor</p><h1>Auction House</h1></div></header><p class="load-state">${message}</p></section>`; return; }
   const allLots = auctions;
   auctions = visibleLots;
   if (!visibleLots.some(lot => lot.id === activeAuctionId)) activeAuctionId = visibleLots[0].id;
