@@ -589,6 +589,7 @@ html body.browse-doomscroll .directory-actions .directory-primary {
 .browse-conveyor .listing-stream::-webkit-scrollbar { height: 13px; background: #000; }
 .browse-conveyor .listing-stream::-webkit-scrollbar-track { background: #000; border-top: 1px solid #171717; }
 .browse-conveyor .listing-stream::-webkit-scrollbar-thumb { background: linear-gradient(90deg, #393411, #8c7c32, #393411); border: 3px solid #000; border-radius: 999px; }
+.browse-conveyor .listing-stream:has(.social-directory-card){display:flex!important;grid-template-columns:none!important;align-items:stretch!important}.browse-conveyor .social-directory-card{flex:0 0 min(380px,78vw);width:min(380px,78vw);min-height:330px;margin:0!important;border-color:#405766;background:linear-gradient(145deg,#101c25,#0b1117);scroll-snap-align:start}.browse-conveyor .social-directory-card[data-conveyor-copy]{pointer-events:auto}@media(max-width:680px){.browse-conveyor .social-directory-card{flex-basis:86vw;width:86vw;min-height:300px}}
 
 .conveyor-smog-layer {
   position: fixed;

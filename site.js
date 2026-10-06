@@ -626,8 +626,8 @@ const reverseAutoScroll = () => {
 };
 function stopConveyor() { if (conveyorFrame) cancelAnimationFrame(conveyorFrame); if (conveyorTimer) clearInterval(conveyorTimer); conveyorFrame = 0; conveyorTimer = 0; }
 function runConveyor() {
-  if (browseMode !== 'conveyor' || searchScope !== 'listings' || modal.open || document.body.classList.contains('auction-mode')) { stopConveyor(); return; }
-  const first = stream.querySelector('.listing:not([data-conveyor-copy])');
+  if (browseMode !== 'conveyor' || modal.open || document.body.classList.contains('auction-mode')) { stopConveyor(); return; }
+  const first = stream.querySelector('.listing:not([data-conveyor-copy]), .social-directory-card:not([data-conveyor-copy])');
   const copy = stream.querySelector('[data-conveyor-copy]');
   const loopWidth = first && copy ? copy.offsetLeft - first.offsetLeft : 0;
   if (loopWidth > 0) {
@@ -644,15 +644,15 @@ function runConveyor() {
 }
 function startConveyor() {
   stopConveyor();
-  if (browseMode === 'conveyor' && searchScope === 'listings') {
-    const first = stream.querySelector('.listing:not([data-conveyor-copy])');
+  if (browseMode === 'conveyor') {
+    const first = stream.querySelector('.listing:not([data-conveyor-copy]), .social-directory-card:not([data-conveyor-copy])');
     const copy = stream.querySelector('[data-conveyor-copy]');
     stream.scrollTo({ left: first && copy ? copy.offsetLeft - first.offsetLeft : 0, behavior: 'auto' });
     conveyorTimer = setInterval(runConveyor, 16);
   }
 }
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && browseMode === 'conveyor' && searchScope === 'listings' && !modal.open && !document.body.classList.contains('auction-mode')) startConveyor();
+  if (!document.hidden && browseMode === 'conveyor' && !modal.open && !document.body.classList.contains('auction-mode')) startConveyor();
 });
 const zodiacConstellations = [
   // Distinct traditional sky-pattern silhouettes: ram, bull horns, twins,
@@ -1147,7 +1147,7 @@ function syncBrowseModeUi() {
   if (!document.body.classList.contains('app-section-listing')) { stopSellLavaAmbience(); stopSellLavaGame(); }
   if (!document.body.classList.contains('app-section-purchase')) stopGothicCheckoutAmbience();
   const browseSurface = !document.body.classList.contains('app-section-mode') && !modal.open;
-  const conveyor = browseMode === 'conveyor' && searchScope === 'listings' && browseSurface && !auctionActive;
+  const conveyor = browseMode === 'conveyor' && browseSurface && !auctionActive;
   // Doomscroll is a visual browse surface, not a listings-only mode. This keeps
   // Communities, Brands, Collectors, Couriers, and Live Rooms in the same
   // sunset/light interface when the visitor has selected Doomscroll.
@@ -1883,20 +1883,20 @@ const socialActions = (item, type) => {
   if (type === 'couriers') return `<div class="directory-actions"><button type="button" class="directory-primary" data-directory-page="couriers" data-directory-id="${id}">View service</button></div>`;
   return `<div class="directory-actions"><button type="button" data-directory-page="${safe(type)}" data-directory-id="${id}">View community</button><button type="button" class="directory-primary" data-community="${safe(type)}" data-community-id="${id}" data-community-label="${name}">Discuss</button></div>`;
 };
-const directoryCard = (item, type) => {
+const directoryCard = (item, type, conveyorCopy = false) => {
   const label = type === 'accounts' ? 'Collector' : type === 'collectives' ? 'Group' : type === 'chatrooms' ? 'Live room' : type === 'couriers' ? 'Delivery service' : 'Brand community';
   const title = type === 'accounts' ? `@${safe(item.username)}` : safe(item.name);
   const description = safe(item.bio || item.description || 'Collector community');
   const stats = type === 'accounts' ? `${Number(item.activeListingCount || 0)} posts · ${Number(item.followingCount || 0)} following · ${Number(item.reputation || 0)} reputation` : type === 'collectives' ? `${Number(item.memberCount || 0)} real member${Number(item.memberCount || 0) === 1 ? '' : 's'} · ${Number(item.postCount || 0)} posts` : type === 'chatrooms' ? `${Number(item.postCount || 0)} posts · ${Number(item.contributorCount || 0)} contributors` : type === 'couriers' ? safe(item.category || 'Courier') : `${Number(item.members || 0).toLocaleString()} members${item.postCount !== undefined ? ` · ${Number(item.postCount || 0)} posts` : ''}`;
   const itemTags = type === 'accounts' ? item.profileTags || [] : item.tags || [];
-  return `<article class="search-directory-card social-directory-card"><header><span>${label}</span><b>${title}</b></header><p>${description}</p><small>${stats}</small>${itemTags.length ? `<div class="directory-tags">${itemTags.slice(0, 4).map(tag => `<button type="button" data-tag="${safe(tag)}">#${safe(tag)}</button>`).join('')}</div>` : ''}${socialActions(item, type)}</article>`;
+  return `<article class="search-directory-card social-directory-card"${conveyorCopy ? ' data-conveyor-copy="true"' : ''}><header><span>${label}</span><b>${title}</b></header><p>${description}</p><small>${stats}</small>${itemTags.length ? `<div class="directory-tags">${itemTags.slice(0, 4).map(tag => `<button type="button" data-tag="${safe(tag)}">#${safe(tag)}</button>`).join('')}</div>` : ''}${socialActions(item, type)}</article>`;
 };
 const canRenderBrowseFeed = () => !document.body.classList.contains('app-section-mode') && !document.body.classList.contains('auction-mode') && !modal.open;
 function renderFeed(reset = true) {
   // Search, checkout, location, and tag events all refresh the feed. Those
   // updates belong only to Browse and must never replace an open workspace.
   if (!canRenderBrowseFeed()) return;
-  if (searchScope !== 'listings') { const rows = filteredDirectory(); const meta = socialScopeMeta[searchScope]; stream.innerHTML = rows.map(item => directoryCard(item, searchScope)).join('') || `<p class="load-state">No ${meta.noun}s match that search yet.</p>`; document.querySelector('#result-count').textContent = `${rows.length} ${meta.noun}${rows.length === 1 ? '' : 's'}`; sentinel.textContent = rows.length ? 'Community directory complete.' : 'Try another name, interest, or tag.'; syncBrowseModeUi(); return; }
+  if (searchScope !== 'listings') { const rows = filteredDirectory(); const meta = socialScopeMeta[searchScope]; const originals = rows.map(item => directoryCard(item, searchScope)).join(''); const copies = browseMode === 'conveyor' && rows.length ? Array.from({ length: 2 }, () => rows.map(item => directoryCard(item, searchScope, true)).join('')).join('') : ''; stream.innerHTML = originals ? originals + copies : `<p class="load-state">No ${meta.noun}s match that search yet.</p>`; document.querySelector('#result-count').textContent = `${rows.length} ${meta.noun}${rows.length === 1 ? '' : 's'}`; sentinel.textContent = rows.length ? (browseMode === 'conveyor' ? 'Conveyor mode · looping continuously' : 'Community directory complete.') : 'Try another name, interest, or tag.'; syncBrowseModeUi(); return; }
   const rows = alternatePromotedListings(filtered()); if (reset) page = 1; const pageSize = 4; const visible = browseMode === 'conveyor' || browseMode === 'squared' ? rows : rows.slice(0, page * pageSize);
   const renderCard = browseMode === 'squared' ? squareCard : card;
   const originalCards = visible.map(renderCard).join(''); const conveyorCopies = browseMode === 'conveyor' && visible.length ? Array.from({ length: 2 }, () => visible.map(item => card(item).replace('<article class="listing"', '<article class="listing" data-conveyor-copy="true"')).join('')).join('') : '';
