@@ -1,9 +1,9 @@
-/* The conveyor status is content, not a second bottom dock. Keeping it in
-   document flow prevents it from cutting across the persistent navigation. */
+/* The conveyor status is a compact underlay beneath the persistent navigation. */
 body.browse-conveyor #sentinel {
-  position: relative !important;
-  inset: auto !important;
-  bottom: auto !important;
+  /* This is an underlay for the primary dock, never a second navigation bar. */
+  position: fixed !important;
+  inset: auto 0 0 !important;
+  bottom: 0 !important;
   z-index: 1 !important;
   display: block !important;
   box-sizing: border-box !important;
