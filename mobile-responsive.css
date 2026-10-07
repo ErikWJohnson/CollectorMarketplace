@@ -1,0 +1,213 @@
+/* Final phone-first safety layer. Older visual experiments use fixed desktop
+   widths in a few places; these rules keep every workspace inside the actual
+   device viewport and leave room for the persistent six-action dock. */
+@media (max-width: 680px) {
+  html,
+  body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip !important;
+  }
+
+  body {
+    min-height: 100dvh;
+    padding-bottom: calc(84px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .app-shell {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 100dvh;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  .masthead {
+    min-width: 0;
+    height: 60px !important;
+    min-height: 60px;
+    padding: 0 10px !important;
+  }
+
+  .masthead .brand-group,
+  .masthead .mast-word {
+    min-width: 0;
+  }
+
+  .masthead .mast-word strong {
+    overflow: hidden;
+    font-size: 12px !important;
+    letter-spacing: .45px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .masthead .mast-word small { display: none; }
+  .masthead > img { display: none !important; }
+  .masthead .header-nav { display: none !important; }
+
+  .header-sell {
+    flex: 0 0 auto;
+    min-height: 34px;
+    padding: 7px 8px !important;
+    font-size: 7px !important;
+  }
+
+  .mode-tabs,
+  .discovery,
+  .market-stage,
+  .listing-stream,
+  .app-section-page,
+  .app-section-content,
+  .profile-workspace,
+  .social-chat,
+  .auction-house {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .mode-tabs {
+    display: flex !important;
+    overflow-x: auto;
+  }
+  .mode-tabs button { flex: 1 0 50%; min-width: 136px; }
+
+  .search,
+  .tag-search,
+  .search-mode-bar,
+  .listing-filter-controls,
+  .popular-tags,
+  .live-auction-rail,
+  .popular-listing-rail,
+  .popular-entity-rail {
+    width: calc(100% - 18px) !important;
+    max-width: none !important;
+  }
+
+  /* On desktop the utility dock occupies a reserved top-left rail. On a
+     phone it must return to document flow so it cannot cover the search. */
+  .browse-conveyor .app-shell > .conveyor-utility-dock {
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    width: calc(100% - 18px) !important;
+    margin: 8px 9px !important;
+    z-index: auto !important;
+  }
+
+  .browse-conveyor .conveyor-utility-dock > .rocket-game-hud,
+  .browse-conveyor .conveyor-utility-dock > #remove-tags {
+    width: 100% !important;
+  }
+
+  .market-stage { grid-template-columns: minmax(0, 1fr) !important; }
+  .market-stage > .ad { display: none !important; }
+
+  .listing,
+  .social-directory-card,
+  .listing-detail,
+  .auction-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .media { height: min(122vw, 500px) !important; padding-inline: 5px !important; }
+  .media img { max-width: 100%; object-fit: contain; }
+
+  .listing footer,
+  .listing-actions,
+  .listing-action-row,
+  .account-actions,
+  .trade-actions {
+    flex-wrap: wrap !important;
+    height: auto !important;
+    min-height: 52px;
+  }
+
+  .listing footer > *,
+  .listing-actions > *,
+  .listing-action-row > * {
+    min-width: 0;
+    flex: 1 1 42%;
+  }
+
+  .bottom-nav {
+    height: calc(76px + env(safe-area-inset-bottom)) !important;
+    padding-bottom: env(safe-area-inset-bottom) !important;
+    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  }
+
+  .bottom-nav button {
+    min-height: 76px !important;
+    padding: 7px 1px !important;
+    font-size: 6px !important;
+    letter-spacing: .1px !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .bottom-nav b { font-size: 21px !important; }
+
+  body.browse-conveyor #sentinel {
+    bottom: 0 !important;
+    width: 100vw !important;
+  }
+
+  dialog,
+  .comment-dialog,
+  .listing-dialog,
+  .trade-dialog {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 100dvh;
+    max-height: 100dvh;
+    margin: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  .listing-publish-bar,
+  body.app-section-listing .listing-publish-bar {
+    position: sticky !important;
+    bottom: calc(76px + env(safe-area-inset-bottom));
+    display: grid !important;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 12px !important;
+  }
+
+  .listing-publish-bar button,
+  body.app-section-listing .listing-publish-bar button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .account-columns,
+  .profile-sections,
+  .chat-layout,
+  .conversation-workspace,
+  .auction-showcase,
+  .fee-calculator,
+  .delivery-workspace,
+  .listing-editor-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .app-section-intro,
+  .auction-head,
+  .account-hero,
+  .community-workspace > header,
+  .entity-workspace > header {
+    padding-inline: 16px !important;
+  }
+
+  input,
+  select,
+  textarea,
+  button { max-width: 100%; }
+}
