@@ -5,9 +5,28 @@ body.browse-conveyor #sentinel {
   inset: auto !important;
   bottom: auto !important;
   z-index: 1 !important;
-  min-height: 44px !important;
+  display: block !important;
+  box-sizing: border-box !important;
+  height: 28px !important;
+  min-height: 28px !important;
   margin: 0 !important;
-  padding: 14px 12px !important;
+  padding: 8px 12px !important;
+  overflow: hidden !important;
+  border-top: 1px solid #30343a !important;
+  border-bottom: 0 !important;
+  background: #151719 !important;
+  color: #b7bdc4 !important;
+  font: 700 0.58rem/1 "DM Mono", monospace !important;
+  letter-spacing: 0.08em !important;
+}
+
+@media (max-width: 680px) {
+  body.browse-conveyor #sentinel {
+    height: 24px !important;
+    min-height: 24px !important;
+    padding: 6px 8px !important;
+    font-size: 0.52rem !important;
+  }
 }
 
 /* The five primary actions are always the frontmost bottom layer. */
