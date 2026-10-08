@@ -244,7 +244,9 @@ app.use((req, res, next) => {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
-    'Permissions-Policy': 'camera=(), geolocation=(), payment=(self)',
+    // Camera access remains scoped to this site and is only requested when a
+    // collector explicitly turns on their live-room camera.
+    'Permissions-Policy': 'camera=(self), geolocation=(), payment=(self)',
     'Cross-Origin-Opener-Policy': 'same-origin'
   });
   if (process.env.NODE_ENV === 'production' && !req.secure) return res.status(400).json({ error: 'HTTPS is required.' });
