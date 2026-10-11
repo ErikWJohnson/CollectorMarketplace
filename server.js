@@ -257,14 +257,19 @@ app.get('/healthz', (req, res) => res.status(200).json({ ok: true, service: 'Col
 
 function publicUser(user) { if (!user) return null; const { password, email, shippingProfile, lobbySong, profileViewHistory, galleries, grandCurator, ...safe } = user; return { ...safe, awards: accountAwards(user), marketplaceFeeRate: marketplaceFeeRate(user) }; }
 function publicListing(listing) { const { impressionVisitors, viewVisitors, ...safe } = listing; return safe; }
-function publicGalleries(user) {
-  const ownedActive = new Map(store.data.listings.filter(listing => listing.ownerId === user.id && listing.status === 'active').map(listing => [listing.id, publicListing(listing)]));
-  return (Array.isArray(user.galleries) ? user.galleries : []).map(gallery => ({
+function publicGalleries(user, includePrivate = false) {
+  const visibleListings = new Map(store.data.listings
+    .filter(listing => listing.ownerId === user.id && (includePrivate || listing.status === 'active'))
+    .map(listing => [listing.id, publicListing(listing)]));
+  return (Array.isArray(user.galleries) ? user.galleries : [])
+    .filter(gallery => includePrivate || gallery.isPublic !== false)
+    .map(gallery => ({
     id: gallery.id,
     title: gallery.title,
     description: gallery.description || '',
     createdAt: gallery.createdAt,
-    items: (gallery.listingIds || []).map(listingId => ownedActive.get(listingId)).filter(Boolean)
+    isPublic: gallery.isPublic !== false,
+    items: (gallery.listingIds || []).map(listingId => visibleListings.get(listingId)).filter(Boolean)
   })).filter(gallery => gallery.items.length);
 }
 function directoryUser(user) { if (!user) return null; const { password, email, following, shippingProfile, lobbySong, grandCurator, ...safe } = user; return safe; }
@@ -473,7 +478,7 @@ app.put('/account/password', required, async (req, res) => {
 });
 app.post('/account/2fa/setup', required, (req, res) => { if (!encryptionKey) return res.status(503).json({ error: 'Two-factor security needs DATA_ENCRYPTION_KEY configured before it can be enabled.' }); const secret = base32Secret(); twoFactorEnrollments.set(req.user.id, { secret, expiresAt: Date.now() + 10 * 60 * 1000 }); securityLog('two_factor_setup_started', req, { userId: req.user.id }); res.json({ secret, issuer: 'CollectorMarketplace.net', account: req.user.username, otpauthUrl: `otpauth://totp/${encodeURIComponent(`CollectorMarketplace.net:${req.user.username}`)}?secret=${secret}&issuer=CollectorMarketplace.net&period=30&digits=6` }); });
 app.post('/account/2fa/enable', required, (req, res) => { const enrollment = twoFactorEnrollments.get(req.user.id); twoFactorEnrollments.delete(req.user.id); if (!enrollment || enrollment.expiresAt < Date.now() || !verifyTotp(enrollment.secret, req.body.code)) return res.status(400).json({ error: 'Enter the current six-digit code from your authenticator app.' }); try { req.user.twoFactorSecret = encryptPrivate(enrollment.secret); } catch (error) { return res.status(503).json({ error: error.message }); } req.user.twoFactorEnabled = true; revokeUserSessions(req.user.id); const token = createSession(req.user.id); securityLog('two_factor_enabled', req, { userId: req.user.id }); store.save(); res.json({ token, user: publicUser(req.user) }); });
-app.get('/user/:id', (req, res) => { const user = store.data.users.find(u => u.id === req.params.id); if (!user) return res.status(404).json({ error: 'User not found' }); const viewer = currentUser(req); if (viewer && viewer.id !== user.id) { const cutoff = Date.now() - 24 * 60 * 60 * 1000; const viewHistory = user.profileViewHistory && typeof user.profileViewHistory === 'object' ? user.profileViewHistory : {}; Object.entries(viewHistory).forEach(([viewerId, viewedAt]) => { if (new Date(viewedAt).valueOf() < cutoff) delete viewHistory[viewerId]; }); if (!viewHistory[viewer.id]) { user.profileViewCount = Number(user.profileViewCount || 0) + 1; viewHistory[viewer.id] = now(); user.profileViewHistory = viewHistory; store.save(); } } const listings = store.data.listings.filter(l => l.ownerId === user.id); const history = store.data.trades.filter(t => (t.senderId === user.id || t.receiverId === user.id) && t.status === 'completed'); res.json({ ...publicUser(user), lobbySong: user.lobbySong || '', activeListings: listings.filter(l => l.status === 'active'), galleries: publicGalleries(user), tradeHistory: history }); });
+app.get('/user/:id', (req, res) => { const user = store.data.users.find(u => u.id === req.params.id); if (!user) return res.status(404).json({ error: 'User not found' }); const viewer = currentUser(req); const ownProfile = viewer?.id === user.id; if (viewer && !ownProfile) { const cutoff = Date.now() - 24 * 60 * 60 * 1000; const viewHistory = user.profileViewHistory && typeof user.profileViewHistory === 'object' ? user.profileViewHistory : {}; Object.entries(viewHistory).forEach(([viewerId, viewedAt]) => { if (new Date(viewedAt).valueOf() < cutoff) delete viewHistory[viewerId]; }); if (!viewHistory[viewer.id]) { user.profileViewCount = Number(user.profileViewCount || 0) + 1; viewHistory[viewer.id] = now(); user.profileViewHistory = viewHistory; store.save(); } } const listings = store.data.listings.filter(l => l.ownerId === user.id); const history = store.data.trades.filter(t => (t.senderId === user.id || t.receiverId === user.id) && t.status === 'completed'); res.json({ ...publicUser(user), lobbySong: user.lobbySong || '', activeListings: listings.filter(l => l.status === 'active'), galleries: publicGalleries(user, ownProfile), tradeHistory: history }); });
 app.post('/scoreboard/score', required, (req, res) => {
   const game = String(req.body.game || '').trim();
   const score = Math.min(1000000000, Math.max(0, Math.floor(Number(req.body.score) || 0)));
@@ -573,14 +578,24 @@ app.post('/account/galleries', required, (req, res) => {
   const description = String(req.body.description || '').trim();
   const listingIds = [...new Set(Array.isArray(req.body.listingIds) ? req.body.listingIds.map(String) : [])];
   if (!title || title.length > 80 || description.length > 280) return res.status(400).json({ error: 'Use a gallery title up to 80 characters and an optional description up to 280 characters.' });
-  if (!listingIds.length || listingIds.length > 24) return res.status(400).json({ error: 'Choose between 1 and 24 of your active listings.' });
-  const owned = new Set(store.data.listings.filter(listing => listing.ownerId === req.user.id && listing.status === 'active').map(listing => listing.id));
-  if (listingIds.some(listingId => !owned.has(listingId))) return res.status(400).json({ error: 'A gallery can only include your active listings.' });
+  const isPublic = req.body.isPublic !== false;
+  if (!listingIds.length || listingIds.length > 24) return res.status(400).json({ error: 'Choose between 1 and 24 items for this gallery.' });
+  const owned = new Set(store.data.listings.filter(listing => listing.ownerId === req.user.id && (isPublic ? listing.status === 'active' : listing.status !== 'deleted')).map(listing => listing.id));
+  if (listingIds.some(listingId => !owned.has(listingId))) return res.status(400).json({ error: isPublic ? 'A public gallery can only include active listings.' : 'An inventory gallery can only include your own items.' });
   if (!Array.isArray(req.user.galleries)) req.user.galleries = [];
   if (req.user.galleries.length >= 30) return res.status(400).json({ error: 'You can create up to 30 galleries.' });
-  const gallery = { id: id(), title, description, listingIds, createdAt: now() };
+  const gallery = { id: id(), title, description, listingIds, isPublic, createdAt: now() };
   req.user.galleries.unshift(gallery); activity('gallery_created', req.user.id, { galleryId: gallery.id }); store.save();
-  res.status(201).json(publicGalleries(req.user).find(row => row.id === gallery.id));
+  res.status(201).json(publicGalleries(req.user, true).find(row => row.id === gallery.id));
+});
+app.put('/account/galleries/:id', required, (req, res) => {
+  const gallery = (req.user.galleries || []).find(row => row.id === req.params.id);
+  if (!gallery) return res.status(404).json({ error: 'Gallery not found.' });
+  const isPublic = req.body.isPublic !== false;
+  const ownedActive = new Set(store.data.listings.filter(listing => listing.ownerId === req.user.id && listing.status === 'active').map(listing => listing.id));
+  if (isPublic && (gallery.listingIds || []).some(listingId => !ownedActive.has(listingId))) return res.status(400).json({ error: 'Only galleries containing active listings can be public.' });
+  gallery.isPublic = isPublic; gallery.updatedAt = now(); activity('gallery_visibility_updated', req.user.id, { galleryId: gallery.id, isPublic }); store.save();
+  res.json(publicGalleries(req.user, true).find(row => row.id === gallery.id));
 });
 app.delete('/account/galleries/:id', required, (req, res) => {
   const galleries = Array.isArray(req.user.galleries) ? req.user.galleries : [];

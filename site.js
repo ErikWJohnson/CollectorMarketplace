@@ -3001,8 +3001,11 @@ refreshPlatformWorldwideHighScores();
 setInterval(updateLiveAuctionRailClocks, 1000);
 function galleryWorkspaceMarkup(profile, own = false) {
   const galleries = Array.isArray(profile?.galleries) ? profile.galleries : [];
-  const galleryCards = galleries.length ? galleries.map(gallery => `<article class="profile-gallery-card"><header><div><span>GALLERY · ${Number(gallery.items?.length || 0)} LISTING${Number(gallery.items?.length || 0) === 1 ? '' : 'S'}</span><h5>${safe(gallery.title)}</h5></div>${own ? `<button type="button" class="profile-gallery-delete" data-gallery-delete="${safe(gallery.id)}" aria-label="Delete ${safe(gallery.title)} gallery">Delete</button>` : ''}</header>${gallery.description ? `<p>${safe(gallery.description)}</p>` : ''}<div class="profile-gallery-items">${(gallery.items || []).slice(0, 8).map(item => `<button type="button" data-detail="${safe(item.id)}" aria-label="View ${safe(item.title)}"><img src="${safe(item.image || item.images?.[0] || '')}" alt="${safe(item.title)}"><span>${safe(item.title)}</span></button>`).join('')}</div></article>`).join('') : `<p class="profile-empty">${own ? 'Create a gallery to group your active listings into a shareable collection.' : 'This collector has not published a gallery yet.'}</p>`;
-  return `<section class="profile-galleries"><header><div><h4>Galleries <small>${galleries.length}</small></h4><p>Curated collections of listings, organized by the collector.</p></div>${own ? '<button type="button" class="entity-primary" data-gallery-create>Create gallery</button>' : ''}</header><div class="profile-gallery-grid">${galleryCards}</div></section>`;
+  const galleryCards = galleries.length ? galleries.map(gallery => {
+    const visibility = gallery.isPublic !== false;
+    return `<article class="profile-gallery-card${visibility ? '' : ' is-private'}"><header><div><span>${visibility ? 'PUBLIC GALLERY' : 'PRIVATE INVENTORY'} · ${Number(gallery.items?.length || 0)} ITEM${Number(gallery.items?.length || 0) === 1 ? '' : 'S'}</span><h5>${safe(gallery.title)}</h5></div>${own ? `<button type="button" class="profile-gallery-delete" data-gallery-delete="${safe(gallery.id)}" aria-label="Delete ${safe(gallery.title)} gallery">Delete</button>` : ''}</header>${gallery.description ? `<p>${safe(gallery.description)}</p>` : ''}<div class="profile-gallery-items">${(gallery.items || []).slice(0, 8).map(item => `<button type="button" data-detail="${safe(item.id)}" aria-label="View ${safe(item.title)}"><img src="${safe(item.image || item.images?.[0] || '')}" alt="${safe(item.title)}"><span>${safe(item.title)}</span></button>`).join('')}</div>${own ? `<label class="gallery-visibility"><input type="checkbox" data-gallery-public="${safe(gallery.id)}" ${visibility ? 'checked' : ''}> <span>Public gallery</span><small>${visibility ? 'Visible on your profile' : 'Only visible to you'}</small></label>` : ''}</article>`;
+  }).join('') : `<p class="profile-empty">${own ? 'Create an inventory gallery for your own collection, then choose whether to show it publicly.' : 'This collector has not published a gallery yet.'}</p>`;
+  return `<section class="profile-galleries"><header><div><h4>${own ? 'My Inventory Gallery' : 'Galleries'} <small>${galleries.length}</small></h4><p>${own ? 'Organize your collection and choose exactly which galleries appear on your public profile.' : 'Curated collections of listings, organized by the collector.'}</p></div>${own ? '<button type="button" class="entity-primary" data-gallery-create>New inventory gallery</button>' : ''}</header><div class="profile-gallery-grid">${galleryCards}</div></section>`;
 }
 function injectProfileGalleries(profile, own = false) {
   const listingsSection = stream.querySelector('.profile-workspace > .profile-listings');
@@ -3038,8 +3041,16 @@ document.addEventListener('click', event => {
   }
   const create = event.target.closest('[data-gallery-create]');
   if (create) {
-    const rows = (session?.user?.activeListings || []).map(item => `<label class="gallery-listing-choice"><input type="checkbox" name="listingIds" value="${safe(item.id)}"><img src="${safe(item.image || item.images?.[0] || '')}" alt=""><span><b>${safe(item.title)}</b><small>${money(item.price)}</small></span></label>`).join('');
-    return openModal('Create gallery', 'Choose one or more of your active listings to create a curated public collection.', `<form class="modal-form gallery-form"><label>Gallery name<input required name="title" maxlength="80" placeholder="e.g. My Skylanders shelf"></label><label>Description <small>Optional</small><textarea name="description" maxlength="280" placeholder="Tell collectors what connects these items."></textarea></label><fieldset class="gallery-listing-picker"><legend>Listings to include</legend>${rows || '<p class="profile-empty">Create an active listing before making a gallery.</p>'}</fieldset><button class="transaction-submit" ${rows ? '' : 'disabled'}>Create gallery</button></form>`);
+    api(`/user/${session.user.id}/listings`).then(items => {
+      const rows = items.filter(item => item.status !== 'deleted').map(item => `<label class="gallery-listing-choice"><input type="checkbox" name="listingIds" value="${safe(item.id)}"><img src="${safe(item.image || item.images?.[0] || '')}" alt=""><span><b>${safe(item.title)}</b><small>${safe(item.status)} · ${money(item.price)}</small></span></label>`).join('');
+      openModal('New inventory gallery', 'Add items from your collection. Check Public only when every item should appear on your profile.', `<form class="modal-form gallery-form"><label>Gallery name<input required name="title" maxlength="80" placeholder="e.g. My Skylanders shelf"></label><label>Description <small>Optional</small><textarea name="description" maxlength="280" placeholder="Tell collectors what connects these items."></textarea></label><label class="check gallery-public-choice"><input type="checkbox" name="isPublic"> Make this gallery public <small>Uncheck it to keep it private in My Inventory.</small></label><fieldset class="gallery-listing-picker"><legend>Items to include</legend>${rows || '<p class="profile-empty">Create or relist an item before making an inventory gallery.</p>'}</fieldset><button class="transaction-submit" ${rows ? '' : 'disabled'}>Save inventory gallery</button></form>`);
+    }).catch(showError);
+    return;
+  }
+  const visibility = event.target.closest('[data-gallery-public]');
+  if (visibility) {
+    api(`/account/galleries/${visibility.dataset.galleryPublic}`, { method: 'PUT', body: JSON.stringify({ isPublic: visibility.checked }) }).then(openAccountPanel).catch(error => { visibility.checked = !visibility.checked; showError(error); });
+    return;
   }
   const remove = event.target.closest('[data-gallery-delete]');
   if (remove) {
@@ -3053,7 +3064,7 @@ document.addEventListener('submit', async event => {
   event.preventDefault();
   const fields = new FormData(form);
   try {
-    await api('/account/galleries', { method: 'POST', body: JSON.stringify({ title: fields.get('title'), description: fields.get('description'), listingIds: fields.getAll('listingIds') }) });
+    await api('/account/galleries', { method: 'POST', body: JSON.stringify({ title: fields.get('title'), description: fields.get('description'), listingIds: fields.getAll('listingIds'), isPublic: fields.get('isPublic') === 'on' }) });
     if (modal.open) modal.close();
     await openAccountPanel();
   } catch (error) { showError(error); }
