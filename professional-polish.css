@@ -60,16 +60,16 @@ a:focus-visible {
   order: 9;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  min-height: 34px;
+  gap: 6px;
+  min-height: 32px;
   margin-left: 4px;
-  border: 1px solid #4e667a !important;
-  border-radius: 999px;
-  padding: 5px 11px 5px 5px;
-  background: linear-gradient(145deg, #1d3040, #111a23) !important;
-  box-shadow: inset 0 1px #d8efff18, 0 5px 16px #00000038;
-  color: #e7f2fa !important;
-  font: 800 .61rem/1 "DM Mono", monospace;
+  border: 1px solid #3e4d59 !important;
+  border-radius: 6px;
+  padding: 5px 9px 5px 6px;
+  background: #111820 !important;
+  box-shadow: inset 0 1px #d8efff0c;
+  color: #c5ced7 !important;
+  font: 800 .59rem/1 "DM Mono", monospace;
   letter-spacing: .04em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -83,17 +83,20 @@ a:focus-visible {
 .header-account-mark {
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
-  border: 1px solid #7896aa;
+  width: 18px;
+  height: 18px;
+  border: 1px solid #607b90;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 28%, #6fc2df, #263f54 58%, #111c26 100%);
-  color: #eefbff;
-  font-size: 11px;
-  box-shadow: inset 0 1px #efffff4d;
+  background: #182838;
+  color: #d7e9f6;
+  font-size: 9px;
+  box-shadow: inset 0 1px #efffff22;
 }
+.header-account [data-header-account-label] { overflow: hidden; max-width: 104px; text-overflow: ellipsis; }
 .header-account:hover,
-.header-account:focus-visible { border-color: #f1cf6a !important; background: linear-gradient(145deg, #2a4052, #17222c) !important; color: #fff !important; }
+.header-account:focus-visible { border-color: #e4bd58 !important; background: #1c2630 !important; color: #fff !important; }
+.header-account:hover .header-account-mark,
+.header-account:focus-visible .header-account-mark { border-color: #e4bd58; color: #fff1bd; }
 
 @media (min-width: 1000px) {
   /* Keep the action cluster clear of the viewport edge and visually grouped. */
