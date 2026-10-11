@@ -1529,9 +1529,10 @@ document.addEventListener('click', event => {
 });
 function renderAccountButton() {
   const username = String(session?.user?.username || '').trim();
-  const headerButton = document.querySelector('.header-nav [data-account]');
+  const headerButton = document.querySelector('.header-account[data-account]');
   if (headerButton) {
-    headerButton.textContent = username || 'Create account';
+    const label = headerButton.querySelector('[data-header-account-label]');
+    if (label) label.textContent = username ? `@${username}` : 'Account';
     headerButton.setAttribute('aria-label', username ? 'Open @' + username + '\'s account' : 'Create account');
   }
   const dockButton = document.querySelector('.bottom-nav [data-account]');

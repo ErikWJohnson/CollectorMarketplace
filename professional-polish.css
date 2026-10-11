@@ -55,18 +55,36 @@ a:focus-visible {
 }
 .header-account {
   order: 9;
-  margin-left: 2px;
-  border: 1px solid #526b80 !important;
-  border-radius: 6px;
-  padding: 8px 11px;
-  background: linear-gradient(180deg, #192633, #121b24) !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  margin-left: 4px;
+  border: 1px solid #4e667a !important;
+  border-radius: 999px;
+  padding: 5px 11px 5px 5px;
+  background: linear-gradient(145deg, #1d3040, #111a23) !important;
+  box-shadow: inset 0 1px #d8efff18, 0 5px 16px #00000038;
   color: #e7f2fa !important;
-  font: 800 .62rem/1 "DM Mono", monospace;
-  letter-spacing: .05em;
+  font: 800 .61rem/1 "DM Mono", monospace;
+  letter-spacing: .04em;
   text-transform: uppercase;
+  white-space: nowrap;
+}
+.header-account-mark {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid #7896aa;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 28%, #6fc2df, #263f54 58%, #111c26 100%);
+  color: #eefbff;
+  font-size: 11px;
+  box-shadow: inset 0 1px #efffff4d;
 }
 .header-account:hover,
-.header-account:focus-visible { border-color: #f1cf6a !important; background: #253747 !important; color: #fff !important; }
+.header-account:focus-visible { border-color: #f1cf6a !important; background: linear-gradient(145deg, #2a4052, #17222c) !important; color: #fff !important; }
 
 .site-theme-control {
   border-color: #405264 !important;
@@ -232,7 +250,8 @@ dialog,
 
 @media (max-width: 680px) {
   .masthead { min-height: 60px; }
-  .header-account { order: initial; }
+  .header-account { order: initial; min-height: 32px; padding-right: 8px; }
+  .header-account-mark { width: 20px; height: 20px; }
   .search-scope { justify-content: flex-start !important; overflow-x: auto; flex-wrap: nowrap !important; padding-bottom: 7px !important; }
   .search-scope > section { flex: 0 0 auto; }
   .popular-tags,
