@@ -54,6 +54,9 @@ a:focus-visible {
   box-shadow: 0 5px 16px #0000003d;
 }
 .header-account {
+  position: static !important;
+  top: auto !important;
+  right: auto !important;
   order: 9;
   display: inline-flex;
   align-items: center;
@@ -71,6 +74,12 @@ a:focus-visible {
   text-transform: uppercase;
   white-space: nowrap;
 }
+.masthead .header-account {
+  width: auto !important;
+  height: auto !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
 .header-account-mark {
   display: grid;
   place-items: center;
@@ -85,6 +94,17 @@ a:focus-visible {
 }
 .header-account:hover,
 .header-account:focus-visible { border-color: #f1cf6a !important; background: linear-gradient(145deg, #2a4052, #17222c) !important; color: #fff !important; }
+
+@media (min-width: 1000px) {
+  /* Keep the action cluster clear of the viewport edge and visually grouped. */
+  .masthead {
+    gap: 12px !important;
+    padding-right: clamp(78px, 6vw, 128px) !important;
+  }
+  .masthead .header-nav { gap: 4px; }
+  .masthead .header-nav button { padding-inline: 9px; }
+  .header-sell { margin-left: 5px !important; }
+}
 
 .site-theme-control {
   border-color: #405264 !important;
