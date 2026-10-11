@@ -1,0 +1,211 @@
+/* Shared interface polish: neutral surfaces, deliberate hierarchy, and
+   predictable controls. Page-specific worlds retain their own backgrounds. */
+:root {
+  --ui-surface: #111417;
+  --ui-raised: #171b20;
+  --ui-border: #303841;
+  --ui-border-strong: #485565;
+  --ui-text: #f1f4f6;
+  --ui-muted: #9ba7b3;
+  --ui-accent: #e4bd58;
+  --ui-accent-ink: #16120a;
+}
+
+button,
+input,
+select,
+textarea { font-family: "DM Sans", system-ui, sans-serif; }
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  outline: 2px solid #e4bd58 !important;
+  outline-offset: 2px;
+}
+
+.masthead {
+  min-height: 70px;
+  border-bottom: 1px solid #26303a !important;
+  background: linear-gradient(100deg, #0c0f13f5, #111720f2) !important;
+  box-shadow: 0 8px 28px #00000042;
+}
+
+.mast-word a {
+  color: var(--ui-text) !important;
+  font-weight: 800;
+  letter-spacing: .6px;
+  text-decoration: none;
+}
+
+.header-nav button,
+.header-sell,
+.masthead .market-mode-control > button {
+  border-radius: 6px !important;
+}
+
+.header-nav button { color: #c5ced7 !important; }
+.header-nav button:hover { color: #fff !important; }
+.header-sell {
+  border-color: #c59f3f !important;
+  background: linear-gradient(135deg, #e4bd58, #c89a3f) !important;
+  color: #17120a !important;
+  box-shadow: 0 5px 16px #0000003d;
+}
+
+.site-theme-control {
+  border-color: #405264 !important;
+  background: #121a22 !important;
+  box-shadow: 0 8px 24px #00000066 !important;
+}
+
+.site-theme-control b { color: #edf5fb !important; }
+.site-theme-control small { color: #9eb6c9 !important; }
+.site-theme-control i { border-color: #486278 !important; }
+
+.mode-tabs {
+  border-bottom: 1px solid #29333d;
+  background: #10151b !important;
+}
+
+.mode-tabs button {
+  color: #8795a3 !important;
+  font-weight: 800;
+}
+
+.mode-tabs button.is-active {
+  color: #f4df9b !important;
+  background: linear-gradient(180deg, #202226, #1a1f25) !important;
+  box-shadow: inset 0 -2px #e4bd58;
+}
+
+.discovery {
+  border-bottom: 1px solid #28333d !important;
+  background: linear-gradient(180deg, #111820, #0d1218) !important;
+}
+
+.search,
+.tag-search {
+  height: 42px !important;
+  border: 1px solid #3b4855 !important;
+  border-radius: 7px !important;
+  background: #0b0f14 !important;
+  box-shadow: inset 0 1px #ffffff08;
+}
+
+.search input,
+.tag-search input { color: #eef3f7 !important; }
+.search:focus-within,
+.tag-search:focus-within { border-color: #d6b25a !important; box-shadow: 0 0 0 3px #d6b25a1c; }
+
+.search-scope { gap: 10px !important; }
+.search-scope > section { padding: 7px 9px; border-radius: 7px; background: #ffffff05; }
+.search-scope > section > span { color: #9faebb !important; }
+.search-scope button {
+  border-color: #35424e !important;
+  background: #141b22 !important;
+  color: #c5d2dd !important;
+}
+.search-scope button.active {
+  border-color: #d8b65e !important;
+  background: #332b17 !important;
+  color: #ffe8a5 !important;
+}
+
+.browse-mode-toggle,
+.metadata-toggle,
+.listing-filter-controls button,
+.listing-filter-controls select,
+.listing-filter-controls input {
+  min-height: 38px;
+  border-radius: 6px !important;
+}
+
+.popular-tags,
+.live-auction-rail,
+.popular-listing-rail,
+.popular-entity-rail {
+  border-color: #344454 !important;
+  box-shadow: 0 10px 25px #00000024;
+}
+
+.popular-tags { background: #111b24e8 !important; }
+.live-auction-rail { background: linear-gradient(100deg, #1d1810, #11161c) !important; }
+.popular-listing-rail { background: linear-gradient(100deg, #102017, #10161b) !important; }
+.popular-entity-rail { background: linear-gradient(100deg, #121b27, #10151b) !important; }
+
+.listing,
+.social-directory-card,
+.square-listing-card {
+  border-color: #303a44 !important;
+  background: linear-gradient(145deg, #151a1f, #101419) !important;
+  box-shadow: 0 14px 34px #0000002e;
+}
+
+.listing:hover,
+.social-directory-card:hover,
+.square-listing-card:hover { border-color: #857446 !important; }
+.collector-head,
+.listing-copy,
+.listing footer { background: transparent !important; }
+.listing-copy p { border-color: #35414c !important; background: #0d1217 !important; }
+
+.listing-action,
+.entity-primary,
+.transaction-submit,
+.comment-button,
+.community-post-form button {
+  border-radius: 6px !important;
+}
+
+.transaction-submit,
+.action-buy,
+.entity-primary {
+  border-color: #d2ac4f !important;
+  background: linear-gradient(135deg, #e4bd58, #cfa248) !important;
+  color: #17120a !important;
+  font-weight: 800 !important;
+}
+
+dialog,
+.comment-dialog {
+  border-color: #3c4854 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 28px 80px #000000b8 !important;
+}
+
+.modal-form input,
+.modal-form select,
+.modal-form textarea {
+  border-color: #3a4651 !important;
+  border-radius: 6px !important;
+  background: #0d1217 !important;
+}
+
+.bottom-nav {
+  border-top-color: #34404b !important;
+  background: #0d1116f7 !important;
+  box-shadow: 0 -10px 28px #00000057;
+}
+
+.bottom-nav button { color: #a7b3bd !important; }
+.bottom-nav button.active {
+  color: #fff1bd !important;
+  background: linear-gradient(180deg, #2a2518, #161719) !important;
+}
+
+.bottom-nav button.active b { color: #e8c55c !important; }
+
+@media (max-width: 680px) {
+  .masthead { min-height: 60px; }
+  .search-scope { justify-content: flex-start !important; overflow-x: auto; flex-wrap: nowrap !important; padding-bottom: 7px !important; }
+  .search-scope > section { flex: 0 0 auto; }
+  .popular-tags,
+  .live-auction-rail,
+  .popular-listing-rail,
+  .popular-entity-rail { border-radius: 8px !important; }
+  .listing,
+  .social-directory-card,
+  .square-listing-card { border-radius: 9px !important; }
+}
