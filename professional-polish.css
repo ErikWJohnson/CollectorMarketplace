@@ -271,6 +271,59 @@ dialog,
 .gallery-public-choice { align-items: start !important; }
 .gallery-public-choice small { display: block; margin-top: 4px; color: #9caeba; }
 
+/* Browse utility lane: the game and tag-clear controls are deliberately kept
+   outside the search column instead of floating across it. */
+@media (min-width: 761px) {
+  .browse-conveyor { --utility-lane: 190px; }
+  .browse-conveyor .app-shell > .conveyor-utility-dock {
+    top: 106px !important;
+    left: max(var(--browse-gutter), calc((100% - var(--browse-content-width)) / 2)) !important;
+    display: grid !important;
+    gap: 8px !important;
+    width: 172px !important;
+    padding: 6px !important;
+    border: 1px solid #405b70;
+    border-radius: 9px;
+    background: linear-gradient(145deg, #0b1520e8, #101419e8);
+    box-shadow: 0 12px 30px #00000066;
+  }
+  .browse-conveyor .conveyor-utility-dock > .rocket-game-hud,
+  .browse-conveyor .conveyor-utility-dock > #remove-tags {
+    width: 100% !important;
+    margin: 0 !important;
+  }
+  .browse-conveyor .conveyor-utility-dock > #remove-tags {
+    min-height: 36px !important;
+    border-color: #475b6a;
+    border-radius: 5px;
+    background: #131c24;
+    color: #b9cad7;
+  }
+  .browse-conveyor .conveyor-utility-dock > #remove-tags:hover,
+  .browse-conveyor .conveyor-utility-dock > #remove-tags:focus-visible { border-color: #e4bd58; color: #fff0bb; }
+  .browse-conveyor .discovery.mode-search .search-mode-bar,
+  .browse-conveyor .discovery.mode-search .search-scope {
+    width: min(940px, calc(100% - var(--utility-lane) - (var(--browse-gutter) * 2))) !important;
+    margin-right: auto !important;
+    margin-left: max(calc((100% - 940px) / 2), calc(var(--browse-gutter) + var(--utility-lane))) !important;
+  }
+  .browse-conveyor .discovery.mode-tags .tag-search-layout { padding-top: 0 !important; }
+}
+
+@media (max-width: 760px) {
+  .browse-conveyor .app-shell > .conveyor-utility-dock {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    width: calc(100% - (var(--browse-gutter) * 2)) !important;
+    margin: 8px auto !important;
+    padding: 5px !important;
+    border: 1px solid #405b70;
+    border-radius: 8px;
+    background: #0d151de8;
+  }
+}
+
 @media (max-width: 680px) {
   .masthead { min-height: 60px; }
   .header-account { order: initial; min-height: 32px; padding-right: 8px; }
