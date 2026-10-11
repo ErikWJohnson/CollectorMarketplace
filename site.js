@@ -16,7 +16,6 @@ const sentinel = document.querySelector('#sentinel');
 const modal = document.querySelector('#modal');
 const modalContent = document.querySelector('#modal-content');
 let listings = [], auctions = [], accounts = [], collectives = [], brands = [], couriers = [], chatrooms = [], deliveries = [], uploadedListingImages = [], uploadedListingVideos = [], activeCategory = 'All', activeQuery = '', activeTags = [], searchScope = 'listings', sortMode = 'popular', marketMode = localStorage.getItem('collector-marketplace-mode') || 'all', page = 1, observer, searchRenderTimer, auctionClock;
-const siteThemeAudio = document.querySelector('#site-theme-audio');
 const auctionWaterfallAudio = document.querySelector('#auction-waterfall-audio');
 const jungleChatAudio = document.querySelector('#jungle-chat-audio');
 const accountVeniceAudio = document.querySelector('#account-venice-audio');
@@ -30,11 +29,29 @@ const gameAsteroidAudio = document.querySelector('#game-asteroid-audio');
 const gameSpaceshipExplosionAudio = document.querySelector('#game-spaceship-explosion-audio');
 const puppyJumpAudio = document.querySelector('#puppy-jump-audio');
 const puppyAngerAudio = document.querySelector('#puppy-anger-audio');
+const soundEffectsControl = document.querySelector('[data-site-theme-toggle]');
+const soundEffectsEnabled = () => localStorage.getItem('collector-marketplace-sound-effects-muted') !== 'true';
+const soundEffectSources = () => [auctionWaterfallAudio, jungleChatAudio, accountVeniceAudio, sellLavaAudio, gothicCheckoutAudio, auctionBlockPlaceAudio, auctionBlockClearAudio, rocketBoostAudio, gameLaserAudio, gameAsteroidAudio, gameSpaceshipExplosionAudio, puppyJumpAudio, puppyAngerAudio].filter(Boolean);
+const stopSoundEffects = () => soundEffectSources().forEach(audio => { audio.pause(); audio.currentTime = 0; });
+const syncSoundEffectsControl = () => {
+  if (!soundEffectsControl) return;
+  const enabled = soundEffectsEnabled();
+  soundEffectsControl.classList.toggle('is-muted', !enabled);
+  soundEffectsControl.setAttribute('aria-label', enabled ? 'Turn off sound effects' : 'Turn on sound effects');
+  soundEffectsControl.setAttribute('aria-pressed', String(enabled));
+  soundEffectsControl.innerHTML = `<span class="site-theme-icon" aria-hidden="true">${enabled ? '◖' : '◌'}</span><span><b>Sound effects</b><small>${enabled ? '— On' : '— Off'}</small></span><i>${enabled ? 'Mute' : 'Enable'}</i>`;
+};
+const setSoundEffectsEnabled = enabled => {
+  localStorage.setItem('collector-marketplace-sound-effects-muted', String(!enabled));
+  if (!enabled) stopSoundEffects();
+  syncSoundEffectsControl();
+};
+soundEffectsControl?.addEventListener('click', () => setSoundEffectsEnabled(!soundEffectsEnabled()));
+syncSoundEffectsControl();
 const startAuctionWaterfall = () => {
-  if (!auctionWaterfallAudio) return;
-  auctionWaterfallAudio.loop = true;
-  auctionWaterfallAudio.volume = 0.16;
-  auctionWaterfallAudio.play().then(syncAuctionWaterfallControl).catch(syncAuctionWaterfallControl);
+  // Ambient music is intentionally disabled site-wide. Gameplay effects use
+  // the global Sound effects switch instead.
+  stopAuctionWaterfall();
 };
 const stopAuctionWaterfall = () => {
   if (!auctionWaterfallAudio) return;
@@ -44,10 +61,7 @@ const stopAuctionWaterfall = () => {
   syncAuctionWaterfallControl();
 };
 const startJungleChatAmbience = () => {
-  if (!jungleChatAudio) return;
-  jungleChatAudio.loop = true;
-  jungleChatAudio.volume = 0.18;
-  jungleChatAudio.play().catch(() => {});
+  stopJungleChatAmbience();
 };
 const stopJungleChatAmbience = () => {
   if (!jungleChatAudio) return;
@@ -55,22 +69,7 @@ const stopJungleChatAmbience = () => {
   jungleChatAudio.currentTime = 0;
 };
 const startAccountVeniceAmbience = () => {
-  if (!accountVeniceAudio) return;
-  accountVeniceAudio.loop = true;
-  // Keep the recorded harbor detail present above the music bed without
-  // becoming harsh.  A short fade-in avoids an artificial hard start.
-  accountVeniceAudio.volume = 0.03;
-  accountVeniceAudio.play().then(() => {
-    const startedAt = performance.now();
-    const raiseVolume = now => {
-      if (accountVeniceAudio.paused || !document.body.classList.contains('app-section-account')) return;
-      accountVeniceAudio.volume = Math.min(.46, .03 + ((now - startedAt) / 700) * .43);
-      if (accountVeniceAudio.volume < .46) requestAnimationFrame(raiseVolume);
-      else syncAccountVeniceControl();
-    };
-    requestAnimationFrame(raiseVolume);
-    syncAccountVeniceControl();
-  }).catch(() => syncAccountVeniceControl());
+  stopAccountVeniceAmbience();
 };
 const stopAccountVeniceAmbience = () => {
   if (!accountVeniceAudio) return;
@@ -78,10 +77,7 @@ const stopAccountVeniceAmbience = () => {
   accountVeniceAudio.currentTime = 0;
 };
 const startSellLavaAmbience = () => {
-  if (!sellLavaAudio) return;
-  sellLavaAudio.loop = true;
-  sellLavaAudio.volume = .30;
-  sellLavaAudio.play().catch(() => {});
+  stopSellLavaAmbience();
 };
 const stopSellLavaAmbience = () => {
   if (!sellLavaAudio) return;
@@ -89,10 +85,7 @@ const stopSellLavaAmbience = () => {
   sellLavaAudio.currentTime = 0;
 };
 const startGothicCheckoutAmbience = () => {
-  if (!gothicCheckoutAudio) return;
-  gothicCheckoutAudio.loop = true;
-  gothicCheckoutAudio.volume = .28;
-  gothicCheckoutAudio.play().catch(() => {});
+  stopGothicCheckoutAmbience();
 };
 const stopGothicCheckoutAmbience = () => {
   if (!gothicCheckoutAudio) return;
@@ -100,19 +93,7 @@ const stopGothicCheckoutAmbience = () => {
   gothicCheckoutAudio.currentTime = 0;
 };
 function syncAccountVeniceControl() {
-  const hero = stream?.querySelector('.profile-hero');
-  if (!hero || !accountVeniceAudio) return;
-  let control = hero.querySelector('[data-account-venice-sound]');
-  if (!control) {
-    control = document.createElement('button');
-    control.type = 'button';
-    control.className = 'account-venice-sound-control';
-    control.dataset.accountVeniceSound = '';
-    hero.append(control);
-  }
-  const playing = !accountVeniceAudio.paused;
-  control.textContent = playing ? 'Dock ambience · On' : 'Dock ambience · Play';
-  control.setAttribute('aria-pressed', String(playing));
+  stream?.querySelector('[data-account-venice-sound]')?.remove();
 }
 accountVeniceAudio?.addEventListener('play', syncAccountVeniceControl);
 accountVeniceAudio?.addEventListener('pause', syncAccountVeniceControl);
@@ -280,7 +261,7 @@ function renderVeniceSailingGame() {
   game.host.innerHTML = `<section class="account-sailing-game"><header><b>Venice Cannon Run</b><span>Score ${String(game.score).padStart(4, '0')} · Best ${String(game.highScore).padStart(4, '0')} · World ${String(platformWorldwideHighScore('venice-cannon')).padStart(4, '0')}</span></header><div class="sailing-battlefield"><i class="sailing-orbit-ring" aria-hidden="true"></i><div class="sailing-skyline">⚜️　⛪　🏛️　⛪　⚜️</div>${game.enemyActive ? ship('sailing-enemy', enemy, '🏴‍☠️', 'Rival pirate flag') : ''}${ship(`sailing-player${protectedFor || shieldFor ? ' is-protected' : ''}`, player, '⛵', 'Your merchant sailboat')}${game.playerShots.map(item => shot(item)).join('')}${game.enemyShots.map(item => shot(item, true)).join('')}${game.explosions.map(blast).join('')}${muzzle}${protection}${shield}${respawn}${!game.started ? `<div class="sailing-toast"><span>${game.message}</span></div>` : ''}</div><footer><small>[ and ] orbit your ship · = fires a cannon · \` uses shield<br>Sink pirate flags. Avoid their cannon fire.</small><div class="sailing-controls"><button type="button" data-venice-sailing-left aria-label="Sail left">←</button><button type="button" data-venice-sailing-fire>Fire</button><button type="button" data-venice-sailing-shield>Shield</button><button type="button" data-venice-sailing-right aria-label="Sail right">→</button><button type="button" data-venice-sailing-play>${game.started ? 'Restart' : 'Play'}</button></div></footer></section>`;
 }
 function resetVeniceSailingGame() { const game = veniceSailingGame; game.playerAngle = Math.PI / 2; game.enemyAngle = -Math.PI / 2; game.enemyDirection = Math.random() > .5 ? 1 : -1; game.enemyActive = true; game.enemyRespawnAt = 0; game.playerShots = []; game.enemyShots = []; game.explosions = []; game.score = 0; game.lastShot = 0; game.lastEnemyShot = 0; game.shieldUntil = 0; game.shieldReadyAt = 0; game.lastFrame = performance.now(); game.invulnerableUntil = performance.now() + 2000; game.message = 'Press Play to begin your cannon run.'; }
-const playVeniceGameSound = (audio, volume) => { if (!audio) return; audio.pause(); audio.currentTime = 0; audio.volume = volume; audio.play().catch(() => {}); };
+const playVeniceGameSound = (audio, volume) => { if (!audio || !soundEffectsEnabled()) return; audio.pause(); audio.currentTime = 0; audio.volume = volume; audio.play().catch(() => {}); };
 function fireVeniceCannon() { const game = veniceSailingGame; const now = performance.now(); if (!game.started || !game.enemyActive || now - game.lastShot < 240) return; const player = veniceOrbitPoint(game.playerAngle); const enemy = veniceOrbitPoint(game.enemyAngle); const dx = enemy.x - player.x; const dy = enemy.y - player.y; const distance = Math.hypot(dx, dy) || 1; game.lastShot = now; game.playerShots.push({ x: player.x, y: player.y, vx: dx / distance * .16, vy: dy / distance * .16, angle: Math.atan2(dy, dx) * 180 / Math.PI + 90 }); playVeniceGameSound(gameLaserAudio, .32); }
 function activateVeniceShield() { const game = veniceSailingGame; const now = performance.now(); if (!game.started || now < game.shieldReadyAt) return; game.shieldUntil = now + 2000; game.shieldReadyAt = now + 8000; renderVeniceSailingGame(); }
 function moveVeniceSailingShip(direction) { const game = veniceSailingGame; if (!game.started) return; game.playerAngle += direction * .29; renderVeniceSailingGame(); }
@@ -311,65 +292,8 @@ function mountVeniceSailingGame() { const host = stream?.querySelector('.account
 document.addEventListener('click', event => { if (event.target.closest('[data-venice-sailing-play]')) { launchVeniceSailingGame(); return; } if (event.target.closest('[data-venice-sailing-left]')) { moveVeniceSailingShip(-1); return; } if (event.target.closest('[data-venice-sailing-right]')) { moveVeniceSailingShip(1); return; } if (event.target.closest('[data-venice-sailing-fire]')) { fireVeniceCannon(); return; } if (event.target.closest('[data-venice-sailing-shield]')) activateVeniceShield(); });
 document.addEventListener('keydown', event => { if (!veniceSailingGame.started || !document.body.classList.contains('app-section-account') || !canUseAutoScroll(event.target)) return; if (!['BracketLeft', 'BracketRight', 'Equal', 'Backquote'].includes(event.code)) return; event.preventDefault(); if (event.code === 'BracketLeft') moveVeniceSailingShip(-1); else if (event.code === 'BracketRight') moveVeniceSailingShip(1); else if (!event.repeat && event.code === 'Equal') fireVeniceCannon(); else if (!event.repeat) activateVeniceShield(); });
 function syncAuctionWaterfallControl() {
-  const head = stream?.querySelector('.auction-head');
-  if (!head || !auctionWaterfallAudio) return;
-  let control = head.querySelector('[data-auction-waterfall-sound]');
-  if (!control) {
-    control = document.createElement('button');
-    control.type = 'button';
-    control.className = 'auction-sound-control';
-    control.dataset.auctionWaterfallSound = '';
-    head.append(control);
-  }
-  const playing = !auctionWaterfallAudio.paused;
-  control.textContent = playing ? 'Waterfall sound · On' : 'Waterfall sound · Play';
-  control.setAttribute('aria-pressed', String(playing));
+  stream?.querySelector('[data-auction-waterfall-sound]')?.remove();
 }
-const siteThemeControl = document.querySelector('[data-site-theme-toggle]');
-const siteThemePlaylist = [
-  { name: 'Finding the Old Docks', src: '/public/finding-the-old-docks.mp3' },
-  { name: 'Waves in the Ionosphere', src: '/public/waves-in-the-ionosphere.mp3' }
-];
-function initializeSiteTheme() {
-  if (!siteThemeAudio || !siteThemeControl) return;
-  const status = siteThemeControl.querySelector('[data-site-theme-status]'); const action = siteThemeControl.querySelector('[data-site-theme-action]'); const name = siteThemeControl.querySelector('[data-site-theme-name]');
-  let activeTrack = Math.floor(Math.random() * siteThemePlaylist.length);
-  const setTrack = (index) => {
-    activeTrack = index;
-    const track = siteThemePlaylist[activeTrack];
-    siteThemeAudio.src = track.src;
-    if (name) name.textContent = track.name;
-    siteThemeAudio.load();
-  };
-  setTrack(activeTrack);
-  siteThemeAudio.muted = localStorage.getItem('collector-marketplace-theme-muted') === 'true';
-  const render = () => {
-    const paused = siteThemeAudio.paused; const muted = siteThemeAudio.muted;
-    if (status) status.textContent = paused ? '— Ready to play' : muted ? '— Muted' : '— Playing';
-    if (action) action.textContent = paused ? 'Play' : muted ? 'Unmute' : 'Mute';
-    siteThemeControl.classList.toggle('is-muted', muted || paused);
-    siteThemeControl.setAttribute('aria-label', paused ? 'Play site theme' : muted ? 'Unmute site theme' : 'Mute site theme');
-    siteThemeControl.setAttribute('aria-pressed', String(!paused && !muted));
-  };
-  const start = () => siteThemeAudio.play().then(render).catch(render);
-  const advanceTrack = () => {
-    const choices = siteThemePlaylist.map((_, index) => index).filter(index => index !== activeTrack);
-    setTrack(choices[Math.floor(Math.random() * choices.length)] ?? activeTrack);
-    start();
-  };
-  siteThemeAudio.addEventListener('play', render); siteThemeAudio.addEventListener('pause', render); siteThemeAudio.addEventListener('volumechange', render);
-  siteThemeAudio.addEventListener('ended', advanceTrack);
-  siteThemeControl.addEventListener('click', event => {
-    if (event.target.closest('[data-site-theme-skip]')) { advanceTrack(); return; }
-    if (siteThemeAudio.paused) { siteThemeAudio.muted = false; localStorage.setItem('collector-marketplace-theme-muted', 'false'); start(); return; }
-    siteThemeAudio.muted = !siteThemeAudio.muted; localStorage.setItem('collector-marketplace-theme-muted', String(siteThemeAudio.muted)); render();
-  });
-  // A browser may block sound before any interaction. The first ordinary tap
-  // starts the loop in that case; the control remains available either way.
-  window.addEventListener('pointerdown', () => { if (siteThemeAudio.paused) start(); }, { once: true, passive: true });
-  render(); start();
-}
-initializeSiteTheme();
 const savedBrowseMode = localStorage.getItem('collector-marketplace-browse-mode');
 let browseMode = ['conveyor', 'doomscroll', 'squared'].includes(savedBrowseMode) ? savedBrowseMode : 'conveyor', conveyorFrame = 0, conveyorTimer = 0;
 let metadataVisible = localStorage.getItem('collector-marketplace-metadata-visible') !== 'false';
@@ -684,8 +608,8 @@ const conveyorRocket = { node: null, frame: 0, x: 50, y: 76, vx: .055, vy: -.025
 const conveyorRocketGame = { layer: null, hud: null, started: false, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-star-run-high-score') || 0), hull: 3, asteroids: [], enemies: [], lasers: [], enemyLasers: [], lastAsteroid: 0, lastEnemy: 0, lastScore: 0, lastShot: 0, lastHit: 0 };
 const rocketControlCodes = new Set(['Equal', 'BracketLeft', 'BracketRight', 'ArrowLeft', 'ArrowRight', 'Backquote']);
 const pauseRocketBoost = () => { if (!rocketBoostAudio) return; rocketBoostAudio.pause(); rocketBoostAudio.currentTime = 0; };
-const playRocketBoost = () => { if (!rocketBoostAudio || !rocketBoostAudio.paused) return; rocketBoostAudio.volume = .46; rocketBoostAudio.play().catch(() => {}); };
-const playGameEffect = (source, volume = .5) => { if (!source?.src) return; const effect = new Audio(source.currentSrc || source.src); effect.volume = volume; effect.play().catch(() => {}); };
+const playRocketBoost = () => { if (!rocketBoostAudio || !rocketBoostAudio.paused || !soundEffectsEnabled()) return; rocketBoostAudio.volume = .46; rocketBoostAudio.play().catch(() => {}); };
+const playGameEffect = (source, volume = .5) => { if (!source?.src || !soundEffectsEnabled()) return; const effect = new Audio(source.currentSrc || source.src); effect.volume = volume; effect.play().catch(() => {}); };
 const rocketDistance = (first, second) => Math.hypot(first.x - second.x, first.y - second.y);
 const rocketRandom = (min, max) => min + Math.random() * (max - min);
 function startRocketGame(node) {
@@ -2091,11 +2015,11 @@ async function readLobbySong(file) {
 function mountLobbySong(profile, root = modalContent) {
   const song = String(profile?.lobbySong || ''); const hero = root?.querySelector('.profile-hero');
   if (!song || !hero || root.querySelector('.profile-lobby-song')) return;
-  hero.insertAdjacentHTML('afterend', `<section class="profile-lobby-song"><div><small>LOBBY SONG</small><b>@${safe(profile.username)}'s profile music</b><span>Plays when this collector profile opens.</span></div><button type="button" data-lobby-song-toggle aria-pressed="false">▶ Play song</button><audio preload="metadata" data-lobby-song src="${safe(song)}"></audio></section>`);
+  hero.insertAdjacentHTML('afterend', `<section class="profile-lobby-song"><div><small>PROFILE AUDIO</small><b>@${safe(profile.username)}'s optional track</b><span>Audio never starts automatically.</span></div><button type="button" data-lobby-song-toggle aria-pressed="false">▶ Preview</button><audio preload="metadata" data-lobby-song src="${safe(song)}"></audio></section>`);
   const audio = root.querySelector('[data-lobby-song]'); const button = root.querySelector('[data-lobby-song-toggle]');
   if (!audio || !button) return;
   const sync = () => { const playing = !audio.paused; button.textContent = playing ? '❚❚ Pause song' : '▶ Play song'; button.setAttribute('aria-pressed', String(playing)); };
-  audio.addEventListener('play', sync); audio.addEventListener('pause', sync); audio.play().catch(sync);
+  audio.addEventListener('play', sync); audio.addEventListener('pause', sync); sync();
 }
 const lastOnlineTimestamp = value => { const date = new Date(value || 0); return Number.isFinite(date.valueOf()) && date.valueOf() > 0 ? date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : 'Not recorded'; };
 async function openProfile(id) { if (!id) return; if (session?.user?.id === id) return openAccountPanel(); const routeId = beginWorkspaceRoute(); const profile = await api(`/user/${id}`); if (routeId !== workspaceRouteId) return; const following = Boolean(session?.user?.following?.includes(id)); openAppSection('account', `@${safe(profile.username)}`, `${safe(profile.bio || 'Collector profile')} · Reputation ${profile.reputation || 0}`, profileWorkspace(profile, { following })); stream.querySelector('.profile-hero > div')?.insertAdjacentHTML('beforeend', `<small class="profile-last-online">Last online: ${safe(lastOnlineTimestamp(profile.lastOnlineAt))}</small>`); stream.querySelector('.profile-summary')?.insertAdjacentHTML('beforeend', accountAwardsMarkup(profile)); mountLobbySong(profile, stream); }
