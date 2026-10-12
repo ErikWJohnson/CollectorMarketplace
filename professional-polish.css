@@ -516,18 +516,23 @@ dialog,
 /* Communities are a directory, not listing cards. Give Doomscroll a stable
    community grid so switching scopes never collapses or inherits feed sizing. */
 .browse-doomscroll .listing-stream:has(.collectives-directory-card) {
-  display: grid !important;
-  grid-template-columns: repeat(auto-fit, minmax(272px, 1fr));
-  gap: 14px;
+  display: flex !important;
+  align-items: stretch;
+  gap: 12px;
   width: min(1180px, calc(100% - (var(--browse-gutter) * 2)));
   margin: 0 auto;
   padding: 18px 0 calc(112px + env(safe-area-inset-bottom)) !important;
-  align-items: stretch;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
   background: transparent !important;
 }
 .browse-doomscroll .collectives-directory-card {
   display: grid !important;
   grid-template-rows: auto minmax(46px, 1fr) auto auto;
+  flex: 0 0 min(360px, 78vw);
+  width: min(360px, 78vw);
   min-height: 278px;
   gap: 12px;
   margin: 0 !important;
@@ -577,11 +582,10 @@ dialog,
 }
 @media (max-width: 700px) {
   .browse-doomscroll .listing-stream:has(.collectives-directory-card) {
-    grid-template-columns: 1fr;
     width: calc(100% - (var(--browse-gutter) * 2));
     padding-top: 12px !important;
   }
-  .browse-doomscroll .collectives-directory-card { min-height: 0; }
+  .browse-doomscroll .collectives-directory-card { flex-basis: 86vw; width: 86vw; min-height: 0; }
 }
 
 @media (max-width: 680px) {
