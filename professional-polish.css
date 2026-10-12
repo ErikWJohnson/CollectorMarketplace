@@ -128,6 +128,23 @@ a:focus-visible {
 }
 .header-signout[hidden] { display: none !important; }
 
+/* Keep the signed-in controls as a complete header unit.  Neither control is
+   allowed to collapse into a partial button when the navigation is crowded. */
+.masthead .header-account,
+.masthead .header-signout { flex: 0 0 auto; }
+.masthead .header-account:has(+ .header-signout:not([hidden])) {
+  margin-right: 0;
+  border-right-color: #2c3944 !important;
+  border-radius: 9px 0 0 9px;
+}
+.masthead .header-account + .header-signout {
+  margin-left: 0;
+  border-left: 0 !important;
+  border-radius: 0 9px 9px 0;
+}
+.masthead .header-account + .header-signout:hover,
+.masthead .header-account + .header-signout:focus-visible { border-left: 1px solid #d3796c !important; margin-left: -1px; }
+
 @media (min-width: 1000px) {
   /* Keep the action cluster clear of the viewport edge and visually grouped. */
   .masthead {
