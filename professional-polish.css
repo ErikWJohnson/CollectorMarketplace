@@ -146,14 +146,26 @@ a:focus-visible {
 .masthead .header-account + .header-signout:focus-visible { border-left: 1px solid #d3796c !important; margin-left: -1px; }
 
 @media (min-width: 1000px) {
-  /* Keep the action cluster clear of the viewport edge and visually grouped. */
+  /* Keep the action cluster inside the viewport rather than reserving a large
+     empty gutter to its right. */
   .masthead {
-    gap: 12px !important;
-    padding-right: clamp(78px, 6vw, 128px) !important;
+    gap: 8px !important;
+    padding-right: clamp(16px, 2vw, 36px) !important;
   }
   .masthead .header-nav { gap: 4px; }
-  .masthead .header-nav button { padding-inline: 9px; }
+  .masthead .header-nav button { padding-inline: 8px; }
   .header-sell { margin-left: 5px !important; }
+}
+
+@media (min-width: 681px) and (max-width: 1240px) {
+  .masthead { gap: 6px !important; padding-right: 14px !important; }
+  .masthead .header-nav { gap: 1px; }
+  .masthead .header-nav button { padding-inline: 6px; font-size: .52rem; }
+  .masthead .header-help { display: none; }
+  .header-sell { min-width: 0; padding-inline: 8px; }
+  .header-account { gap: 6px; padding-right: 6px; }
+  .header-account-identity { max-width: min(170px, 16vw); }
+  .header-signout { padding-inline: 8px; }
 }
 
 .site-theme-control {
