@@ -97,7 +97,7 @@ a:focus-visible {
 .header-account-mark img { width: 100%; height: 100%; object-fit: cover; }
 .header-account-identity { display: grid; min-width: 0; gap: 2px; text-align: left; }
 .header-account-identity small { color: #9baebb; font: 700 .48rem/1 "DM Mono", monospace; letter-spacing: .09em; text-transform: uppercase; }
-.header-account [data-header-account-label] { display: block; overflow: hidden; max-width: 108px; color: #f5f8fb; font: 800 .62rem/1 "DM Sans", sans-serif; letter-spacing: .01em; text-overflow: ellipsis; }
+.header-account [data-header-account-label] { display: block; max-width: none; overflow: visible; color: #f5f8fb; font: 800 .62rem/1 "DM Sans", sans-serif; letter-spacing: .01em; text-overflow: clip; }
 .header-account-chevron { color: #9db6c9; font-size: .9rem; line-height: 1; transform: translateY(-1px); }
 .header-account:hover,
 .header-account:focus-visible { border-color: #e4bd58 !important; background: linear-gradient(145deg, #203241, #151d25) !important; color: #fff !important; }
@@ -601,6 +601,7 @@ dialog,
   .header-account { order: initial; min-height: 36px; padding-right: 7px; gap: 6px; }
   .header-account-mark { flex-basis: 26px; width: 26px; height: 26px; }
   .header-account-identity small { display: none; }
+  .header-account [data-header-account-label] { max-width: 104px; overflow: hidden; text-overflow: ellipsis; }
   .search-scope { justify-content: flex-start !important; overflow-x: auto; flex-wrap: nowrap !important; padding-bottom: 7px !important; }
   .search-scope > section { flex: 0 0 auto; }
   .popular-tags,
