@@ -106,6 +106,7 @@ a:focus-visible {
 .header-account:hover .header-account-chevron,
 .header-account:focus-visible .header-account-chevron { color: #f3cb63; }
 .header-signout {
+  order: 10;
   align-self: center;
   min-height: 34px;
   margin-left: -2px;
