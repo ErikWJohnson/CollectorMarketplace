@@ -1532,6 +1532,17 @@ function renderAccountButton() {
     }
     headerButton.setAttribute('aria-label', username ? 'Open @' + username + '\'s account' : 'Create account');
   }
+  let headerSignout = document.querySelector('.header-signout[data-signout]');
+  if (!headerSignout && headerButton) {
+    headerSignout = document.createElement('button');
+    headerSignout.type = 'button';
+    headerSignout.className = 'header-signout';
+    headerSignout.dataset.signout = '';
+    headerSignout.setAttribute('aria-label', 'Sign out of your Collector Marketplace account');
+    headerSignout.textContent = 'Sign out';
+    headerButton.insertAdjacentElement('afterend', headerSignout);
+  }
+  if (headerSignout) headerSignout.hidden = !username;
   const dockButton = document.querySelector('.bottom-nav [data-account]');
   if (dockButton) {
     [...dockButton.childNodes].filter(node => node.nodeType === Node.TEXT_NODE).forEach(node => node.remove());

@@ -105,6 +105,28 @@ a:focus-visible {
 .header-account:focus-visible .header-account-mark { border-color: #e4bd58; color: #fff1bd; }
 .header-account:hover .header-account-chevron,
 .header-account:focus-visible .header-account-chevron { color: #f3cb63; }
+.header-signout {
+  align-self: center;
+  min-height: 34px;
+  margin-left: -2px;
+  border: 1px solid #465563 !important;
+  border-radius: 7px;
+  padding: 0 10px;
+  background: #121920 !important;
+  color: #b8c7d1 !important;
+  font: 800 .57rem/1 "DM Mono", monospace;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: border-color .16s ease, background .16s ease, color .16s ease;
+}
+.header-signout:hover,
+.header-signout:focus-visible {
+  border-color: #d3796c !important;
+  background: #2a1b20 !important;
+  color: #ffe1d7 !important;
+}
+.header-signout[hidden] { display: none !important; }
 
 @media (min-width: 1000px) {
   /* Keep the action cluster clear of the viewport edge and visually grouped. */
@@ -602,6 +624,7 @@ dialog,
   .header-account-mark { flex-basis: 26px; width: 26px; height: 26px; }
   .header-account-identity small { display: none; }
   .header-account [data-header-account-label] { max-width: 104px; overflow: hidden; text-overflow: ellipsis; }
+  .header-signout { min-height: 32px; padding-inline: 7px; font-size: .52rem; }
   .search-scope { justify-content: flex-start !important; overflow-x: auto; flex-wrap: nowrap !important; padding-bottom: 7px !important; }
   .search-scope > section { flex: 0 0 auto; }
   .popular-tags,
