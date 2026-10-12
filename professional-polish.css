@@ -646,3 +646,71 @@ dialog,
     white-space: nowrap !important;
   }
 }
+
+/* Browse mode readability.  Each view has a distinct canvas, but all primary
+   information keeps a deliberate high-contrast text hierarchy. */
+.browse-conveyor .listing,
+.browse-conveyor .square-listing-card,
+.browse-conveyor .social-directory-card,
+.browse-squared .listing,
+.browse-squared .square-listing-card,
+.browse-squared .social-directory-card {
+  color: #eaf2f7 !important;
+}
+.browse-conveyor .listing h2,
+.browse-conveyor .square-listing-card h2,
+.browse-conveyor .social-directory-card header b,
+.browse-squared .listing h2,
+.browse-squared .square-listing-card h2,
+.browse-squared .social-directory-card header b {
+  color: #f7fbff !important;
+  text-shadow: 0 1px 2px #000b;
+}
+.browse-conveyor .listing-copy p,
+.browse-conveyor .square-listing-meta,
+.browse-conveyor .square-listing-description,
+.browse-conveyor .social-directory-card p,
+.browse-conveyor .social-directory-card small,
+.browse-squared .listing-copy p,
+.browse-squared .square-listing-meta,
+.browse-squared .square-listing-description,
+.browse-squared .social-directory-card p,
+.browse-squared .social-directory-card small {
+  color: #cbd9e3 !important;
+}
+.browse-conveyor .collector-head small,
+.browse-conveyor .square-listing-copy > small,
+.browse-squared .collector-head small,
+.browse-squared .square-listing-copy > small {
+  color: #b6d2e4 !important;
+}
+
+html body.browse-doomscroll .listing,
+html body.browse-doomscroll .square-listing-card,
+html body.browse-doomscroll .social-directory-card {
+  color: #263541 !important;
+}
+html body.browse-doomscroll .listing h2,
+html body.browse-doomscroll .square-listing-card h2,
+html body.browse-doomscroll .social-directory-card header b {
+  color: #352437 !important;
+  text-shadow: none;
+}
+html body.browse-doomscroll .listing-copy p,
+html body.browse-doomscroll .square-listing-meta,
+html body.browse-doomscroll .square-listing-description,
+html body.browse-doomscroll .social-directory-card p,
+html body.browse-doomscroll .social-directory-card small {
+  color: #4e3b4a !important;
+}
+html body.browse-doomscroll .collector-head small,
+html body.browse-doomscroll .square-listing-copy > small {
+  color: #765262 !important;
+}
+
+.browse-conveyor .listing strong,
+.browse-conveyor .square-listing-card > .square-listing-copy > strong,
+.browse-squared .listing strong,
+.browse-squared .square-listing-card > .square-listing-copy > strong { color: #86dfae !important; }
+html body.browse-doomscroll .listing strong,
+html body.browse-doomscroll .square-listing-card > .square-listing-copy > strong { color: #176347 !important; }
