@@ -456,6 +456,63 @@ dialog,
   .popular-entity-rail > b { min-width: auto; }
 }
 
+/* Doomscroll uses the same collision-proof structure as Conveyor, but keeps
+   its warm light palette instead of inheriting the dark utility treatment. */
+@media (min-width: 761px) {
+  .browse-doomscroll { --utility-lane: 190px; }
+  .browse-doomscroll .app-shell > .doomscroll-utility-dock {
+    top: 106px !important;
+    left: max(var(--browse-gutter), calc((100% - var(--browse-content-width)) / 2)) !important;
+    display: grid !important;
+    gap: 8px !important;
+    width: 172px !important;
+    padding: 6px !important;
+    border: 1px solid #d78d86 !important;
+    border-radius: 9px;
+    background: linear-gradient(145deg, #fff2dceb, #ffd0bce8) !important;
+    box-shadow: 0 12px 30px #7b344d40 !important;
+  }
+  .browse-doomscroll .doomscroll-utility-dock > .puppy-game-hud,
+  .browse-doomscroll .doomscroll-utility-dock > #remove-tags {
+    width: 100% !important;
+    margin: 0 !important;
+  }
+  .browse-doomscroll .doomscroll-utility-dock > #remove-tags {
+    min-height: 36px !important;
+    border-color: #d28f86 !important;
+    border-radius: 5px;
+    background: #fff9ef !important;
+    color: #5e3a49 !important;
+  }
+  .browse-doomscroll .doomscroll-utility-dock > #remove-tags:hover,
+  .browse-doomscroll .doomscroll-utility-dock > #remove-tags:focus-visible {
+    border-color: #a94b61 !important;
+    background: #ffe1bd !important;
+    color: #48253a !important;
+  }
+  .browse-doomscroll .discovery.mode-search .search-mode-bar,
+  .browse-doomscroll .discovery.mode-search .search-scope {
+    width: min(940px, calc(100% - var(--utility-lane) - (var(--browse-gutter) * 2))) !important;
+    margin-right: auto !important;
+    margin-left: max(calc((100% - 940px) / 2), calc(var(--browse-gutter) + var(--utility-lane))) !important;
+  }
+  .browse-doomscroll .discovery.mode-tags .tag-search-layout { padding-top: 0 !important; }
+}
+
+@media (max-width: 760px) {
+  .browse-doomscroll .app-shell > .doomscroll-utility-dock {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    width: calc(100% - (var(--browse-gutter) * 2)) !important;
+    margin: 8px auto !important;
+    padding: 5px !important;
+    border: 1px solid #d78d86 !important;
+    border-radius: 8px;
+    background: #fff0d8e8 !important;
+  }
+}
+
 @media (max-width: 680px) {
   .masthead { min-height: 60px; }
   .header-account { order: initial; min-height: 32px; padding-right: 8px; }
