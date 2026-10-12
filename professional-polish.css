@@ -110,6 +110,7 @@ a:focus-visible {
 }
 
 .site-theme-control {
+  display: none !important;
   border-color: #405264 !important;
   background: #121a22 !important;
   box-shadow: 0 8px 24px #00000066 !important;

@@ -29,28 +29,12 @@ const gameAsteroidAudio = document.querySelector('#game-asteroid-audio');
 const gameSpaceshipExplosionAudio = document.querySelector('#game-spaceship-explosion-audio');
 const puppyJumpAudio = document.querySelector('#puppy-jump-audio');
 const puppyAngerAudio = document.querySelector('#puppy-anger-audio');
-const soundEffectsControl = document.querySelector('[data-site-theme-toggle]');
-const soundEffectsEnabled = () => localStorage.getItem('collector-marketplace-sound-effects-muted') !== 'true';
-const soundEffectSources = () => [auctionWaterfallAudio, jungleChatAudio, accountVeniceAudio, sellLavaAudio, gothicCheckoutAudio, auctionBlockPlaceAudio, auctionBlockClearAudio, rocketBoostAudio, gameLaserAudio, gameAsteroidAudio, gameSpaceshipExplosionAudio, puppyJumpAudio, puppyAngerAudio].filter(Boolean);
-const stopSoundEffects = () => soundEffectSources().forEach(audio => { audio.pause(); audio.currentTime = 0; });
-const syncSoundEffectsControl = () => {
-  if (!soundEffectsControl) return;
-  const enabled = soundEffectsEnabled();
-  soundEffectsControl.classList.toggle('is-muted', !enabled);
-  soundEffectsControl.setAttribute('aria-label', enabled ? 'Turn off sound effects' : 'Turn on sound effects');
-  soundEffectsControl.setAttribute('aria-pressed', String(enabled));
-  soundEffectsControl.innerHTML = `<span class="site-theme-icon" aria-hidden="true">${enabled ? '◖' : '◌'}</span><span><b>Sound effects</b><small>${enabled ? '— On' : '— Off'}</small></span><i>${enabled ? 'Mute' : 'Enable'}</i>`;
-};
-const setSoundEffectsEnabled = enabled => {
-  localStorage.setItem('collector-marketplace-sound-effects-muted', String(!enabled));
-  if (!enabled) stopSoundEffects();
-  syncSoundEffectsControl();
-};
-soundEffectsControl?.addEventListener('click', () => setSoundEffectsEnabled(!soundEffectsEnabled()));
-syncSoundEffectsControl();
+// Browsing is intentionally silent. These effects are only invoked by the
+// mini-game input and collision handlers below.
+document.querySelector('[data-site-theme-toggle]')?.remove();
+const soundEffectsEnabled = () => true;
 const startAuctionWaterfall = () => {
-  // Ambient music is intentionally disabled site-wide. Gameplay effects use
-  // the global Sound effects switch instead.
+  // Ambient music is intentionally disabled site-wide.
   stopAuctionWaterfall();
 };
 const stopAuctionWaterfall = () => {
