@@ -602,3 +602,37 @@ dialog,
   .social-directory-card,
   .square-listing-card { border-radius: 9px !important; }
 }
+
+/* Keep the Communities scope controls at the same hierarchy as the other
+   search categories.  Its three actions need a slightly wider column than
+   Marketplace, People, or Services, otherwise Live Rooms drops to a second
+   line in Doomscroll mode. */
+@media (min-width: 761px) {
+  html body.browse-doomscroll .search-scope {
+    grid-template-columns: minmax(150px, .9fr) minmax(150px, .9fr) minmax(310px, 1.65fr) minmax(150px, .9fr) !important;
+    width: min(1180px, calc(100% - (var(--browse-gutter) * 2))) !important;
+  }
+  html body.browse-doomscroll .search-scope > section:nth-child(3) > div {
+    flex-wrap: nowrap !important;
+  }
+  html body.browse-doomscroll .search-scope > section:nth-child(3) button {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    padding-inline: clamp(6px, .8vw, 10px) !important;
+    font-size: clamp(.56rem, .9vw, .72rem) !important;
+    white-space: nowrap !important;
+  }
+}
+
+@media (max-width: 760px) {
+  html body.browse-doomscroll .search-scope > section:nth-child(3) > div {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  html body.browse-doomscroll .search-scope > section:nth-child(3) button {
+    min-width: 0 !important;
+    padding-inline: 4px !important;
+    font-size: .56rem !important;
+    white-space: nowrap !important;
+  }
+}
