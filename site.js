@@ -1516,7 +1516,20 @@ function renderAccountButton() {
   const headerButton = document.querySelector('.header-account[data-account]');
   if (headerButton) {
     const label = headerButton.querySelector('[data-header-account-label]');
-    if (label) label.textContent = username ? `@${username}` : 'Account';
+    const status = headerButton.querySelector('[data-header-account-status]');
+    const avatar = headerButton.querySelector('[data-header-account-avatar]');
+    const image = String(session?.user?.avatar || '').trim();
+    if (label) label.textContent = username ? `@${username}` : 'Sign in';
+    if (status) status.textContent = username ? 'My account' : 'Collector account';
+    if (avatar) {
+      avatar.replaceChildren();
+      if (/^(https?:\/\/|data:image\/)/i.test(image)) {
+        const profileImage = document.createElement('img');
+        profileImage.src = image;
+        profileImage.alt = '';
+        avatar.append(profileImage);
+      } else avatar.textContent = String(image || username || 'CM').slice(0, 2).toUpperCase();
+    }
     headerButton.setAttribute('aria-label', username ? 'Open @' + username + '\'s account' : 'Create account');
   }
   const dockButton = document.querySelector('.bottom-nav [data-account]');
