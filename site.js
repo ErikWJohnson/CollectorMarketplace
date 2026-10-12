@@ -1081,7 +1081,7 @@ function syncBrowseModeUi() {
   // these controls on the shell so their fixed positioning never scrolls away.
   const dockHost = document.querySelector('.app-shell');
   if (conveyor) {
-    if (!utilityDock) { utilityDock = document.createElement('aside'); utilityDock.className = 'conveyor-utility-dock'; }
+    if (!utilityDock) { utilityDock = document.createElement('aside'); utilityDock.className = 'conveyor-utility-dock'; utilityDock.setAttribute('aria-label', 'Browse tools'); }
     dockHost?.append(utilityDock);
     if (!gameHud) { gameHud = document.createElement('aside'); gameHud.className = 'rocket-game-hud'; gameHud.setAttribute('aria-live', 'off'); }
     utilityDock.append(gameHud);
@@ -1099,7 +1099,7 @@ function syncBrowseModeUi() {
   let puppyHud = document.querySelector('.puppy-game-hud');
   let doomUtilityDock = document.querySelector('.doomscroll-utility-dock');
   if (doomscrollGame) {
-    if (!doomUtilityDock) { doomUtilityDock = document.createElement('aside'); doomUtilityDock.className = 'doomscroll-utility-dock'; }
+    if (!doomUtilityDock) { doomUtilityDock = document.createElement('aside'); doomUtilityDock.className = 'doomscroll-utility-dock'; doomUtilityDock.setAttribute('aria-label', 'Browse tools'); }
     dockHost?.append(doomUtilityDock);
     if (!puppyHud) { puppyHud = document.createElement('aside'); puppyHud.className = 'puppy-game-hud'; puppyHud.setAttribute('aria-live', 'off'); }
     doomUtilityDock.append(puppyHud);

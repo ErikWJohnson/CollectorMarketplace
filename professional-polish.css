@@ -714,3 +714,79 @@ html body.browse-doomscroll .square-listing-copy > small {
 .browse-squared .square-listing-card > .square-listing-copy > strong { color: #86dfae !important; }
 html body.browse-doomscroll .listing strong,
 html body.browse-doomscroll .square-listing-card > .square-listing-copy > strong { color: #176347 !important; }
+
+/* Browse tools occupy a dedicated left rail below the browse tabs.  They are
+   separate from search, tags, and filters so the game launcher and tag reset
+   never cover marketplace controls. */
+@media (min-width: 761px) {
+  .browse-conveyor .app-shell > .conveyor-utility-dock,
+  .browse-doomscroll .app-shell > .doomscroll-utility-dock {
+    top: 112px !important;
+    z-index: 60 !important;
+    width: 180px !important;
+    gap: 7px !important;
+    padding: 7px !important;
+    isolation: isolate;
+  }
+  .browse-conveyor .app-shell > .conveyor-utility-dock {
+    border-color: #436176 !important;
+    background: linear-gradient(150deg, #0a1620f5, #101a22f2) !important;
+  }
+  .browse-doomscroll .app-shell > .doomscroll-utility-dock {
+    border-color: #d5837f !important;
+    background: linear-gradient(150deg, #fff3dff5, #ffd1baf2) !important;
+  }
+  .browse-conveyor .conveyor-utility-dock::before,
+  .browse-doomscroll .doomscroll-utility-dock::before {
+    content: "BROWSE TOOLS";
+    padding: 1px 3px 3px;
+    font: 800 .55rem/1 "DM Mono", monospace;
+    letter-spacing: .13em;
+  }
+  .browse-conveyor .conveyor-utility-dock::before { color: #8fcce9; }
+  .browse-doomscroll .doomscroll-utility-dock::before { color: #924858; }
+  .browse-conveyor .conveyor-utility-dock > .rocket-game-hud,
+  .browse-doomscroll .doomscroll-utility-dock > .puppy-game-hud {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    order: 1;
+    width: 100% !important;
+    min-height: 58px;
+    padding: 8px !important;
+  }
+  .browse-conveyor .conveyor-utility-dock > #remove-tags,
+  .browse-doomscroll .doomscroll-utility-dock > #remove-tags {
+    order: 2;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px !important;
+    font: 800 .62rem/1 "DM Mono", monospace;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+  }
+}
+
+@media (max-width: 760px) {
+  .browse-conveyor .app-shell > .conveyor-utility-dock,
+  .browse-doomscroll .app-shell > .doomscroll-utility-dock {
+    top: 108px !important;
+    left: var(--browse-gutter) !important;
+    z-index: 60 !important;
+    width: min(172px, calc(100% - (var(--browse-gutter) * 2))) !important;
+    gap: 5px !important;
+    padding: 5px !important;
+  }
+  .browse-conveyor .conveyor-utility-dock::before,
+  .browse-doomscroll .doomscroll-utility-dock::before { display: none; }
+  .browse-conveyor .conveyor-utility-dock > .rocket-game-hud,
+  .browse-doomscroll .doomscroll-utility-dock > .puppy-game-hud {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    width: 100% !important;
+  }
+  .browse-conveyor .conveyor-utility-dock > #remove-tags,
+  .browse-doomscroll .doomscroll-utility-dock > #remove-tags { width: 100% !important; }
+}
