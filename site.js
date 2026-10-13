@@ -15,7 +15,7 @@ const priceMax = document.querySelector('#price-max');
 const sentinel = document.querySelector('#sentinel');
 const modal = document.querySelector('#modal');
 const modalContent = document.querySelector('#modal-content');
-let listings = [], auctions = [], accounts = [], collectives = [], brands = [], couriers = [], chatrooms = [], deliveries = [], uploadedListingImages = [], uploadedListingVideos = [], activeCategory = 'All', activeQuery = '', activeTags = [], searchScope = 'listings', sortMode = 'popular', marketMode = localStorage.getItem('collector-marketplace-mode') || 'all', page = 1, observer, searchRenderTimer, auctionClock;
+let listings = [], auctions = [], accounts = [], galleries = [], collectives = [], brands = [], couriers = [], chatrooms = [], deliveries = [], uploadedListingImages = [], uploadedListingVideos = [], activeCategory = 'All', activeQuery = '', activeTags = [], searchScope = 'listings', sortMode = 'popular', marketMode = localStorage.getItem('collector-marketplace-mode') || 'all', page = 1, observer, searchRenderTimer, auctionClock;
 const auctionWaterfallAudio = document.querySelector('#auction-waterfall-audio');
 const jungleChatAudio = document.querySelector('#jungle-chat-audio');
 const accountVeniceAudio = document.querySelector('#account-venice-audio');
@@ -282,9 +282,10 @@ const savedBrowseMode = localStorage.getItem('collector-marketplace-browse-mode'
 let browseMode = ['conveyor', 'doomscroll', 'squared'].includes(savedBrowseMode) ? savedBrowseMode : 'conveyor', conveyorFrame = 0, conveyorTimer = 0;
 let metadataVisible = localStorage.getItem('collector-marketplace-metadata-visible') !== 'false';
 // Keep comma/period keyboard navigation in the same order as the visible scope bar.
-const searchScopes = ['listings', 'accounts', 'collectives', 'brands', 'chatrooms', 'couriers'];
+const searchScopes = ['listings', 'accounts', 'galleries', 'collectives', 'brands', 'chatrooms', 'couriers'];
 const socialScopeMeta = {
   listings: { heading: 'Fresh drops', noun: 'listing' }, accounts: { heading: 'Collector network', noun: 'collector' },
+  galleries: { heading: 'Public collector galleries', noun: 'gallery' },
   collectives: { heading: 'Collector groups', noun: 'group' }, brands: { heading: 'Brand communities', noun: 'brand' },
   couriers: { heading: 'Delivery network', noun: 'service' }, chatrooms: { heading: 'Live collector rooms', noun: 'room' }
 };
@@ -292,13 +293,23 @@ const setSearchScope = (scope, syncRoute = true) => {
   if (!searchScopes.includes(scope)) return;
   searchScope = scope;
   document.querySelectorAll('[data-search-scope]').forEach(button => button.classList.toggle('active', button.dataset.searchScope === searchScope));
-  search.placeholder = searchScope === 'listings' ? 'Search collector finds' : searchScope === 'accounts' ? 'Find collectors by name or interest' : searchScope === 'collectives' ? 'Find collector groups and interests' : searchScope === 'brands' ? 'Find brands and their communities' : searchScope === 'couriers' ? 'Find collector-friendly delivery services' : 'Find live collector rooms';
+  search.placeholder = searchScope === 'listings' ? 'Search collector finds' : searchScope === 'accounts' ? 'Find collectors by name or interest' : searchScope === 'galleries' ? 'Find public collector galleries' : searchScope === 'collectives' ? 'Find collector groups and interests' : searchScope === 'brands' ? 'Find brands and their communities' : searchScope === 'couriers' ? 'Find collector-friendly delivery services' : 'Find live collector rooms';
   const marketHeading = document.querySelector('.market-head span');
   if (marketHeading) marketHeading.textContent = socialScopeMeta[searchScope].heading;
   syncBrowseModeUi();
   renderFeed();
   if (syncRoute && typeof syncTagRoute === 'function') syncTagRoute();
 };
+const ensureGalleryScopeControl = () => {
+  const peopleControls = document.querySelector('.search-scope > section:nth-child(2) > div');
+  if (!peopleControls || peopleControls.querySelector('[data-search-scope="galleries"]')) return;
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.dataset.searchScope = 'galleries';
+  button.textContent = 'Galleries';
+  peopleControls.append(button);
+};
+ensureGalleryScopeControl();
 let activeAuctionId = null, auctionActivity = [], auctionFeedClock, auctionFeedPausedUntil = 0;
 let postState = {};
 try { postState = JSON.parse(localStorage.getItem('collector-marketplace-post-state') || '{}'); } catch { postState = {}; }
@@ -1680,15 +1691,15 @@ const filtered = () => {
   });
 };
 const alternatePromotedListings = rows => { const promoted = rows.filter(item => item.promotion?.status === 'active').sort((left, right) => Number(right.promotion?.dailyBudget || 0) - Number(left.promotion?.dailyBudget || 0)); const regular = rows.filter(item => item.promotion?.status !== 'active'); const ordered = []; while (promoted.length || regular.length) { if (promoted.length) ordered.push(promoted.shift()); if (regular.length) ordered.push(regular.shift()); } return ordered; };
-const directoryItemTags = (item, type) => type === 'accounts' ? [...new Set([...listings.filter(listing => listing.ownerId === item.id).flatMap(listingTags), ...(item.profileTags || [])].map(tag => String(tag).toLowerCase()))] : (item.tags || []).map(tag => String(tag).toLowerCase());
+const directoryItemTags = (item, type) => type === 'accounts' ? [...new Set([...listings.filter(listing => listing.ownerId === item.id).flatMap(listingTags), ...(item.profileTags || [])].map(tag => String(tag).toLowerCase()))] : type === 'galleries' ? [...new Set([...(item.tags || []), item.owner?.username || ''].map(tag => String(tag).toLowerCase()).filter(Boolean))] : (item.tags || []).map(tag => String(tag).toLowerCase());
 const tagsMatchDirectory = itemTags => {
   const matches = terms => !terms.length || (tagMatchMode === 'all' ? terms.every(term => itemTags.some(tag => tag.includes(term))) : terms.some(term => itemTags.some(tag => tag.includes(term))));
   return matches(activeTags) && matches(searchedTagTerms()) && lockedTags.every(tag => itemTags.some(itemTag => itemTag.includes(tag))) && !voidTags.some(tag => itemTags.some(itemTag => itemTag.includes(tag)));
 };
 const filteredDirectory = () => {
-  const source = searchScope === 'accounts' ? accounts : searchScope === 'brands' ? brands : searchScope === 'couriers' ? couriers : searchScope === 'chatrooms' ? chatrooms : collectives;
+  const source = searchScope === 'accounts' ? accounts : searchScope === 'galleries' ? galleries : searchScope === 'brands' ? brands : searchScope === 'couriers' ? couriers : searchScope === 'chatrooms' ? chatrooms : collectives;
   const query = activeQuery.toLowerCase();
-  return source.filter(item => `${item.username || ''} ${item.name || ''} ${item.bio || ''} ${item.description || ''} ${item.category || ''} ${(item.tags || []).join(' ')}`.toLowerCase().includes(query) && tagsMatchDirectory(directoryItemTags(item, searchScope)));
+  return source.filter(item => `${item.username || ''} ${item.name || ''} ${item.title || ''} ${item.owner?.username || ''} ${item.bio || ''} ${item.description || ''} ${item.category || ''} ${(item.tags || []).join(' ')}`.toLowerCase().includes(query) && tagsMatchDirectory(directoryItemTags(item, searchScope)));
 };
 const stateFor = id => postState[id] || (postState[id] = { score: 0, vote: 0, comments: [] });
 const savePostState = () => localStorage.setItem('collector-marketplace-post-state', JSON.stringify(postState));
@@ -1812,19 +1823,22 @@ function renderAudienceTags() { audienceTags.innerHTML = audienceTagOptions.map(
 const socialActions = (item, type) => {
   const id = safe(item.id); const name = safe(item.username || item.name || 'collector');
   if (type === 'accounts') { const own = session?.user?.id === item.id; const following = session?.user?.following?.includes(item.id); return `<div class="directory-actions"><button type="button" data-directory-page="accounts" data-directory-id="${id}">${own ? 'Your profile' : 'View profile'}</button>${own ? '' : `<button type="button" data-follow="${id}">${following ? 'Following' : 'Follow'}</button><button type="button" data-collector-chat="${id}">Message</button>`}<button type="button" class="directory-primary" data-community="accounts" data-community-id="${id}" data-community-label="@${name}">Discuss</button></div>`; }
+  if (type === 'galleries') return `<div class="directory-actions"><button type="button" class="directory-primary" data-directory-page="accounts" data-directory-id="${safe(item.owner?.id || '')}">View @${safe(item.owner?.username || 'collector')}</button></div>`;
   if (type === 'collectives') return `<div class="directory-actions"><button type="button" class="directory-primary" data-community="collectives" data-community-id="${id}" data-community-label="${name}">Open group</button></div>`;
   if (type === 'chatrooms') return `<div class="directory-actions"><button type="button" data-community="chatrooms" data-community-id="${id}" data-community-label="${name}">Discuss</button><button type="button" class="directory-primary" data-chatroom="${id}" data-chatroom-label="${name}">Join live room</button></div>`;
   if (type === 'couriers') return `<div class="directory-actions"><button type="button" class="directory-primary" data-directory-page="couriers" data-directory-id="${id}">View service</button></div>`;
   return `<div class="directory-actions"><button type="button" data-directory-page="${safe(type)}" data-directory-id="${id}">View community</button><button type="button" class="directory-primary" data-community="${safe(type)}" data-community-id="${id}" data-community-label="${name}">Discuss</button></div>`;
 };
 const directoryCard = (item, type, conveyorCopy = false) => {
-  const label = type === 'accounts' ? 'Collector' : type === 'collectives' ? 'Group' : type === 'chatrooms' ? 'Live room' : type === 'couriers' ? 'Delivery service' : 'Brand community';
-  const title = type === 'accounts' ? `@${safe(item.username)}` : safe(item.name);
-  const description = safe(item.bio || item.description || 'Collector community');
-  const stats = type === 'accounts' ? `${Number(item.activeListingCount || 0)} posts · ${Number(item.followingCount || 0)} following · ${Number(item.reputation || 0)} reputation` : type === 'collectives' ? `${Number(item.memberCount || 0)} real member${Number(item.memberCount || 0) === 1 ? '' : 's'} · ${Number(item.postCount || 0)} posts` : type === 'chatrooms' ? `${Number(item.postCount || 0)} posts · ${Number(item.contributorCount || 0)} contributors` : type === 'couriers' ? safe(item.category || 'Courier') : `${Number(item.members || 0).toLocaleString()} members${item.postCount !== undefined ? ` · ${Number(item.postCount || 0)} posts` : ''}`;
+  const isGallery = type === 'galleries';
+  const label = type === 'accounts' ? 'Collector' : isGallery ? 'Public gallery' : type === 'collectives' ? 'Group' : type === 'chatrooms' ? 'Live room' : type === 'couriers' ? 'Delivery service' : 'Brand community';
+  const title = type === 'accounts' ? `@${safe(item.username)}` : isGallery ? safe(item.title) : safe(item.name);
+  const description = safe(item.bio || item.description || (isGallery ? `A public collection by @${item.owner?.username || 'collector'}` : 'Collector community'));
+  const stats = type === 'accounts' ? `${Number(item.activeListingCount || 0)} posts · ${Number(item.followingCount || 0)} following · ${Number(item.reputation || 0)} reputation` : isGallery ? `${Number(item.items?.length || 0)} public item${Number(item.items?.length || 0) === 1 ? '' : 's'} · @${safe(item.owner?.username || 'collector')}` : type === 'collectives' ? `${Number(item.memberCount || 0)} real member${Number(item.memberCount || 0) === 1 ? '' : 's'} · ${Number(item.postCount || 0)} posts` : type === 'chatrooms' ? `${Number(item.postCount || 0)} posts · ${Number(item.contributorCount || 0)} contributors` : type === 'couriers' ? safe(item.category || 'Courier') : `${Number(item.members || 0).toLocaleString()} members${item.postCount !== undefined ? ` · ${Number(item.postCount || 0)} posts` : ''}`;
   const itemTags = type === 'accounts' ? item.profileTags || [] : item.tags || [];
-  const avatar = type === 'accounts' ? accountAvatar(item, 'directory-account-avatar') : '';
-  return `<article class="search-directory-card social-directory-card ${safe(type)}-directory-card${type === 'accounts' ? ' collector-directory-card' : ''}"${conveyorCopy ? ' data-conveyor-copy="true"' : ''}>${avatar}<header><span>${label}</span><b>${title}</b></header><p>${description}</p><small>${stats}</small>${itemTags.length ? `<div class="directory-tags">${itemTags.slice(0, 4).map(tag => `<button type="button" data-tag="${safe(tag)}">#${safe(tag)}</button>`).join('')}</div>` : ''}${socialActions(item, type)}</article>`;
+  const avatar = type === 'accounts' ? accountAvatar(item, 'directory-account-avatar') : isGallery ? accountAvatar(item.owner || { username: 'collector' }, 'directory-account-avatar') : '';
+  const galleryPreview = isGallery && item.items?.length ? `<div class="gallery-directory-preview">${item.items.slice(0, 3).map(listing => `<img src="${safe(listing.images?.[0] || listing.image || '')}" alt="${safe(listing.title || 'Gallery item')}" loading="lazy">`).join('')}</div>` : '';
+  return `<article class="search-directory-card social-directory-card ${safe(type)}-directory-card${type === 'accounts' ? ' collector-directory-card' : ''}"${conveyorCopy ? ' data-conveyor-copy="true"' : ''}>${avatar}<header><span>${label}</span><b>${title}</b></header>${galleryPreview}<p>${description}</p><small>${stats}</small>${itemTags.length ? `<div class="directory-tags">${itemTags.slice(0, 4).map(tag => `<button type="button" data-tag="${safe(tag)}">#${safe(tag)}</button>`).join('')}</div>` : ''}${socialActions(item, type)}</article>`;
 };
 const canRenderBrowseFeed = () => !document.body.classList.contains('app-section-mode') && !document.body.classList.contains('auction-mode') && !modal.open;
 function renderFeed(reset = true) {
@@ -3006,7 +3020,7 @@ async function handleGoogleLoginResult() {
   await loadDeliveries();
   openAccountPanel();
 }
-Promise.all([loadMarket(), Promise.all([fetch('data/auctions.json').then(response => response.json()), fetch('/auctions').then(response => response.ok ? response.json() : [])]), fetch('/users').then(response => response.ok ? response.json() : []), fetch('/collectives').then(response => response.ok ? response.json() : []), fetch('/brands').then(response => response.ok ? response.json() : []), fetch('/couriers').then(response => response.ok ? response.json() : []), fetch('/chatrooms').then(response => response.ok ? response.json() : [])]).then(async ([, [featuredLots, userLots], accountDirectory, collectiveDirectory, brandDirectory, courierDirectory, chatroomDirectory]) => { accounts = accountDirectory; collectives = collectiveDirectory; brands = brandDirectory; couriers = courierDirectory; chatrooms = chatroomDirectory; auctions = [...featuredLots, ...userLots].map(lot => { const [hours = 0, minutes = 0, seconds = 0] = String(lot.ends || '').split(':').map(Number); const configuredEnd = lot.endAt ? new Date(lot.endAt).valueOf() : 0; return { ...lot, endAt: lot.auctionEndless ? Infinity : Number.isFinite(configuredEnd) && configuredEnd > Date.now() ? configuredEnd : Date.now() + ((hours * 3600 + minutes * 60 + seconds) * 1000) }; }); applyTagRoute(); applyHashLocation(); observer = new IntersectionObserver(entries => { if (entries[0].isIntersecting && browseMode === 'doomscroll' && page * 4 < filtered().length) { page++; renderFeed(false); } }, { rootMargin: '250px' }); observer.observe(sentinel); await handlePayPalCheckoutResult(); await handleGoogleLoginResult(); }).catch(() => { stream.innerHTML = '<p class="load-state">The marketplace feed could not load. Please refresh the page.</p>'; });
+Promise.all([loadMarket(), Promise.all([fetch('data/auctions.json').then(response => response.json()), fetch('/auctions').then(response => response.ok ? response.json() : [])]), fetch('/users').then(response => response.ok ? response.json() : []), fetch('/galleries').then(response => response.ok ? response.json() : []), fetch('/collectives').then(response => response.ok ? response.json() : []), fetch('/brands').then(response => response.ok ? response.json() : []), fetch('/couriers').then(response => response.ok ? response.json() : []), fetch('/chatrooms').then(response => response.ok ? response.json() : [])]).then(async ([, [featuredLots, userLots], accountDirectory, galleryDirectory, collectiveDirectory, brandDirectory, courierDirectory, chatroomDirectory]) => { accounts = accountDirectory; galleries = galleryDirectory; collectives = collectiveDirectory; brands = brandDirectory; couriers = courierDirectory; chatrooms = chatroomDirectory; auctions = [...featuredLots, ...userLots].map(lot => { const [hours = 0, minutes = 0, seconds = 0] = String(lot.ends || '').split(':').map(Number); const configuredEnd = lot.endAt ? new Date(lot.endAt).valueOf() : 0; return { ...lot, endAt: lot.auctionEndless ? Infinity : Number.isFinite(configuredEnd) && configuredEnd > Date.now() ? configuredEnd : Date.now() + ((hours * 3600 + minutes * 60 + seconds) * 1000) }; }); applyTagRoute(); applyHashLocation(); observer = new IntersectionObserver(entries => { if (entries[0].isIntersecting && browseMode === 'doomscroll' && page * 4 < filtered().length) { page++; renderFeed(false); } }, { rootMargin: '250px' }); observer.observe(sentinel); await handlePayPalCheckoutResult(); await handleGoogleLoginResult(); }).catch(() => { stream.innerHTML = '<p class="load-state">The marketplace feed could not load. Please refresh the page.</p>'; });
 refreshPlatformWorldwideHighScores();
 setInterval(updateLiveAuctionRailClocks, 1000);
 function galleryWorkspaceMarkup(profile, own = false) {

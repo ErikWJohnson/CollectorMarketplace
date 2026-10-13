@@ -408,6 +408,17 @@ html body.browse-conveyor #sentinel {
   }
 }
 
+/* Public gallery discovery lives alongside collector search without crowding the
+   People group.  Previews deliberately show only public, active listings. */
+.galleries-directory-card { overflow: hidden; }
+.gallery-directory-preview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; margin: 8px 0; }
+.gallery-directory-preview img { width: 100%; aspect-ratio: 1 / .72; object-fit: cover; border: 1px solid #4f7188; border-radius: 4px; background: #0a1016; }
+.browse-doomscroll .gallery-directory-preview img { border-color: #d4837a; background: #ffead9; }
+@media (min-width: 761px) {
+  html body.browse-doomscroll .search-scope > section:nth-child(2) > div { flex-wrap: nowrap !important; }
+  html body.browse-doomscroll .search-scope > section:nth-child(2) button { flex: 1 1 0 !important; min-width: 0 !important; padding-inline: clamp(5px, .65vw, 9px) !important; font-size: clamp(.53rem, .82vw, .69rem) !important; white-space: nowrap !important; }
+}
+
 /* Premium browse finish. Scoped to the browsing canvases so the themed
    account, chat, sell, auction, and checkout worlds keep their identity. */
 .browse-conveyor .discovery,

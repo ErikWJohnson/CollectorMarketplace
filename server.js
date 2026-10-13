@@ -272,7 +272,7 @@ function publicGalleries(user, includePrivate = false) {
     items: (gallery.listingIds || []).map(listingId => visibleListings.get(listingId)).filter(Boolean)
   })).filter(gallery => gallery.items.length);
 }
-function directoryUser(user) { if (!user) return null; const { password, email, following, shippingProfile, lobbySong, grandCurator, ...safe } = user; return safe; }
+function directoryUser(user) { if (!user) return null; const { password, email, following, shippingProfile, lobbySong, galleries, grandCurator, ...safe } = user; return safe; }
 function touchUserLastOnline(user) { if (!user) return false; const previous = new Date(user.lastOnlineAt || 0).valueOf(); if (Number.isFinite(previous) && Date.now() - previous < 30 * 1000) return false; user.lastOnlineAt = now(); return true; }
 function currentUser(req) { const token = req.headers.authorization?.replace('Bearer ', ''); const tokenHash = sessionTokenHash(token); const session = (store.data.sessions || []).find(entry => entry.tokenHash === tokenHash); if (!session || session.expiresAt < Date.now()) { if (session) { store.data.sessions = store.data.sessions.filter(entry => entry !== session); store.save(); } return null; } const user = store.data.users.find(entry => entry.id === session.userId) || null; if (touchUserLastOnline(user)) store.save(); return user; }
 function uniqueListingVisitor(req, metric) { const user = currentUser(req); const deviceId = String(req.get('X-Device-Id') || '').trim(); const identity = user ? `account:${user.id}` : deviceId.length >= 20 && deviceId.length <= 200 ? `device:${deviceId}` : ''; if (!identity) return ''; return crypto.createHash('sha256').update(`${metric}:${identity}`).digest('hex'); }
@@ -517,6 +517,14 @@ const listingStatistics = (listing, includePrivateAudience = false) => { const v
 app.get('/user/:id/listings', required, (req, res) => { if (req.user.id !== req.params.id) return res.status(403).json({ error: 'Not allowed' }); const rows = store.data.listings.filter(listing => listing.ownerId === req.user.id).map(listing => ({ ...publicListing(listing), owner: publicUser(req.user), likeCount: Array.isArray(listing.likes) ? listing.likes.length : 0, commentCount: store.data.comments.filter(comment => comment.listingId === listing.id).length, statistics: listingStatistics(listing, true) })); res.json(rows); });
 app.get('/users/suggestions', required, (req, res) => { const excluded = new Set([req.user.id, ...req.user.following]); const users = store.data.users.filter(user => !excluded.has(user.id)).sort((a, b) => (b.reputation || 0) - (a.reputation || 0) || a.username.localeCompare(b.username)).slice(0, 8).map(user => ({ ...publicUser(user), activeListingCount: store.data.listings.filter(listing => listing.ownerId === user.id && listing.status === 'active').length })); res.json(users); });
 app.get('/users', (req, res) => res.json(store.data.users.map(user => ({ ...directoryUser(user), activeListingCount: store.data.listings.filter(listing => listing.ownerId === user.id && listing.status === 'active').length, followingCount: Array.isArray(user.following) ? user.following.length : 0 }))));
+app.get('/galleries', (req, res) => {
+  const galleries = store.data.users.flatMap(user => publicGalleries(user, false).map(gallery => ({
+    ...gallery,
+    owner: { id: user.id, username: user.username, avatar: user.avatar || '', reputation: Number(user.reputation || 0) },
+    tags: [...new Set(gallery.items.flatMap(item => Array.isArray(item.tags) ? item.tags : []))].slice(0, 12)
+  })));
+  res.json(galleries);
+});
 const raffleImageValid = value => !value || /^https:\/\//i.test(value) || /^data:image\/(jpeg|png|webp);base64,[a-z0-9+/=]+$/i.test(value);
 function settleRaffle(raffle) {
   if (raffle.status !== 'open' || new Date(raffle.endsAt).valueOf() > Date.now()) return false;
