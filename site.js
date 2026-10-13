@@ -280,7 +280,8 @@ function syncAuctionWaterfallControl() {
 }
 const savedBrowseMode = localStorage.getItem('collector-marketplace-browse-mode');
 let browseMode = ['conveyor', 'doomscroll', 'squared'].includes(savedBrowseMode) ? savedBrowseMode : 'conveyor', conveyorFrame = 0, conveyorTimer = 0;
-let metadataVisible = localStorage.getItem('collector-marketplace-metadata-visible') !== 'false';
+// Keep the browse canvas focused on first visit; only persist an explicit user choice.
+let metadataVisible = localStorage.getItem('collector-marketplace-metadata-visible') === 'true';
 // Keep comma/period keyboard navigation in the same order as the visible scope bar.
 const searchScopes = ['listings', 'accounts', 'galleries', 'collectives', 'brands', 'chatrooms', 'couriers'];
 const socialScopeMeta = {
