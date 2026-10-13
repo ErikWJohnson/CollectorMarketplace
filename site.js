@@ -992,12 +992,13 @@ document.addEventListener('keydown', event => {
 });
 
 // Canopy Snake is a compact jungle snake game inside the Messages workspace.
-const jungleChatGame = { host: null, started: false, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-canopy-run-high-score') || 0), snake: [], food: null, direction: { x: 1, y: 0 }, nextDirection: { x: 1, y: 0 }, result: '', gameOver: false, snakeTimer: 0 };
+const jungleChatGame = { host: null, visible: false, started: false, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-canopy-run-high-score') || 0), snake: [], food: null, direction: { x: 1, y: 0 }, nextDirection: { x: 1, y: 0 }, result: '', gameOver: false, snakeTimer: 0 };
 const jungleSnakeWidth = 12, jungleSnakeHeight = 10;
 const snakeCellKey = cell => `${cell.x}:${cell.y}`;
 function randomJungleSnakeFood(snake = jungleChatGame.snake) { const occupied = new Set(snake.map(snakeCellKey)); const open = []; for (let y = 0; y < jungleSnakeHeight; y += 1) for (let x = 0; x < jungleSnakeWidth; x += 1) if (!occupied.has(`${x}:${y}`)) open.push({ x, y }); return open[Math.floor(Math.random() * open.length)] || null; }
 function renderJungleChatGame() {
   const game = jungleChatGame; if (!game.host?.isConnected) return; game.host.dataset.worldScore = String(platformWorldwideHighScore('canopy-run'));
+  if (!game.visible) { game.host.innerHTML = `<button type="button" class="canopy-snake-launch" data-jungle-game-open>Play Canopy Snake <small>HI ${String(game.highScore).padStart(4, '0')} · WORLD ${String(platformWorldwideHighScore('canopy-run')).padStart(4, '0')}</small></button>`; return; }
   const status = game.gameOver ? `The canopy got you. Final score: ${game.score}.` : game.started ? (game.result || 'Use T, F, G, and H to guide the snake.') : 'Eat jungle fruit, grow longer, and do not hit the walls or yourself.';
   const action = !game.started || game.gameOver ? '▶ Start snake' : 'Snake in motion';
   const snakeMap = new Map(game.snake.map((cell, index) => [snakeCellKey(cell), index])); const foodKey = game.food ? snakeCellKey(game.food) : '';
@@ -1015,13 +1016,14 @@ function setJungleSnakeDirection(direction) { const game = jungleChatGame; if (!
 function tickJungleSnake() {
   const game = jungleChatGame; if (!game.started) return; game.direction = game.nextDirection; const head = game.snake[0]; const next = { x: head.x + game.direction.x, y: head.y + game.direction.y }; const hitsWall = next.x < 0 || next.x >= jungleSnakeWidth || next.y < 0 || next.y >= jungleSnakeHeight; const eating = game.food && snakeCellKey(next) === snakeCellKey(game.food); const body = eating ? game.snake : game.snake.slice(0, -1); if (hitsWall || body.some(cell => snakeCellKey(cell) === snakeCellKey(next))) { game.result = 'Snake tangled!'; endJungleChatGame(); return; } game.snake.unshift(next); if (eating) { game.score += 100; game.result = '+100 fruit'; game.food = randomJungleSnakeFood(game.snake); } else game.snake.pop(); renderJungleChatGame();
 }
-function stopJungleChatGame() { clearInterval(jungleChatGame.snakeTimer); jungleChatGame.snakeTimer = 0; jungleChatGame.started = false; jungleChatGame.host = null; }
+function stopJungleChatGame() { clearInterval(jungleChatGame.snakeTimer); jungleChatGame.snakeTimer = 0; jungleChatGame.started = false; jungleChatGame.visible = false; jungleChatGame.host = null; }
 function mountJungleChatGame() {
   const page = stream?.querySelector('.app-section-page'); if (!page || !document.body.classList.contains('app-section-chat')) return stopJungleChatGame();
   let host = page.querySelector('.jungle-chat-game-host'); if (!host) { host = document.createElement('div'); host.className = 'jungle-chat-game-host'; page.append(host); }
   jungleChatGame.host = host; renderJungleChatGame();
 }
 document.addEventListener('click', event => {
+  if (event.target.closest('[data-jungle-game-open]')) { jungleChatGame.visible = true; jungleChatGame.gameOver = false; jungleChatGame.result = ''; renderJungleChatGame(); return; }
   if (event.target.closest('[data-jungle-game-play]')) { launchJungleChatGame(); return; }
   const direction = event.target.closest('[data-jungle-snake-direction]')?.dataset.jungleSnakeDirection; if (direction) { const directions = { up: { x: 0, y: -1 }, down: { x: 0, y: 1 }, left: { x: -1, y: 0 }, right: { x: 1, y: 0 } }; setJungleSnakeDirection(directions[direction]); return; }
 });
