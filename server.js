@@ -254,6 +254,24 @@ app.get('/healthz', (req, res) => res.status(200).json({ ok: true, service: 'Col
 
 function publicUser(user) { if (!user) return null; const { password, email, shippingProfile, lobbySong, profileViewHistory, galleries, grandCurator, ...safe } = user; return { ...safe, awards: accountAwards(user), marketplaceFeeRate: marketplaceFeeRate(user) }; }
 function publicListing(listing) { const { impressionVisitors, viewVisitors, ...safe } = listing; return safe; }
+const galleryColor = value => /^#[0-9a-f]{3}(?:[0-9a-f]{3})?$/i.test(String(value || '').trim()) ? String(value).trim() : '';
+const galleryImage = value => { const image = String(value || '').trim(); return /^https:\/\/[^\s]{1,2000}$/i.test(image) || /^data:image\/(jpeg|png|webp);base64,[a-z0-9+/=]{1,1400000}$/i.test(image) ? image : ''; };
+const galleryNumber = (value, fallback) => Number.isFinite(Number(value)) ? Math.max(0, Math.min(100, Math.round(Number(value) * 10) / 10)) : fallback;
+function defaultGalleryCanvas(listingIds = []) { return { backgroundColor: '#111820', backgroundImage: '', elements: listingIds.slice(0, 24).map((listingId, index) => ({ id: `item-${listingId}`, type: 'item', listingId, x: 4 + (index % 3) * 32, y: 10 + Math.floor(index / 3) * 28, w: 28, h: 24 })) }; }
+function galleryCanvas(input, listingIds = []) {
+  const base = defaultGalleryCanvas(listingIds); const source = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
+  const allowedListings = new Set(listingIds); const raw = Array.isArray(source.elements) ? source.elements.slice(0, 60) : base.elements;
+  const elements = raw.map((entry, index) => {
+    const type = ['text', 'shape', 'item'].includes(entry?.type) ? entry.type : '';
+    if (!type) return null;
+    const element = { id: String(entry.id || `${type}-${index + 1}`).replace(/[^a-z0-9_-]/gi, '').slice(0, 50) || `${type}-${index + 1}`, type, x: galleryNumber(entry.x, 8), y: galleryNumber(entry.y, 8), w: Math.max(4, galleryNumber(entry.w, type === 'item' ? 28 : 24)), h: Math.max(4, galleryNumber(entry.h, type === 'item' ? 24 : 12)) };
+    if (type === 'item') { const listingId = String(entry.listingId || ''); if (!allowedListings.has(listingId)) return null; element.listingId = listingId; }
+    if (type === 'text') { const text = String(entry.text || '').trim().slice(0, 180); if (!text) return null; element.text = text; element.color = galleryColor(entry.color) || '#f8f4e8'; element.fontSize = Math.max(10, Math.min(48, Number(entry.fontSize) || 18)); }
+    if (type === 'shape') { element.shape = entry.shape === 'circle' ? 'circle' : 'rectangle'; element.color = galleryColor(entry.color) || '#d6ad52'; element.opacity = Math.max(.05, Math.min(1, Number(entry.opacity) || .28)); }
+    return element;
+  }).filter(Boolean);
+  return { backgroundColor: galleryColor(source.backgroundColor) || base.backgroundColor, backgroundImage: galleryImage(source.backgroundImage), elements: elements.length ? elements : base.elements };
+}
 function publicGalleries(user, includePrivate = false) {
   const visibleListings = new Map(store.data.listings
     .filter(listing => listing.ownerId === user.id && (includePrivate || listing.status === 'active'))
@@ -266,6 +284,7 @@ function publicGalleries(user, includePrivate = false) {
     description: gallery.description || '',
     createdAt: gallery.createdAt,
     isPublic: gallery.isPublic !== false,
+    canvas: galleryCanvas(gallery.canvas, gallery.listingIds || []),
     items: (gallery.listingIds || []).map(listingId => visibleListings.get(listingId)).filter(Boolean)
   })).filter(gallery => gallery.items.length);
 }
@@ -589,17 +608,21 @@ app.post('/account/galleries', required, (req, res) => {
   if (listingIds.some(listingId => !owned.has(listingId))) return res.status(400).json({ error: isPublic ? 'A public gallery can only include active listings.' : 'An inventory gallery can only include your own items.' });
   if (!Array.isArray(req.user.galleries)) req.user.galleries = [];
   if (req.user.galleries.length >= 30) return res.status(400).json({ error: 'You can create up to 30 galleries.' });
-  const gallery = { id: id(), title, description, listingIds, isPublic, createdAt: now() };
+  const gallery = { id: id(), title, description, listingIds, isPublic, canvas: galleryCanvas(req.body.canvas, listingIds), createdAt: now() };
   req.user.galleries.unshift(gallery); activity('gallery_created', req.user.id, { galleryId: gallery.id }); store.save();
   res.status(201).json(publicGalleries(req.user, true).find(row => row.id === gallery.id));
 });
 app.put('/account/galleries/:id', required, (req, res) => {
   const gallery = (req.user.galleries || []).find(row => row.id === req.params.id);
   if (!gallery) return res.status(404).json({ error: 'Gallery not found.' });
+  const title = req.body.title === undefined ? gallery.title : String(req.body.title || '').trim();
+  const description = req.body.description === undefined ? gallery.description : String(req.body.description || '').trim();
+  const listingIds = req.body.listingIds === undefined ? (gallery.listingIds || []) : [...new Set(Array.isArray(req.body.listingIds) ? req.body.listingIds.map(String) : [])];
+  if (!title || title.length > 80 || description.length > 280 || !listingIds.length || listingIds.length > 24) return res.status(400).json({ error: 'Use a gallery title up to 80 characters, an optional description up to 280 characters, and between 1 and 24 items.' });
   const isPublic = req.body.isPublic !== false;
-  const ownedActive = new Set(store.data.listings.filter(listing => listing.ownerId === req.user.id && listing.status === 'active').map(listing => listing.id));
-  if (isPublic && (gallery.listingIds || []).some(listingId => !ownedActive.has(listingId))) return res.status(400).json({ error: 'Only galleries containing active listings can be public.' });
-  gallery.isPublic = isPublic; gallery.updatedAt = now(); activity('gallery_visibility_updated', req.user.id, { galleryId: gallery.id, isPublic }); store.save();
+  const owned = new Set(store.data.listings.filter(listing => listing.ownerId === req.user.id && (isPublic ? listing.status === 'active' : listing.status !== 'deleted')).map(listing => listing.id));
+  if (listingIds.some(listingId => !owned.has(listingId))) return res.status(400).json({ error: isPublic ? 'A public gallery can only include active listings.' : 'An inventory gallery can only include your own items.' });
+  gallery.title = title; gallery.description = description; gallery.listingIds = listingIds; gallery.isPublic = isPublic; gallery.canvas = galleryCanvas(req.body.canvas === undefined ? gallery.canvas : req.body.canvas, listingIds); gallery.updatedAt = now(); activity('gallery_updated', req.user.id, { galleryId: gallery.id, isPublic }); store.save();
   res.json(publicGalleries(req.user, true).find(row => row.id === gallery.id));
 });
 app.delete('/account/galleries/:id', required, (req, res) => {

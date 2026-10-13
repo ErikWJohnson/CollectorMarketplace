@@ -3024,13 +3024,27 @@ async function handleGoogleLoginResult() {
 Promise.all([loadMarket(), Promise.all([fetch('data/auctions.json').then(response => response.json()), fetch('/auctions').then(response => response.ok ? response.json() : [])]), fetch('/users').then(response => response.ok ? response.json() : []), fetch('/galleries').then(response => response.ok ? response.json() : []), fetch('/collectives').then(response => response.ok ? response.json() : []), fetch('/brands').then(response => response.ok ? response.json() : []), fetch('/couriers').then(response => response.ok ? response.json() : []), fetch('/chatrooms').then(response => response.ok ? response.json() : [])]).then(async ([, [featuredLots, userLots], accountDirectory, galleryDirectory, collectiveDirectory, brandDirectory, courierDirectory, chatroomDirectory]) => { accounts = accountDirectory; galleries = galleryDirectory; collectives = collectiveDirectory; brands = brandDirectory; couriers = courierDirectory; chatrooms = chatroomDirectory; auctions = [...featuredLots, ...userLots].map(lot => { const [hours = 0, minutes = 0, seconds = 0] = String(lot.ends || '').split(':').map(Number); const configuredEnd = lot.endAt ? new Date(lot.endAt).valueOf() : 0; return { ...lot, endAt: lot.auctionEndless ? Infinity : Number.isFinite(configuredEnd) && configuredEnd > Date.now() ? configuredEnd : Date.now() + ((hours * 3600 + minutes * 60 + seconds) * 1000) }; }); applyTagRoute(); applyHashLocation(); observer = new IntersectionObserver(entries => { if (entries[0].isIntersecting && browseMode === 'doomscroll' && page * 4 < filtered().length) { page++; renderFeed(false); } }, { rootMargin: '250px' }); observer.observe(sentinel); await handlePayPalCheckoutResult(); await handleGoogleLoginResult(); }).catch(() => { stream.innerHTML = '<p class="load-state">The marketplace feed could not load. Please refresh the page.</p>'; });
 refreshPlatformWorldwideHighScores();
 setInterval(updateLiveAuctionRailClocks, 1000);
+const galleryElementPosition = element => `--gallery-x:${Number(element.x || 0)}%;--gallery-y:${Number(element.y || 0)}%;--gallery-w:${Number(element.w || 20)}%;--gallery-h:${Number(element.h || 12)}%;`;
+function galleryCanvasMarkup(gallery, editable = false) {
+  const canvas = gallery.canvas || {}; const byId = new Map((gallery.items || []).map(item => [item.id, item]));
+  const image = canvas.backgroundImage ? `--gallery-board-image:url('${safe(canvas.backgroundImage)}');` : '';
+  const elements = (canvas.elements || []).map(element => {
+    const position = galleryElementPosition(element); const selection = editable ? ` data-gallery-element-id="${safe(element.id)}"` : '';
+    if (element.type === 'text') return `<div class="gallery-canvas-element gallery-canvas-text"${selection} style="${position}color:${safe(element.color || '#f8f4e8')};font-size:${Number(element.fontSize || 18)}px">${safe(element.text || '').replace(/\n/g, '<br>')}</div>`;
+    if (element.type === 'shape') return `<div class="gallery-canvas-element gallery-canvas-shape ${element.shape === 'circle' ? 'is-circle' : ''}"${selection} style="${position}background:${safe(element.color || '#d6ad52')};opacity:${Number(element.opacity || .28)}"></div>`;
+    const item = byId.get(element.listingId); if (!item) return '';
+    const contents = `<img src="${safe(item.image || item.images?.[0] || '')}" alt="${safe(item.title)}"><span>${safe(item.title)}</span>`;
+    return editable ? `<div class="gallery-canvas-element gallery-canvas-item"${selection} style="${position}">${contents}</div>` : `<button type="button" class="gallery-canvas-element gallery-canvas-item" data-detail="${safe(item.id)}" aria-label="View ${safe(item.title)}" style="${position}">${contents}</button>`;
+  }).join('');
+  return `<div class="gallery-display-board${editable ? ' is-editable' : ''}" style="--gallery-board-color:${safe(canvas.backgroundColor || '#111820')};${image}">${elements || '<span class="gallery-board-empty">Add cards, text, or shapes in Edit display.</span>'}</div>`;
+}
 function galleryWorkspaceMarkup(profile, own = false) {
   const galleries = Array.isArray(profile?.galleries) ? profile.galleries : [];
   const galleryCards = galleries.length ? galleries.map(gallery => {
     const visibility = gallery.isPublic !== false;
-    return `<article class="profile-gallery-card${visibility ? '' : ' is-private'}"><header><div><span>${visibility ? 'PUBLIC GALLERY' : 'PRIVATE INVENTORY'} · ${Number(gallery.items?.length || 0)} ITEM${Number(gallery.items?.length || 0) === 1 ? '' : 'S'}</span><h5>${safe(gallery.title)}</h5></div>${own ? `<button type="button" class="profile-gallery-delete" data-gallery-delete="${safe(gallery.id)}" aria-label="Delete ${safe(gallery.title)} gallery">Delete</button>` : ''}</header>${gallery.description ? `<p>${safe(gallery.description)}</p>` : ''}<div class="profile-gallery-items">${(gallery.items || []).slice(0, 8).map(item => `<button type="button" data-detail="${safe(item.id)}" aria-label="View ${safe(item.title)}"><img src="${safe(item.image || item.images?.[0] || '')}" alt="${safe(item.title)}"><span>${safe(item.title)}</span></button>`).join('')}</div>${own ? `<label class="gallery-visibility"><input type="checkbox" data-gallery-public="${safe(gallery.id)}" ${visibility ? 'checked' : ''}> <span>Public gallery</span><small>${visibility ? 'Visible on your profile' : 'Only visible to you'}</small></label>` : ''}</article>`;
+    return `<article class="profile-gallery-card${visibility ? '' : ' is-private'}"><header><div><span>${visibility ? 'PUBLIC GALLERY' : 'PRIVATE INVENTORY'} · ${Number(gallery.items?.length || 0)} ITEM${Number(gallery.items?.length || 0) === 1 ? '' : 'S'}</span><h5>${safe(gallery.title)}</h5></div>${own ? `<div class="profile-gallery-actions"><button type="button" data-gallery-editor="${safe(gallery.id)}">Edit display</button><button type="button" class="profile-gallery-delete" data-gallery-delete="${safe(gallery.id)}" aria-label="Delete ${safe(gallery.title)} gallery">Delete</button></div>` : ''}</header>${gallery.description ? `<p>${safe(gallery.description)}</p>` : ''}${galleryCanvasMarkup(gallery)}${own ? `<label class="gallery-visibility"><input type="checkbox" data-gallery-public="${safe(gallery.id)}" ${visibility ? 'checked' : ''}> <span>Public gallery</span><small>${visibility ? 'Visible on your profile' : 'Only visible to you'}</small></label>` : ''}</article>`;
   }).join('') : `<p class="profile-empty">${own ? 'Create an inventory gallery for your own collection, then choose whether to show it publicly.' : 'This collector has not published a gallery yet.'}</p>`;
-  return `<section class="profile-galleries"><header><div><h4>${own ? 'My Inventory Gallery' : 'Galleries'} <small>${galleries.length}</small></h4><p>${own ? 'Organize your collection and choose exactly which galleries appear on your public profile.' : 'Curated collections of listings, organized by the collector.'}</p></div>${own ? '<button type="button" class="entity-primary" data-gallery-create>New inventory gallery</button>' : ''}</header><div class="profile-gallery-grid">${galleryCards}</div></section>`;
+  return `<section class="profile-galleries"><header><div><h4>${own ? 'My Inventory Gallery' : 'Galleries'} <small>${galleries.length}</small></h4><p>${own ? 'Build a collector display board with cards, relics, captions, backgrounds, and shapes; then choose exactly which galleries appear publicly.' : 'Curated collection boards arranged by the collector.'}</p></div>${own ? '<button type="button" class="entity-primary" data-gallery-create>New inventory gallery</button>' : ''}</header><div class="profile-gallery-grid">${galleryCards}</div></section>`;
 }
 function injectProfileGalleries(profile, own = false) {
   const listingsSection = stream.querySelector('.profile-workspace > .profile-listings');
@@ -3055,6 +3069,51 @@ openProfile = async (...args) => {
   }
   return result;
 };
+let galleryDesign = null;
+let galleryDesignDrag = null;
+const galleryDesignElement = id => galleryDesign?.canvas?.elements?.find(element => element.id === id) || null;
+function galleryDesignMarkup() {
+  const gallery = galleryDesign; if (!gallery) return '';
+  const selected = galleryDesignElement(gallery.selectedId);
+  const itemOptions = (gallery.items || []).map(item => `<option value="${safe(item.id)}">${safe(item.title)}</option>`).join('');
+  const canvas = gallery.canvas || {};
+  return `<form class="modal-form gallery-designer-form" data-gallery-designer="${safe(gallery.id)}"><section class="gallery-designer-toolbar"><label>Background <input type="color" value="${safe(canvas.backgroundColor || '#111820')}" data-gallery-canvas-background></label><label>Background image URL <input type="url" maxlength="2000" value="${safe(canvas.backgroundImage || '')}" placeholder="https://…" data-gallery-canvas-image></label><button type="button" data-gallery-add-text>Add text</button><button type="button" data-gallery-add-shape="rectangle">Add rectangle</button><button type="button" data-gallery-add-shape="circle">Add circle</button><label>Add card <select data-gallery-add-item><option value="">Choose an item</option>${itemOptions}</select></label></section><section class="gallery-designer-stage-wrap"><p>Drag cards, captions, and shapes anywhere on the board. Select an element to edit or remove it.</p>${galleryCanvasMarkup(gallery, true)}</section><section class="gallery-designer-inspector">${selected ? `<b>Selected · ${safe(selected.type)}</b>${selected.type === 'text' ? `<label>Text <textarea maxlength="180" data-gallery-selected-text>${safe(selected.text || '')}</textarea></label><label>Color <input type="color" value="${safe(selected.color || '#f8f4e8')}" data-gallery-selected-color></label><label>Size <input type="range" min="10" max="48" value="${Number(selected.fontSize || 18)}" data-gallery-selected-size></label>` : selected.type === 'shape' ? `<label>Color <input type="color" value="${safe(selected.color || '#d6ad52')}" data-gallery-selected-color></label><label>Opacity <input type="range" min="0.05" max="1" step="0.05" value="${Number(selected.opacity || .28)}" data-gallery-selected-opacity></label>` : `<span>Item cards use the listing photo, title, and current gallery status.</span>`}<button type="button" class="profile-gallery-delete" data-gallery-remove-element>Remove selected</button>` : '<span>Select a board element to change it.</span>'}</section><footer class="listing-publish-bar"><span>Display boards can contain up to 60 elements. Only your selected gallery items are saved.</span><button type="submit">Save gallery display</button></footer></form>`;
+}
+function openGalleryDesigner(galleryId) {
+  const source = (session?.user?.galleries || []).find(gallery => gallery.id === galleryId);
+  if (!source) return;
+  galleryDesign = JSON.parse(JSON.stringify(source));
+  galleryDesign.listingIds ||= (galleryDesign.items || []).map(item => item.id);
+  galleryDesign.canvas ||= { backgroundColor: '#111820', backgroundImage: '', elements: [] };
+  galleryDesign.canvas.elements ||= [];
+  openModal(`Edit display · ${safe(source.title)}`, 'Arrange a visual collector board like a lightweight slide: set the background, add text or shapes, place cards, and save when it feels right.', galleryDesignMarkup());
+}
+function redrawGalleryDesigner() { if (modal.open && galleryDesign) modalContent.querySelector('.gallery-designer-form')?.replaceWith(document.createRange().createContextualFragment(galleryDesignMarkup())); }
+function addGalleryDesignElement(element) { if (!galleryDesign || galleryDesign.canvas.elements.length >= 60) return; const id = `${element.type}-${Date.now().toString(36)}-${galleryDesign.canvas.elements.length}`; galleryDesign.canvas.elements.push({ id, x: 10 + (galleryDesign.canvas.elements.length % 5) * 5, y: 12 + (galleryDesign.canvas.elements.length % 4) * 5, w: element.type === 'item' ? 28 : 25, h: element.type === 'item' ? 24 : 12, ...element }); galleryDesign.selectedId = id; redrawGalleryDesigner(); }
+document.addEventListener('change', event => {
+  if (!galleryDesign || !event.target.closest('.gallery-designer-form')) return;
+  if (event.target.matches('[data-gallery-add-item]') && event.target.value) { const listingId = event.target.value; if (!galleryDesign.canvas.elements.some(element => element.type === 'item' && element.listingId === listingId)) addGalleryDesignElement({ type: 'item', listingId }); event.target.value = ''; return; }
+  const selected = galleryDesignElement(galleryDesign.selectedId);
+  if (event.target.matches('[data-gallery-canvas-background]')) galleryDesign.canvas.backgroundColor = event.target.value;
+  if (event.target.matches('[data-gallery-canvas-image]')) galleryDesign.canvas.backgroundImage = event.target.value.trim();
+  if (selected && event.target.matches('[data-gallery-selected-text]')) selected.text = event.target.value.slice(0, 180);
+  if (selected && event.target.matches('[data-gallery-selected-color]')) selected.color = event.target.value;
+  if (selected && event.target.matches('[data-gallery-selected-size]')) selected.fontSize = Number(event.target.value);
+  if (selected && event.target.matches('[data-gallery-selected-opacity]')) selected.opacity = Number(event.target.value);
+  redrawGalleryDesigner();
+});
+document.addEventListener('pointerdown', event => {
+  const element = event.target.closest?.('.gallery-display-board.is-editable [data-gallery-element-id]'); if (!element || !galleryDesign) return;
+  const board = element.closest('.gallery-display-board'); const rect = board.getBoundingClientRect(); const selected = galleryDesignElement(element.dataset.galleryElementId); if (!selected) return;
+  galleryDesign.selectedId = selected.id; galleryDesignDrag = { board, element, selected, rect }; element.setPointerCapture?.(event.pointerId); event.preventDefault();
+});
+document.addEventListener('pointermove', event => {
+  if (!galleryDesignDrag) return; const drag = galleryDesignDrag;
+  drag.selected.x = Math.max(0, Math.min(100 - Number(drag.selected.w || 0), ((event.clientX - drag.rect.left) / drag.rect.width) * 100));
+  drag.selected.y = Math.max(0, Math.min(100 - Number(drag.selected.h || 0), ((event.clientY - drag.rect.top) / drag.rect.height) * 100));
+  drag.element.style.setProperty('--gallery-x', `${drag.selected.x}%`); drag.element.style.setProperty('--gallery-y', `${drag.selected.y}%`);
+});
+document.addEventListener('pointerup', () => { if (!galleryDesignDrag) return; galleryDesignDrag = null; redrawGalleryDesigner(); });
 document.addEventListener('click', event => {
   if (event.target.closest('[data-post-item]')) {
     openListingForm();
@@ -3072,6 +3131,12 @@ document.addEventListener('click', event => {
     }).catch(showError);
     return;
   }
+  const editor = event.target.closest('[data-gallery-editor]');
+  if (editor) { openGalleryDesigner(editor.dataset.galleryEditor); return; }
+  if (event.target.closest('[data-gallery-add-text]')) { addGalleryDesignElement({ type: 'text', text: 'New caption', color: '#f8f4e8', fontSize: 18 }); return; }
+  const shape = event.target.closest('[data-gallery-add-shape]');
+  if (shape) { addGalleryDesignElement({ type: 'shape', shape: shape.dataset.galleryAddShape, color: '#d6ad52', opacity: .28 }); return; }
+  if (event.target.closest('[data-gallery-remove-element]') && galleryDesign?.selectedId) { galleryDesign.canvas.elements = galleryDesign.canvas.elements.filter(element => element.id !== galleryDesign.selectedId); galleryDesign.selectedId = ''; redrawGalleryDesigner(); return; }
   const visibility = event.target.closest('[data-gallery-public]');
   if (visibility) {
     api(`/account/galleries/${visibility.dataset.galleryPublic}`, { method: 'PUT', body: JSON.stringify({ isPublic: visibility.checked }) }).then(openAccountPanel).catch(error => { visibility.checked = !visibility.checked; showError(error); });
@@ -3084,6 +3149,15 @@ document.addEventListener('click', event => {
   }
 });
 document.addEventListener('submit', async event => {
+  const designer = event.target.closest?.('.gallery-designer-form');
+  if (designer && galleryDesign) {
+    event.preventDefault();
+    try {
+      await api(`/account/galleries/${galleryDesign.id}`, { method: 'PUT', body: JSON.stringify({ title: galleryDesign.title, description: galleryDesign.description, listingIds: galleryDesign.listingIds || (galleryDesign.items || []).map(item => item.id), isPublic: galleryDesign.isPublic !== false, canvas: galleryDesign.canvas }) });
+      galleryDesign = null; if (modal.open) modal.close(); await openAccountPanel();
+    } catch (error) { showError(error); }
+    return;
+  }
   const form = event.target.closest?.('.gallery-form');
   if (!form) return;
   event.preventDefault();

@@ -411,6 +411,32 @@ html body.browse-conveyor #sentinel {
 /* Public gallery discovery lives alongside collector search without crowding the
    People group.  Previews deliberately show only public, active listings. */
 .galleries-directory-card { overflow: hidden; }
+.profile-gallery-actions { display:flex; gap:6px; align-items:flex-start; }
+.profile-gallery-actions > button { border:1px solid #8d7635; border-radius:5px; padding:7px 9px; background:#252015; color:#f6d767; font:800 .58rem/1 "DM Mono",monospace; text-transform:uppercase; cursor:pointer; }
+.gallery-display-board { position:relative; min-height:300px; overflow:hidden; border:1px solid #5d5d50; border-radius:8px; background-color:var(--gallery-board-color,#111820); background-image:linear-gradient(135deg,#0004,#0000 52%),var(--gallery-board-image,none); background-position:center; background-size:cover; box-shadow:inset 0 0 45px #0008; }
+.gallery-canvas-element { position:absolute; left:var(--gallery-x); top:var(--gallery-y); width:var(--gallery-w); height:var(--gallery-h); box-sizing:border-box; }
+.gallery-canvas-text { z-index:3; overflow:hidden; display:block; padding:4px; font:700 1rem/1.2 "DM Sans",sans-serif; text-shadow:0 2px 5px #000; }
+.gallery-canvas-shape { z-index:1; border:1px solid #fff7; box-shadow:0 8px 20px #0004; }
+.gallery-canvas-shape.is-circle { border-radius:50%; }
+.gallery-canvas-item { z-index:2; display:grid; grid-template-rows:1fr auto; overflow:hidden; border:1px solid #efe4b066; border-radius:7px; padding:0; background:#090b0ddd; color:#fff; box-shadow:0 8px 20px #0009; cursor:pointer; text-align:left; }
+.gallery-canvas-item img { width:100%; height:100%; min-height:0; object-fit:contain; background:#060707; }
+.gallery-canvas-item span { overflow:hidden; padding:5px 6px; text-overflow:ellipsis; white-space:nowrap; font:700 .58rem/1 "DM Mono",monospace; }
+.gallery-canvas-item:hover,.gallery-canvas-item:focus-visible { border-color:#f3cf58; outline:0; }
+.gallery-board-empty { position:absolute; inset:0; display:grid; place-items:center; color:#d6d4c6; font:700 .7rem "DM Mono",monospace; }
+.gallery-designer-form { display:grid; gap:14px; min-width:min(900px,92vw); }
+.gallery-designer-toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:end; }
+.gallery-designer-toolbar label,.gallery-designer-inspector label { display:grid; gap:5px; color:#d4c699; font:800 .58rem/1 "DM Mono",monospace; text-transform:uppercase; }
+.gallery-designer-toolbar input,.gallery-designer-toolbar select,.gallery-designer-inspector input,.gallery-designer-inspector textarea { min-width:0; border:1px solid #625b47; background:#101214; color:#f5f1e7; padding:8px; }
+.gallery-designer-toolbar button { border:1px solid #d6ad52; background:#272113; color:#f7d86a; padding:9px 11px; font:800 .62rem "DM Mono",monospace; cursor:pointer; }
+.gallery-designer-stage-wrap>p { margin:0 0 7px; color:#aaa69c; font-size:.75rem; }
+.gallery-display-board.is-editable { min-height:440px; touch-action:none; }
+.gallery-display-board.is-editable [data-gallery-element-id] { cursor:grab; }
+.gallery-display-board.is-editable [data-gallery-element-id]:active { cursor:grabbing; }
+.gallery-designer-inspector { display:flex; flex-wrap:wrap; align-items:end; gap:10px; border:1px solid #4c4737; padding:10px; background:#171613; }
+.gallery-designer-inspector>b { color:#f3cf58; font:800 .65rem "DM Mono",monospace; text-transform:uppercase; }
+.gallery-designer-inspector>span { color:#aaa69c; font-size:.75rem; }
+.gallery-designer-inspector textarea { width:min(300px,70vw); min-height:48px; }
+.gallery-designer-inspector .profile-gallery-delete { margin-left:auto; }
 .gallery-directory-preview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; margin: 8px 0; }
 .gallery-directory-preview img { width: 100%; aspect-ratio: 1 / .72; object-fit: cover; border: 1px solid #4f7188; border-radius: 4px; background: #0a1016; }
 .browse-doomscroll .gallery-directory-preview img { border-color: #d4837a; background: #ffead9; }
