@@ -321,6 +321,21 @@ dialog,
 
 .bottom-nav button.active b { color: #e8c55c !important; }
 
+/* Conveyor's looping status is a background underlay, never a second dock.
+   Keep the primary button bar completely opaque and in the top stack so the
+   status cannot bleed through or intercept a navigation tap. */
+html body.browse-conveyor .bottom-nav {
+  position: fixed !important;
+  z-index: 2147483647 !important;
+  isolation: isolate;
+  opacity: 1 !important;
+  background: #0a0f14 !important;
+}
+html body.browse-conveyor #sentinel {
+  z-index: 0 !important;
+  pointer-events: none !important;
+}
+
 .profile-gallery-card.is-private { border-color: #50627a; background: linear-gradient(145deg, #17222d, #111820); }
 .profile-gallery-card.is-private header span { color: #a7cbe0; }
 .gallery-visibility {
