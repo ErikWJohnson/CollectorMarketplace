@@ -1112,7 +1112,7 @@ function syncBrowseModeUi() {
   const button = document.querySelector('[data-browse-mode]');
   if (button) { const label = browseMode === 'conveyor' ? 'Conveyor' : browseMode === 'doomscroll' ? 'Doomscroll' : 'Squared'; button.disabled = auctionActive; button.firstChild.textContent = `${label} `; button.setAttribute('aria-label', `Browsing mode: ${label}. Press Q to switch.`); button.setAttribute('aria-pressed', String(browseMode === 'conveyor')); }
   const metadataButton = document.querySelector('[data-metadata-toggle]');
-  if (metadataButton) { metadataButton.disabled = searchScope !== 'listings' || auctionActive; metadataButton.setAttribute('aria-pressed', String(metadataVisible)); metadataButton.setAttribute('aria-label', `${metadataVisible ? 'Hide' : 'Show'} marketplace metadata rails. Press M to toggle.`); }
+  if (metadataButton) { metadataButton.disabled = searchScope !== 'listings' || auctionActive; metadataButton.setAttribute('aria-pressed', String(metadataVisible)); metadataButton.setAttribute('aria-label', `${metadataVisible ? 'Hide' : 'Show'} marketplace metadata, including popular tags. Press M to toggle.`); }
   if (conveyor) startConveyor(); else stopConveyor();
 }
 function toggleBrowseMode() {

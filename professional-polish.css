@@ -710,6 +710,12 @@ dialog,
 
 /* Browse mode readability.  Each view has a distinct canvas, but all primary
    information keeps a deliberate high-contrast text hierarchy. */
+.metadata-hidden .popular-tags,
+.metadata-hidden .live-auction-rail,
+.metadata-hidden .popular-listing-rail,
+.metadata-hidden .popular-brand-rail,
+.metadata-hidden .popular-account-rail { display: none !important; }
+
 .browse-conveyor .listing,
 .browse-conveyor .square-listing-card,
 .browse-conveyor .social-directory-card,
