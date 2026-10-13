@@ -113,16 +113,19 @@ a:focus-visible {
   height: auto !important;
   order: 10;
   align-self: center;
-  min-height: 34px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 36px;
+  width: 36px !important;
+  min-height: 36px;
   margin-left: -2px;
   border: 1px solid #465563 !important;
   border-radius: 7px;
-  padding: 0 10px;
+  padding: 0;
   background: #121920 !important;
   color: #b8c7d1 !important;
-  font: 800 .57rem/1 "DM Mono", monospace;
-  letter-spacing: .06em;
-  text-transform: uppercase;
+  font: 800 1rem/1 "DM Sans", sans-serif;
+  letter-spacing: 0;
   white-space: nowrap;
   transition: border-color .16s ease, background .16s ease, color .16s ease;
 }
@@ -659,7 +662,7 @@ dialog,
   .header-account-mark { flex-basis: 26px; width: 26px; height: 26px; }
   .header-account-identity small { display: none; }
   .header-account [data-header-account-label] { max-width: 104px; overflow: hidden; text-overflow: ellipsis; }
-  .header-signout { min-height: 32px; padding-inline: 7px; font-size: .52rem; }
+  .header-signout { flex-basis: 32px; width: 32px !important; min-height: 32px; font-size: .9rem; }
   .search-scope { justify-content: flex-start !important; overflow-x: auto; flex-wrap: nowrap !important; padding-bottom: 7px !important; }
   .search-scope > section { flex: 0 0 auto; }
   .popular-tags,

@@ -1539,7 +1539,8 @@ function renderAccountButton() {
     headerSignout.className = 'header-signout';
     headerSignout.dataset.signout = '';
     headerSignout.setAttribute('aria-label', 'Sign out of your Collector Marketplace account');
-    headerSignout.textContent = 'Sign out';
+    headerSignout.title = 'Sign out';
+    headerSignout.textContent = '↪';
     headerButton.insertAdjacentElement('afterend', headerSignout);
   }
   if (headerSignout) headerSignout.hidden = !username;
