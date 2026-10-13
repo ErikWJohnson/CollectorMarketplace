@@ -607,7 +607,8 @@ app.post('/account/galleries', required, (req, res) => {
   const owned = new Set(store.data.listings.filter(listing => listing.ownerId === req.user.id && (isPublic ? listing.status === 'active' : listing.status !== 'deleted')).map(listing => listing.id));
   if (listingIds.some(listingId => !owned.has(listingId))) return res.status(400).json({ error: isPublic ? 'A public gallery can only include active listings.' : 'An inventory gallery can only include your own items.' });
   if (!Array.isArray(req.user.galleries)) req.user.galleries = [];
-  if (req.user.galleries.length >= 30) return res.status(400).json({ error: 'You can create up to 30 galleries.' });
+  const galleryLimit = hasActiveCuratorMembership(req.user) ? 10 : 3;
+  if (req.user.galleries.length >= galleryLimit) return res.status(400).json({ error: `Your ${hasActiveCuratorMembership(req.user) ? 'VIP Curator' : 'standard'} account can create up to ${galleryLimit} galleries.` });
   const gallery = { id: id(), title, description, listingIds, isPublic, canvas: galleryCanvas(req.body.canvas, listingIds), createdAt: now() };
   req.user.galleries.unshift(gallery); activity('gallery_created', req.user.id, { galleryId: gallery.id }); store.save();
   res.status(201).json(publicGalleries(req.user, true).find(row => row.id === gallery.id));
