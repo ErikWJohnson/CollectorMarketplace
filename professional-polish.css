@@ -437,6 +437,36 @@ html body.browse-conveyor #sentinel {
 .gallery-designer-inspector>span { color:#aaa69c; font-size:.75rem; }
 .gallery-designer-inspector textarea { width:min(300px,70vw); min-height:48px; }
 .gallery-designer-inspector .profile-gallery-delete { margin-left:auto; }
+
+/* A purchase is always the same affirmative action, regardless of browse mode.
+   This final rule intentionally wins over the older gold/green theme rules. */
+.listing-actions .action-buy,
+.square-listing-copy footer .square-buy,
+.valuation-actions button:last-child {
+  border-color: #56bc86 !important;
+  background: linear-gradient(135deg, #0e5138, #16744d) !important;
+  color: #effff5 !important;
+  text-shadow: none !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.12), 0 5px 14px rgba(8, 65, 42, .22) !important;
+}
+.listing-actions .action-buy span,
+.listing-actions .action-buy b,
+.square-listing-copy footer .square-buy span,
+.square-listing-copy footer .square-buy b { color: #effff5 !important; }
+.listing-actions .action-buy:hover,
+.listing-actions .action-buy:focus-visible,
+.square-listing-copy footer .square-buy:hover,
+.square-listing-copy footer .square-buy:focus-visible,
+.valuation-actions button:last-child:hover,
+.valuation-actions button:last-child:focus-visible {
+  border-color: #b4f3d0 !important;
+  background: linear-gradient(135deg, #16744d, #249565) !important;
+  color: #fff !important;
+  outline: 2px solid #b4f3d0 !important;
+  outline-offset: 2px;
+}
+html body.browse-doomscroll .listing-actions .action-buy,
+html body.browse-doomscroll .listing-actions .action-buy:hover { color: #effff5 !important; background: linear-gradient(135deg, #0e5138, #16744d) !important; border-color: #56bc86 !important; }
 .gallery-directory-preview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; margin: 8px 0; }
 .gallery-directory-preview img { width: 100%; aspect-ratio: 1 / .72; object-fit: cover; border: 1px solid #4f7188; border-radius: 4px; background: #0a1016; }
 .browse-doomscroll .gallery-directory-preview img { border-color: #d4837a; background: #ffead9; }
