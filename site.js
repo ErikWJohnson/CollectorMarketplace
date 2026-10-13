@@ -1959,7 +1959,7 @@ const accountAwardsMarkup = profile => {
   if (!awards.length) return '';
   const earned = awards.filter(award => award.earned);
   const awardCard = award => `<article class="account-award ${award.earned ? 'is-earned' : ''}"><b>${safe(award.name)}</b><span>${safe(award.detail)}</span><em>${award.earned ? `Earned · ${Number(award.discount * 100).toFixed(2).replace(/\.00$/, '')}% off` : 'Not earned yet'}</em></article>`;
-  return `<section class="account-awards"><header><h4>Account awards <small>${earned.length}/${awards.length}</small></h4><p>Fee awards combine with other awards. Pro Gamer combines with VIP Curator; awards never reduce a Developer Pass below 0%.</p><button type="button" class="worldwide-leaderboard-button" data-worldwide-leaderboard>Worldwide leaderboard</button></header><div>${awards.map(awardCard).join('')}</div></section>`;
+  return `<section class="account-awards"><header><h4>Account awards <small>${earned.length}/${awards.length}</small></h4><p>Fee awards combine with other eligible awards; a Developer Pass always keeps marketplace fees at 0%.</p><button type="button" class="worldwide-leaderboard-button" data-worldwide-leaderboard>Worldwide leaderboard</button></header><div>${awards.map(awardCard).join('')}</div></section>`;
 };
 async function openWorldwideLeaderboard() {
   const data = await api('/scoreboard');
@@ -2270,8 +2270,7 @@ const collectorFeeRate = user => {
   if (user?.developerPass === true) return 0;
   if (user?.brandPass === true) return .0075;
   const awards = Array.isArray(user?.awards) ? user.awards : [];
-  const proGamerDiscount = Number(awards.find(award => award.id === 'pro-gamer' && award.earned)?.discount || 0);
-  if (hasActiveCuratorMembership(user)) return Math.max(0, .01 - proGamerDiscount);
+  if (hasActiveCuratorMembership(user)) return .01;
   return Math.max(0, .04 - awards.filter(award => award.earned).reduce((total, award) => total + Number(award.discount || 0), 0));
 };
 const tradeDeliveryFields = (plan = {}, heading = 'Your delivery and payment details') => `<section class="trade-delivery-fields"><h3>${safe(heading)}</h3><p>These details are shared only with the other collector after both sides lock in the trade.</p><label>Delivery option<select required name="deliveryProvider"><option value="" disabled ${plan.deliveryProvider ? '' : 'selected'}>Choose a delivery provider</option>${deliveryCarriers.map(provider => `<option value="${safe(provider)}" ${plan.deliveryProvider === provider ? 'selected' : ''}>${safe(provider)}</option>`).join('')}</select></label><div class="trade-cash-fields"><label>Estimated miles<input required name="deliveryMiles" type="number" min="0" step="0.1" value="${safe(plan.deliveryMiles ?? 0)}"></label><label>Packaging cost<input required name="packagingCost" type="number" min="0" step="0.01" value="${safe(plan.packagingCost ?? 0)}"></label></div><label>Delivery address<textarea required name="shippingAddress" maxlength="500" placeholder="Address for items you will receive">${safe(plan.shippingAddress || '')}</textarea></label><fieldset class="payment-methods"><legend>Payment method for any cash difference or delivery</legend><div>${tradePaymentOptions.map((method, index) => `<label class="payment-method"><input type="radio" name="paymentMethod" value="${safe(method)}" ${(plan.paymentMethod || tradePaymentOptions[0]) === method ? 'checked' : ''}><span><b>${safe(method)}</b></span></label>`).join('')}</div></fieldset></section>`;

@@ -215,12 +215,10 @@ const baseAccountAwards = user => {
   const originalCollector = new Date(user?.createdAt || 0).valueOf() < new Date('2027-01-01T00:00:00.000Z').valueOf() || user?.originalCollectorPromo === true;
   const barterLord = completedItemCount(user) >= 5000;
   const leaderboardChampion = isLeaderboardChampion(user);
-  const proGamer = Object.values(user?.platformScores || {}).some(score => Number(score) > 0);
   return [
     { id: 'original-collector', name: 'Original Collector', earned: originalCollector, discount: .015, detail: 'Joined before 2027 or earned through a promotional event · 1.5% lifetime fee reduction.' },
     { id: 'barter-lord', name: 'Barter Lord', earned: barterLord, discount: .005, detail: `${completedItemCount(user).toLocaleString()} of 5,000 completed items · 0.5% lifetime fee reduction.` },
-    { id: 'leaderboard-champion', name: 'Leaderboard Champion', earned: leaderboardChampion, discount: .01, detail: 'Currently holds at least one platform-wide high score · 1% temporary fee reduction.' },
-    { id: 'pro-gamer', name: 'Pro Gamer', earned: proGamer, discount: .0025, detail: 'Reached a platform scoreboard · 0.25% lifetime fee reduction.' }
+    { id: 'leaderboard-champion', name: 'Leaderboard Champion', earned: leaderboardChampion, discount: .01, detail: 'Currently holds at least one platform-wide high score · 1% temporary fee reduction.' }
   ];
 };
 const accountAwards = user => baseAccountAwards(user);
@@ -228,8 +226,7 @@ const marketplaceFeeRate = user => {
   if (hasDeveloperPass(user)) return 0;
   if (user?.brandPass === true) return .0075;
   const awards = accountAwards(user);
-  const proGamerDiscount = awards.find(award => award.id === 'pro-gamer' && award.earned)?.discount || 0;
-  if (hasActiveCuratorMembership(user)) return Math.max(0, .01 - proGamerDiscount);
+  if (hasActiveCuratorMembership(user)) return .01;
   return Math.max(0, .04 - awards.filter(award => award.earned).reduce((total, award) => total + award.discount, 0));
 };
 // Voice audio stays peer-to-peer. These short-lived rooms only carry WebRTC
