@@ -467,6 +467,16 @@ html body.browse-conveyor #sentinel {
 }
 html body.browse-doomscroll .listing-actions .action-buy,
 html body.browse-doomscroll .listing-actions .action-buy:hover { color: #effff5 !important; background: linear-gradient(135deg, #0e5138, #16744d) !important; border-color: #56bc86 !important; }
+
+/* Region is intentionally a peer of Marketplace Mode in the header. */
+.masthead .market-region-control > button { min-width: 132px; }
+.masthead .market-region-control [data-market-region-menu] { position:absolute; top:calc(100% + 7px); left:0; display:grid; width:208px; padding:6px; border:1px solid #59616a; border-radius:6px; background:#10151af7; box-shadow:0 18px 38px #000b; backdrop-filter:blur(14px); }
+.masthead .market-region-control [data-market-region-menu][hidden] { display:none; }
+.masthead .market-region-control [data-market-region-menu] button { display:block; padding:9px 10px; border:0; border-left:2px solid transparent; background:transparent; color:#c5ccd2; text-align:left; font:700 9px "DM Mono",monospace; cursor:pointer; }
+.masthead .market-region-control [data-market-region-menu] button:hover,
+.masthead .market-region-control [data-market-region-menu] button.active { border-left-color:#f3cf58; background:#f3cf5817; color:#fff; }
+@media (max-width: 800px) { .masthead .market-region-control > button { min-width:auto; width:39px !important; padding:0; place-items:center; } .masthead .market-region-control > button b,.masthead .market-region-control > button i { display:none; } }
+@media (max-width: 510px) { .masthead .market-region-control { display:none; } }
 .gallery-directory-preview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; margin: 8px 0; }
 .gallery-directory-preview img { width: 100%; aspect-ratio: 1 / .72; object-fit: cover; border: 1px solid #4f7188; border-radius: 4px; background: #0a1016; }
 .browse-doomscroll .gallery-directory-preview img { border-color: #d4837a; background: #ffead9; }
