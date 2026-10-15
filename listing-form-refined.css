@@ -312,3 +312,121 @@ body.app-section-listing .listing-form select option:checked,
   color: #101113;
   background: #e3c25c;
 }
+
+/* Final full-page pass: the listing flow should read as one clear workspace,
+   not a narrow dialog with a second competing column. */
+body.app-section-listing.listing-page .app-section-page {
+  width: 100%;
+  max-width: none;
+  min-height: calc(100dvh - 154px);
+  padding: 0 0 154px;
+  background:
+    radial-gradient(ellipse 78% 34% at 50% 0, #71351b2b, transparent 72%),
+    linear-gradient(180deg, #171012 0, #0d1014 62%, #090b0e 100%);
+}
+
+body.app-section-listing.listing-page .app-section-intro {
+  width: 100%;
+  margin: 0;
+  padding: clamp(30px, 4.2vw, 62px) max(22px, calc((100vw - 1360px) / 2)) clamp(28px, 3vw, 42px);
+  border-bottom: 1px solid #994b2a66;
+  background: linear-gradient(105deg, #241313ef, #1b1718f5 58%, #1f120ee8);
+}
+
+body.app-section-listing.listing-page .app-section-intro > span {
+  color: #ffc76a;
+}
+
+body.app-section-listing.listing-page .app-section-intro h1 {
+  max-width: 1360px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+body.app-section-listing.listing-page .app-section-intro p {
+  max-width: 720px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+body.app-section-listing.listing-page .app-section-content {
+  width: min(1360px, 100%);
+  margin: 0 auto;
+  padding: clamp(20px, 3vw, 38px) max(18px, calc((100vw - 1360px) / 2)) 0;
+}
+
+body.app-section-listing.listing-page .listing-form {
+  width: 100%;
+  max-width: none;
+  gap: 18px;
+}
+
+body.app-section-listing.listing-page .listing-creation-progress {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 13px 18px;
+  border-color: #774936;
+  background: #151719f5;
+}
+
+body.app-section-listing.listing-page .listing-editor-grid {
+  grid-template-columns: minmax(0, 1fr);
+  width: min(1080px, 100%);
+  margin: 0 auto;
+  gap: 16px;
+}
+
+body.app-section-listing.listing-page .listing-details {
+  gap: 20px;
+  border-color: #764634;
+  padding: clamp(20px, 3vw, 38px);
+  background: linear-gradient(145deg, #1c1618f5, #111519f8 68%);
+}
+
+body.app-section-listing.listing-page .listing-form-grid,
+body.app-section-listing.listing-page .listing-location-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+body.app-section-listing.listing-page .listing-media-panel {
+  position: static;
+  display: grid;
+  grid-template-columns: minmax(180px, .32fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(18px, 3vw, 36px);
+  border-color: #76513c;
+  padding: clamp(18px, 2.4vw, 30px);
+  background: linear-gradient(110deg, #201714f7, #121719f8 66%);
+}
+
+body.app-section-listing.listing-page .listing-image-preview {
+  min-height: 250px;
+}
+
+body.app-section-listing.listing-page .listing-publish-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  width: 100%;
+  min-height: 82px;
+  padding: 14px max(20px, calc((100vw - 1360px) / 2));
+  border-top-color: #8c543b;
+  background: linear-gradient(90deg, #120d0cf8, #2b1510f8 48%, #141719f8);
+}
+
+body.app-section-listing.listing-page .listing-publish-bar button {
+  min-width: 232px;
+}
+
+@media (max-width: 760px) {
+  body.app-section-listing.listing-page .app-section-page { padding-bottom: 132px; }
+  body.app-section-listing.listing-page .app-section-intro { padding: 26px 18px 24px; }
+  body.app-section-listing.listing-page .app-section-content { padding: 14px 12px 0; }
+  body.app-section-listing.listing-page .listing-form-grid,
+  body.app-section-listing.listing-page .listing-location-grid,
+  body.app-section-listing.listing-page .listing-media-panel { grid-template-columns: 1fr; }
+  body.app-section-listing.listing-page .listing-media-panel { gap: 12px; }
+  body.app-section-listing.listing-page .listing-image-preview { min-height: 210px; }
+  body.app-section-listing.listing-page .listing-publish-bar { grid-template-columns: 1fr; min-height: 0; }
+  body.app-section-listing.listing-page .listing-publish-bar button { width: 100%; min-width: 0; }
+}
