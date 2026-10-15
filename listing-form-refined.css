@@ -350,9 +350,10 @@ body.app-section-listing.listing-page .app-section-intro p {
 }
 
 body.app-section-listing.listing-page .app-section-content {
-  width: min(1360px, 100%);
+  width: 100%;
+  max-width: 1600px;
   margin: 0 auto;
-  padding: clamp(20px, 3vw, 38px) max(18px, calc((100vw - 1360px) / 2)) 0;
+  padding: clamp(20px, 3vw, 42px) clamp(18px, 3.5vw, 64px) 0;
 }
 
 body.app-section-listing.listing-page .listing-form {
@@ -371,7 +372,7 @@ body.app-section-listing.listing-page .listing-creation-progress {
 
 body.app-section-listing.listing-page .listing-editor-grid {
   grid-template-columns: minmax(0, 1fr);
-  width: min(1080px, 100%);
+  width: 100%;
   margin: 0 auto;
   gap: 16px;
 }
@@ -387,6 +388,16 @@ body.app-section-listing.listing-page .listing-form-grid,
 body.app-section-listing.listing-page .listing-location-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
+}
+
+@media (min-width: 1080px) {
+  body.app-section-listing.listing-page .listing-form-grid {
+    grid-template-columns: minmax(0, 1.25fr) minmax(210px, .9fr) minmax(180px, .7fr);
+  }
+
+  body.app-section-listing.listing-page .listing-location-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 body.app-section-listing.listing-page .listing-media-panel {
