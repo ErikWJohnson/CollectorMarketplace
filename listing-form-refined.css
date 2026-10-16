@@ -593,3 +593,65 @@ body.app-section-listing.listing-page .listing-trade-option {
   body.app-section-listing.listing-page .listing-media-inputs,
   body.app-section-listing.listing-page .listing-location-panel { padding: 14px; }
 }
+
+/* Wide screens use the available canvas for a compact, two-column studio.
+   The item workflow stays together on the left while the live gallery remains
+   visible as a useful review surface on the right. */
+@media (min-width: 900px) {
+  body.app-section-listing.listing-page .listing-editor-grid {
+    grid-template-columns: minmax(0, 1.42fr) minmax(360px, .58fr);
+    align-items: start;
+    gap: clamp(18px, 2vw, 30px);
+  }
+
+  body.app-section-listing.listing-page .listing-details {
+    gap: 15px;
+    padding: clamp(20px, 2vw, 30px);
+  }
+
+  body.app-section-listing.listing-page .listing-media-panel {
+    position: sticky;
+    top: 18px;
+    grid-template-columns: 1fr;
+    gap: 14px;
+    padding: 18px;
+  }
+
+  body.app-section-listing.listing-page .listing-image-preview {
+    min-height: 330px;
+  }
+
+  body.app-section-listing.listing-page .listing-workspace-assist {
+    gap: 7px;
+    padding: 10px 12px;
+  }
+
+  body.app-section-listing.listing-page .listing-workspace-assist strong {
+    margin-right: auto;
+  }
+
+  body.app-section-listing.listing-page .listing-step {
+    margin-top: 3px;
+    padding-bottom: 8px;
+  }
+
+  body.app-section-listing.listing-page .listing-media-inputs,
+  body.app-section-listing.listing-page .listing-location-panel {
+    padding: 15px;
+  }
+
+  body.app-section-listing.listing-page .listing-form input,
+  body.app-section-listing.listing-page .listing-form select,
+  body.app-section-listing.listing-page .listing-form textarea {
+    min-height: 42px;
+    padding: 10px 12px;
+  }
+
+  body.app-section-listing.listing-page .listing-form textarea {
+    min-height: 104px;
+  }
+
+  body.app-section-listing.listing-page .listing-upload-field {
+    min-height: 116px;
+  }
+}
