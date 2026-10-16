@@ -847,3 +847,78 @@ body.app-section-listing.listing-page .listing-price-field input {
   body.app-section-listing.listing-page .listing-inventory-choice { grid-template-columns: 1fr; }
   body.app-section-listing.listing-page .listing-post-type small { min-width: 0; }
 }
+
+/* Treat Create Listing as a full seller workspace below the persistent site
+   header instead of a content card floating inside the page. */
+@media (min-width: 900px) {
+  body.app-section-listing.listing-page .market-stage,
+  body.app-section-listing.listing-page .listing-stream,
+  body.app-section-listing.listing-page .app-section-page {
+    min-height: calc(100dvh - 154px);
+  }
+
+  body.app-section-listing.listing-page .app-section-page {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 76px;
+  }
+
+  body.app-section-listing.listing-page .app-section-intro {
+    display: grid;
+    grid-template-columns: auto auto minmax(260px, 1fr);
+    align-items: center;
+    gap: 8px 14px;
+    min-height: 64px;
+    padding: 10px clamp(22px, 3.5vw, 64px);
+  }
+
+  body.app-section-listing.listing-page .app-section-intro > span {
+    grid-row: 1;
+    white-space: nowrap;
+  }
+
+  body.app-section-listing.listing-page .app-section-intro h1 {
+    grid-row: 1;
+    margin: 0;
+    white-space: nowrap;
+    font-size: clamp(1.55rem, 2.1vw, 2.25rem);
+  }
+
+  body.app-section-listing.listing-page .app-section-intro p {
+    grid-row: 1;
+    max-width: 680px;
+    margin: 0;
+    border-left: 1px solid #7b4a3c;
+    padding-left: 14px;
+    color: #b9b1a9;
+    font-size: .76rem;
+    line-height: 1.35;
+  }
+
+  body.app-section-listing.listing-page .app-section-content {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    padding-bottom: 0;
+  }
+
+  body.app-section-listing.listing-page .listing-form {
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    flex: 1;
+    min-height: calc(100dvh - 238px);
+  }
+
+  body.app-section-listing.listing-page .listing-editor-grid {
+    min-height: 0;
+  }
+
+  body.app-section-listing.listing-page .listing-details,
+  body.app-section-listing.listing-page .listing-media-panel {
+    min-height: calc(100dvh - 238px);
+  }
+
+  body.app-section-listing.listing-page .listing-media-panel {
+    align-content: start;
+  }
+}
