@@ -2234,6 +2234,27 @@ function syncUspsShippingEligibility(form) {
   syncUspsShippingAttestation(form);
 }
 enhanceListingComposer = () => { enhanceListingComposerWithUspsCompliance(); const form = document.querySelector('.app-section-page .listing-form'); const parcel = form?.querySelector('.listing-parcel-field'); setupParcelRangeControl(form); setupListingInventoryControl(form); if (form && !form.querySelector('.listing-creation-progress')) form.insertAdjacentHTML('afterbegin', '<section class="listing-creation-progress" aria-label="Listing workflow"><div class="is-current"><b>01</b><span><strong>Item details</strong><small>Name, condition, price, stock</small></span></div><i></i><div><b>02</b><span><strong>Media & delivery</strong><small>Photos, parcel, location</small></span></div><i></i><div><b>03</b><span><strong>Publish</strong><small>Review and go live</small></span></div></section>'); if (parcel && !form.querySelector('[name="uspsShippingConfirmed"]')) parcel.insertAdjacentHTML('afterend', '<label class="check usps-shipping-attestation"><input name="uspsShippingConfirmed" type="checkbox"> I confirm that the item description and tags are accurate, the package is 70 lb or less and within USPS size limits, and its contents meet USPS mailing rules.</label><small class="usps-shipping-eligibility" data-usps-shipping-eligibility aria-live="polite"></small>'); syncUspsShippingEligibility(form); };
+const baseEnhanceListingWorkspacePresentation = enhanceListingComposer;
+function decorateListingWorkspace(form) {
+  if (!form || form.dataset.workspacePresentationReady) return;
+  form.dataset.workspacePresentationReady = 'true';
+  const sectionCopy = {
+    'LISTING DETAILS': 'Start with the information collectors compare first.',
+    'LOCATION & HANDOFF': 'Set the delivery origin and how this item will be listed.',
+    'ADD MEDIA': 'Strong photos make the listing easier to trust.',
+    'TELL THE STORY': 'Describe condition, provenance, and important details.'
+  };
+  form.querySelectorAll('.listing-step').forEach(step => {
+    const source = step.textContent.trim();
+    const title = Object.keys(sectionCopy).find(key => source.includes(key));
+    if (!title || step.querySelector('.listing-step-title')) return;
+    const number = source.match(/^\d+/)?.[0] || '';
+    step.innerHTML = `<span><b>${safe(number.padStart(2, '0'))}</b><strong class="listing-step-title">${safe(title)}</strong></span><small>${safe(sectionCopy[title])}</small>`;
+  });
+  const progress = form.querySelector('.listing-creation-progress');
+  if (progress && !form.querySelector('.listing-workspace-assist')) progress.insertAdjacentHTML('afterend', '<aside class="listing-workspace-assist" aria-label="Listing requirements"><strong>Quick checklist</strong><span>Item basics</span><span>At least one photo</span><span>Delivery details</span><span>Ready to publish</span></aside>');
+}
+enhanceListingComposer = () => { baseEnhanceListingWorkspacePresentation(); decorateListingWorkspace(document.querySelector('.app-section-page .listing-form')); };
 function syncListingPostType(form) {
   const showcase = form?.querySelector('[name="postType"]:checked')?.value === 'showcase';
   const price = form?.querySelector('[name="price"]');

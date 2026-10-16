@@ -441,3 +441,155 @@ body.app-section-listing.listing-page .listing-publish-bar button {
   body.app-section-listing.listing-page .listing-publish-bar { grid-template-columns: 1fr; min-height: 0; }
   body.app-section-listing.listing-page .listing-publish-bar button { width: 100%; min-width: 0; }
 }
+
+/* Listing studio hierarchy: each decision has an obvious home, while the
+   actual inputs retain enough open space to be easy to complete. */
+body.app-section-listing.listing-page .listing-workspace-assist {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #634334;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #1b1515e8, #14191de8);
+}
+
+body.app-section-listing.listing-page .listing-workspace-assist strong {
+  margin-right: 5px;
+  color: #f7cc75;
+  font: 800 .67rem/1 "DM Mono", monospace;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+body.app-section-listing.listing-page .listing-workspace-assist span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #40505b;
+  border-radius: 999px;
+  padding: 6px 9px;
+  color: #c7d8df;
+  font: 700 .63rem/1 "DM Sans", sans-serif;
+}
+
+body.app-section-listing.listing-page .listing-workspace-assist span::before {
+  content: "✓";
+  color: #79c895;
+  font-weight: 900;
+}
+
+body.app-section-listing.listing-page .listing-details {
+  grid-template-columns: minmax(0, 1fr);
+  border-radius: 14px;
+}
+
+body.app-section-listing.listing-page .listing-step {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 8px;
+  padding-bottom: 11px;
+  border-bottom: 1px solid #694537;
+}
+
+body.app-section-listing.listing-page .listing-step:first-child {
+  margin-top: 0;
+}
+
+body.app-section-listing.listing-page .listing-step > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+body.app-section-listing.listing-page .listing-step b {
+  display: grid;
+  width: 25px;
+  height: 25px;
+  place-items: center;
+  border: 1px solid #a26b45;
+  border-radius: 6px;
+  background: #2a1815;
+  color: #ffd070;
+  font: 900 .59rem/1 "DM Mono", monospace;
+}
+
+body.app-section-listing.listing-page .listing-step strong {
+  color: #f1e8dc;
+  font: 800 .72rem/1 "DM Mono", monospace;
+  letter-spacing: .1em;
+}
+
+body.app-section-listing.listing-page .listing-step small {
+  max-width: 52%;
+  color: #9faeb7;
+  font: .74rem/1.35 "DM Sans", sans-serif;
+  text-align: right;
+}
+
+body.app-section-listing.listing-page .listing-form-grid,
+body.app-section-listing.listing-page .listing-media-inputs,
+body.app-section-listing.listing-page .listing-location-panel,
+body.app-section-listing.listing-page .description-field,
+body.app-section-listing.listing-page .listing-trade-option,
+body.app-section-listing.listing-page .listing-inventory-type,
+body.app-section-listing.listing-page .listing-post-type {
+  margin: 0;
+}
+
+body.app-section-listing.listing-page .listing-media-inputs,
+body.app-section-listing.listing-page .listing-location-panel {
+  border: 1px solid #4d3d3a;
+  border-radius: 12px;
+  padding: clamp(16px, 2vw, 26px);
+  background: #0e1318b8;
+}
+
+body.app-section-listing.listing-page .listing-location-panel {
+  display: grid;
+  gap: 16px;
+  border-color: #416154;
+  background: linear-gradient(125deg, #0d1714e8, #101519e8);
+}
+
+body.app-section-listing.listing-page .listing-location-panel .listing-step {
+  margin: 0;
+}
+
+body.app-section-listing.listing-page .listing-form input,
+body.app-section-listing.listing-page .listing-form select,
+body.app-section-listing.listing-page .listing-form textarea {
+  min-height: 46px;
+  padding: 12px 13px;
+}
+
+body.app-section-listing.listing-page .listing-form textarea {
+  min-height: 132px;
+}
+
+body.app-section-listing.listing-page .listing-upload-field {
+  display: grid;
+  align-content: center;
+  min-height: 150px;
+}
+
+body.app-section-listing.listing-page .listing-trade-option {
+  width: fit-content;
+  border: 1px solid #3e5262;
+  border-radius: 8px;
+  padding: 11px 13px;
+  background: #101920;
+}
+
+@media (max-width: 760px) {
+  body.app-section-listing.listing-page .listing-workspace-assist { align-items: flex-start; }
+  body.app-section-listing.listing-page .listing-workspace-assist strong { width: 100%; }
+  body.app-section-listing.listing-page .listing-step { align-items: flex-start; flex-direction: column; gap: 7px; }
+  body.app-section-listing.listing-page .listing-step small { max-width: none; text-align: left; }
+  body.app-section-listing.listing-page .listing-media-inputs,
+  body.app-section-listing.listing-page .listing-location-panel { padding: 14px; }
+}
