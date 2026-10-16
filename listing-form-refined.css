@@ -655,3 +655,104 @@ body.app-section-listing.listing-page .listing-trade-option {
     min-height: 116px;
   }
 }
+
+/* Dense desktop mode: keep the whole listing workflow in view without making
+   controls too small to use. */
+@media (min-width: 900px) {
+  body.app-section-listing.listing-page .app-section-page { padding-bottom: 104px; }
+
+  body.app-section-listing.listing-page .app-section-intro {
+    padding-top: 20px;
+    padding-bottom: 18px;
+  }
+
+  body.app-section-listing.listing-page .app-section-intro h1 {
+    margin-top: 5px;
+    margin-bottom: 3px;
+    font-size: clamp(2rem, 2.7vw, 3rem);
+  }
+
+  body.app-section-listing.listing-page .app-section-intro p { font-size: .86rem; }
+
+  body.app-section-listing.listing-page .app-section-content {
+    padding-top: 14px;
+  }
+
+  body.app-section-listing.listing-page .listing-form { gap: 12px; }
+
+  body.app-section-listing.listing-page .listing-creation-progress {
+    padding: 8px 12px;
+    border-radius: 9px;
+  }
+
+  body.app-section-listing.listing-page .listing-creation-progress b {
+    width: 24px;
+    height: 24px;
+    font-size: .55rem;
+  }
+
+  body.app-section-listing.listing-page .listing-creation-progress small { font-size: .61rem; }
+  body.app-section-listing.listing-page .listing-creation-progress strong { font-size: .61rem; }
+
+  body.app-section-listing.listing-page .listing-details {
+    gap: 10px;
+    padding: 16px 18px;
+    border-radius: 11px;
+  }
+
+  body.app-section-listing.listing-page .listing-form-grid,
+  body.app-section-listing.listing-page .listing-location-grid { gap: 10px; }
+
+  body.app-section-listing.listing-page .listing-step {
+    min-height: 30px;
+    margin-top: 0;
+    padding-bottom: 6px;
+  }
+
+  body.app-section-listing.listing-page .listing-step b {
+    width: 21px;
+    height: 21px;
+    border-radius: 5px;
+    font-size: .53rem;
+  }
+
+  body.app-section-listing.listing-page .listing-step strong { font-size: .64rem; }
+  body.app-section-listing.listing-page .listing-step small { font-size: .67rem; }
+
+  body.app-section-listing.listing-page .listing-media-inputs,
+  body.app-section-listing.listing-page .listing-location-panel {
+    gap: 10px;
+    border-radius: 9px;
+    padding: 11px;
+  }
+
+  body.app-section-listing.listing-page .listing-form label { gap: 5px; font-size: .62rem; }
+
+  body.app-section-listing.listing-page .listing-form input,
+  body.app-section-listing.listing-page .listing-form select,
+  body.app-section-listing.listing-page .listing-form textarea {
+    min-height: 38px;
+    padding: 8px 10px;
+    font-size: .82rem;
+  }
+
+  body.app-section-listing.listing-page .listing-form textarea { min-height: 86px; }
+
+  body.app-section-listing.listing-page .listing-upload-field { min-height: 94px; }
+
+  body.app-section-listing.listing-page .listing-workspace-assist {
+    padding: 7px 10px;
+    border-radius: 8px;
+  }
+
+  body.app-section-listing.listing-page .listing-workspace-assist span {
+    padding: 4px 7px;
+    font-size: .58rem;
+  }
+
+  body.app-section-listing.listing-page .listing-media-panel { padding: 13px; }
+  body.app-section-listing.listing-page .listing-media-panel h3 { font-size: 1.45rem; }
+  body.app-section-listing.listing-page .listing-media-panel > div > p { font-size: .78rem; }
+  body.app-section-listing.listing-page .listing-image-preview { min-height: 255px; }
+  body.app-section-listing.listing-page .listing-publish-bar { min-height: 62px; padding-top: 9px; padding-bottom: 9px; }
+}
