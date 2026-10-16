@@ -946,3 +946,115 @@ body.app-section-listing.listing-page .sell-lava-game-host {
     margin-bottom: 36px;
   }
 }
+
+/* Seller studio visual system. Each job is a self-contained surface so the
+   workflow reads left-to-right rather than as one undifferentiated form. */
+body.app-section-listing.listing-page .listing-creation-progress {
+  position: relative;
+  overflow: hidden;
+  border-color: #9b5137;
+  background: linear-gradient(100deg, #24110e, #171719 48%, #10201d);
+}
+
+body.app-section-listing.listing-page .listing-creation-progress::after {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 38%;
+  content: "";
+  background: linear-gradient(90deg, #ff8b4020, transparent);
+  pointer-events: none;
+}
+
+body.app-section-listing.listing-page .listing-creation-progress > * { position: relative; z-index: 1; }
+
+body.app-section-listing.listing-page .listing-details {
+  border-color: #8b4a38;
+  background:
+    linear-gradient(145deg, #1d1113fa, #11171bf7 56%, #10191af7),
+    linear-gradient(90deg, #ff8b3b14, transparent 28%);
+}
+
+body.app-section-listing.listing-page .listing-form-grid,
+body.app-section-listing.listing-page .listing-media-inputs,
+body.app-section-listing.listing-page .listing-location-panel,
+body.app-section-listing.listing-page .description-field {
+  position: relative;
+  border: 1px solid #543b37;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #0d1116c9, #131416b8);
+}
+
+body.app-section-listing.listing-page .listing-form-grid { padding: clamp(12px, 1.4vw, 18px); }
+body.app-section-listing.listing-page .listing-media-inputs { border-color: #4e4655; }
+body.app-section-listing.listing-page .listing-location-panel { border-color: #39705f; }
+body.app-section-listing.listing-page .description-field { padding: 12px; }
+
+body.app-section-listing.listing-page .listing-form-grid::before,
+body.app-section-listing.listing-page .listing-media-inputs::before,
+body.app-section-listing.listing-page .listing-location-panel::before,
+body.app-section-listing.listing-page .description-field::before {
+  position: absolute;
+  top: -1px;
+  left: 16px;
+  width: 48px;
+  height: 2px;
+  content: "";
+  background: #ec8546;
+  box-shadow: 0 0 12px #ee623e99;
+}
+
+body.app-section-listing.listing-page .listing-location-panel::before { background: #6fd1a2; box-shadow: 0 0 12px #48c98b80; }
+body.app-section-listing.listing-page .listing-media-inputs::before { background: #8e9cff; box-shadow: 0 0 12px #8193f399; }
+
+body.app-section-listing.listing-page .listing-media-panel {
+  overflow: hidden;
+  border-color: #c06940;
+  background:
+    radial-gradient(circle at 80% 8%, #d86b302b, transparent 30%),
+    linear-gradient(160deg, #21120ff9, #12171afc 66%);
+}
+
+body.app-section-listing.listing-page .listing-media-panel > div:first-child {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 10px;
+  align-items: center;
+}
+
+body.app-section-listing.listing-page .listing-media-panel > div:first-child .listing-step {
+  grid-row: 1 / span 2;
+  align-self: stretch;
+  border-right: 1px solid #8f4d35;
+  border-bottom: 0;
+  padding: 1px 10px 1px 0;
+}
+
+body.app-section-listing.listing-page .listing-media-panel h3 { letter-spacing: -.025em; }
+
+body.app-section-listing.listing-page .listing-image-preview {
+  border-style: solid;
+  background:
+    radial-gradient(circle at 50% 20%, #3f2b1a8c, transparent 45%),
+    #090c0f;
+}
+
+body.app-section-listing.listing-page .preview-empty {
+  min-height: inherit;
+  background:
+    linear-gradient(135deg, transparent 49%, #ffffff08 50%, transparent 51%),
+    linear-gradient(45deg, transparent 49%, #ffffff08 50%, transparent 51%),
+    #0c1013;
+  background-size: 22px 22px;
+}
+
+body.app-section-listing.listing-page .listing-publish-bar {
+  border-top-color: #b66742;
+  background: linear-gradient(90deg, #130a0aeF, #35160ef7 44%, #10201af7);
+}
+
+@media (min-width: 900px) {
+  body.app-section-listing.listing-page .listing-form-grid,
+  body.app-section-listing.listing-page .listing-media-inputs,
+  body.app-section-listing.listing-page .listing-location-panel,
+  body.app-section-listing.listing-page .description-field { padding: 12px; }
+}
