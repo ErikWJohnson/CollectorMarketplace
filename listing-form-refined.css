@@ -922,3 +922,27 @@ body.app-section-listing.listing-page .listing-price-field input {
     align-content: start;
   }
 }
+
+/* The game is a separate bottom-of-page destination. The seller editor must
+   remain the only workspace in the primary canvas. */
+body.app-section-listing.listing-page .app-section-content {
+  display: block;
+  flex: initial;
+}
+
+body.app-section-listing.listing-page .listing-form {
+  grid-template-rows: none;
+}
+
+body.app-section-listing.listing-page .sell-lava-game-host {
+  clear: both;
+  width: min(1120px, 100%);
+  margin: 38px auto calc(28px + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 900px) {
+  body.app-section-listing.listing-page .sell-lava-game-host {
+    margin-top: 52px;
+    margin-bottom: 36px;
+  }
+}
