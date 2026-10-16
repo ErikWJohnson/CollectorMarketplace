@@ -2255,6 +2255,14 @@ function decorateListingWorkspace(form) {
   if (progress && !form.querySelector('.listing-workspace-assist')) progress.insertAdjacentHTML('afterend', '<aside class="listing-workspace-assist" aria-label="Listing requirements"><strong>Quick checklist</strong><span>Item basics</span><span>At least one photo</span><span>Delivery details</span><span>Ready to publish</span></aside>');
 }
 enhanceListingComposer = () => { baseEnhanceListingWorkspacePresentation(); decorateListingWorkspace(document.querySelector('.app-section-page .listing-form')); };
+const baseEnhanceListingFieldLayout = enhanceListingComposer;
+enhanceListingComposer = () => {
+  baseEnhanceListingFieldLayout();
+  const form = document.querySelector('.app-section-page .listing-form');
+  form?.querySelector('[name="price"]')?.closest('label')?.classList.add('listing-price-field');
+  form?.querySelector('[name="stockQuantity"]')?.closest('label')?.classList.add('listing-stock-field');
+  form?.querySelector('.listing-inventory-type')?.classList.add('listing-inventory-choice');
+};
 function syncListingPostType(form) {
   const showcase = form?.querySelector('[name="postType"]:checked')?.value === 'showcase';
   const price = form?.querySelector('[name="price"]');

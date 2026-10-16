@@ -756,3 +756,94 @@ body.app-section-listing.listing-page .listing-trade-option {
   body.app-section-listing.listing-page .listing-image-preview { min-height: 255px; }
   body.app-section-listing.listing-page .listing-publish-bar { min-height: 62px; padding-top: 9px; padding-bottom: 9px; }
 }
+
+/* Item type, quantity, and price have dedicated grid positions so selecting
+   stock never pushes Price (USD) into an unrelated column. */
+body.app-section-listing.listing-page .listing-post-type,
+body.app-section-listing.listing-page .listing-inventory-choice {
+  grid-column: 1 / -1;
+}
+
+body.app-section-listing.listing-page .listing-post-type { order: 1; }
+body.app-section-listing.listing-page .listing-inventory-choice { order: 2; }
+body.app-section-listing.listing-page .listing-price-field { order: 3; }
+body.app-section-listing.listing-page .listing-stock-field { order: 4; }
+body.app-section-listing.listing-page .listing-tag-field { order: 5; }
+
+body.app-section-listing.listing-page .listing-post-type {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px 12px;
+  padding: 9px 11px;
+}
+
+body.app-section-listing.listing-page .listing-post-type legend {
+  width: 100%;
+  margin-bottom: 1px;
+}
+
+body.app-section-listing.listing-page .listing-post-type label {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+  min-height: 32px;
+  padding: 6px 9px;
+}
+
+body.app-section-listing.listing-page .listing-post-type small {
+  flex: 1 1 240px;
+  min-width: 190px;
+  color: #9baab2;
+  font: .66rem/1.35 "DM Sans", sans-serif;
+}
+
+body.app-section-listing.listing-page .listing-inventory-choice {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  padding: 9px;
+}
+
+body.app-section-listing.listing-page .listing-inventory-choice legend {
+  grid-column: 1 / -1;
+  margin: 0 0 1px;
+}
+
+body.app-section-listing.listing-page .listing-inventory-choice label {
+  align-items: center;
+  min-height: 57px;
+  padding: 8px 10px;
+}
+
+body.app-section-listing.listing-page .listing-inventory-choice label span { gap: 2px; }
+body.app-section-listing.listing-page .listing-inventory-choice b { font-size: .67rem; }
+body.app-section-listing.listing-page .listing-inventory-choice small { font-size: .61rem; line-height: 1.25; }
+
+body.app-section-listing.listing-page .listing-price-field,
+body.app-section-listing.listing-page .listing-stock-field {
+  min-width: 0;
+}
+
+body.app-section-listing.listing-page .listing-price-field input {
+  border-color: #aa7a40;
+  background: linear-gradient(135deg, #19130e, #101418);
+  color: #ffe0a3;
+  font-weight: 800;
+}
+
+@media (min-width: 900px) {
+  body.app-section-listing.listing-page .listing-price-field,
+  body.app-section-listing.listing-page .listing-stock-field {
+    grid-column: span 1;
+  }
+
+  body.app-section-listing.listing-page .listing-price-field { grid-column: span 2; }
+
+}
+
+@media (max-width: 620px) {
+  body.app-section-listing.listing-page .listing-inventory-choice { grid-template-columns: 1fr; }
+  body.app-section-listing.listing-page .listing-post-type small { min-width: 0; }
+}
