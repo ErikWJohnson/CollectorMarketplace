@@ -768,7 +768,22 @@ body.app-section-listing.listing-page .listing-post-type { order: 1; }
 body.app-section-listing.listing-page .listing-inventory-choice { order: 2; }
 body.app-section-listing.listing-page .listing-price-field { order: 3; }
 body.app-section-listing.listing-page .listing-stock-field { order: 4; }
-body.app-section-listing.listing-page .listing-tag-field { order: 5; }
+body.app-section-listing.listing-page .listing-gallery-placement { order: 5; grid-column: 1 / -1; }
+body.app-section-listing.listing-page .listing-tag-field { order: 6; }
+
+body.app-section-listing.listing-page .listing-gallery-placement {
+  display:grid;
+  grid-template-columns:minmax(160px,.46fr) minmax(240px,1fr);
+  align-items:center;
+  gap:7px 14px;
+  border:1px solid #4d493f;
+  border-radius:9px;
+  padding:11px 13px;
+  background:linear-gradient(120deg,#181817,#121416);
+}
+body.app-section-listing.listing-page .listing-gallery-placement i { grid-column:1; }
+body.app-section-listing.listing-page .listing-gallery-placement select { grid-column:2; grid-row:1 / span 2; min-width:0; }
+body.app-section-listing.listing-page .listing-gallery-placement small { grid-column:1 / -1; color:#aaa69c; font-size:.68rem; line-height:1.35; }
 
 body.app-section-listing.listing-page .listing-post-type {
   display: flex;
@@ -846,6 +861,8 @@ body.app-section-listing.listing-page .listing-price-field input {
 @media (max-width: 620px) {
   body.app-section-listing.listing-page .listing-inventory-choice { grid-template-columns: 1fr; }
   body.app-section-listing.listing-page .listing-post-type small { min-width: 0; }
+  body.app-section-listing.listing-page .listing-gallery-placement { grid-template-columns:1fr; }
+  body.app-section-listing.listing-page .listing-gallery-placement select { grid-column:1; grid-row:auto; }
 }
 
 /* Treat Create Listing as a full seller workspace below the persistent site

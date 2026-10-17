@@ -2254,6 +2254,20 @@ function decorateListingWorkspace(form) {
   const progress = form.querySelector('.listing-creation-progress');
   if (progress && !form.querySelector('.listing-workspace-assist')) progress.insertAdjacentHTML('afterend', '<aside class="listing-workspace-assist" aria-label="Listing requirements"><strong>Quick checklist</strong><span>Item basics</span><span>At least one photo</span><span>Delivery details</span><span>Ready to publish</span></aside>');
 }
+async function addListingGalleryPlacement(form) {
+  if (!form || form.querySelector('[name="galleryId"]') || form.dataset.galleryPlacementLoading || !session?.user?.id) return;
+  form.dataset.galleryPlacementLoading = 'true';
+  try {
+    const profile = await api(`/user/${session.user.id}`);
+    const galleries = Array.isArray(profile?.galleries) ? profile.galleries : [];
+    const options = galleries.map(gallery => `<option value="${safe(gallery.id)}">${safe(gallery.title)} · ${Number(gallery.items?.length || 0)}/24 items${gallery.isPublic === false ? ' · private' : ''}</option>`).join('');
+    const anchor = form.querySelector('.listing-inventory-type') || form.querySelector('.listing-post-type') || form.querySelector('[name="price"]')?.closest('label');
+    if (!anchor) return;
+    anchor.insertAdjacentHTML('afterend', `<label class="listing-gallery-placement">Gallery placement <i>Optional · organize this item as it publishes</i><select name="galleryId"><option value="">No gallery — publish normally</option>${options}</select><small>${options ? 'Choose a gallery to add this listing to its collector display automatically.' : 'Create an inventory gallery from your Account page to organize listings as you publish them.'}</small></label>`);
+    restoreListingDraft(form);
+  } catch { /* Gallery placement is optional; publishing remains available offline. */ }
+  finally { delete form.dataset.galleryPlacementLoading; }
+}
 enhanceListingComposer = () => { baseEnhanceListingWorkspacePresentation(); decorateListingWorkspace(document.querySelector('.app-section-page .listing-form')); };
 const baseEnhanceListingFieldLayout = enhanceListingComposer;
 enhanceListingComposer = () => {
@@ -2262,6 +2276,7 @@ enhanceListingComposer = () => {
   form?.querySelector('[name="price"]')?.closest('label')?.classList.add('listing-price-field');
   form?.querySelector('[name="stockQuantity"]')?.closest('label')?.classList.add('listing-stock-field');
   form?.querySelector('.listing-inventory-type')?.classList.add('listing-inventory-choice');
+  void addListingGalleryPlacement(form);
 };
 function syncListingPostType(form) {
   const showcase = form?.querySelector('[name="postType"]:checked')?.value === 'showcase';
@@ -2982,7 +2997,7 @@ document.addEventListener('submit', async event => {
     if (!category) throw new Error('Choose at least one category.'); if (!images.length) throw new Error('Add at least one listing photo or image link.'); if (tags.length > 8) throw new Error('Use up to 8 tags, including categories and condition.'); if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10000) throw new Error('Stock quantity must be a whole number from 1 to 10,000.');
     if (String(fields.get('fulfillment') || '') === 'pickup_delivery' && String(fields.get('postType') || 'sale') === 'sale') await saveShippoOriginFromForm(listingForm);
     const button = listingForm.querySelector('button[type="submit"], button:not([type])'); button.disabled = true; button.textContent = 'Publishing…';
-    const created = await api('/listing', { method: 'POST', body: JSON.stringify({ title: fields.get('title'), description: fields.get('description'), category, condition, tags, sellerCity: fields.get('sellerCity'), sellerZip: fields.get('sellerZip'), sellerCountry: fields.get('sellerCountry'), pickupRadiusMiles: fields.get('pickupRadiusMiles'), shippingPackagingCost: fields.get('shippingPackagingCost'), shippingParcel: { length: fields.get('parcelLength'), width: fields.get('parcelWidth'), height: fields.get('parcelHeight'), weight: fields.get('parcelWeight') }, locationCoordinates: latitude && longitude ? { lat: latitude, lng: longitude } : null, fulfillment: fields.get('fulfillment'), listingMode: fields.get('listingMode'), postType: fields.get('postType') || 'sale', auctionStartPrice: fields.get('auctionStartPrice'), auctionDurationHours: fields.get('auctionDurationHours'), price: fields.get('price'), stockQuantity: quantity, listingKind: fields.get('listingKind') || 'one_off', tradeOffer: fields.get('tradeOffer') === 'on', confirmedAlcoholAge: fields.get('confirmedAlcoholAge') === 'on', uspsShippingConfirmed: fields.get('uspsShippingConfirmed') === 'on', images, videos: uploadedListingVideos }) });
+    const created = await api('/listing', { method: 'POST', body: JSON.stringify({ title: fields.get('title'), description: fields.get('description'), category, condition, tags, sellerCity: fields.get('sellerCity'), sellerZip: fields.get('sellerZip'), sellerCountry: fields.get('sellerCountry'), pickupRadiusMiles: fields.get('pickupRadiusMiles'), shippingPackagingCost: fields.get('shippingPackagingCost'), shippingParcel: { length: fields.get('parcelLength'), width: fields.get('parcelWidth'), height: fields.get('parcelHeight'), weight: fields.get('parcelWeight') }, locationCoordinates: latitude && longitude ? { lat: latitude, lng: longitude } : null, fulfillment: fields.get('fulfillment'), listingMode: fields.get('listingMode'), postType: fields.get('postType') || 'sale', auctionStartPrice: fields.get('auctionStartPrice'), auctionDurationHours: fields.get('auctionDurationHours'), price: fields.get('price'), stockQuantity: quantity, listingKind: fields.get('listingKind') || 'one_off', galleryId: fields.get('galleryId') || '', tradeOffer: fields.get('tradeOffer') === 'on', confirmedAlcoholAge: fields.get('confirmedAlcoholAge') === 'on', uspsShippingConfirmed: fields.get('uspsShippingConfirmed') === 'on', images, videos: uploadedListingVideos }) });
     if (created.listingMode !== 'marketplace') auctions = [...auctions, { ...created, image: created.images?.[0] || '', currentBid: Number(created.auctionStartPrice || 0), bids: 0, endAt: new Date(created.auctionEndAt).valueOf() }]; listingDraft = {}; localStorage.removeItem('collector-marketplace-listing-draft'); await loadMarket(); modal.close();
   } catch (error) { showError(error); const button = listingForm.querySelector('button[type="submit"], button:not([type])'); if (button) { button.disabled = false; button.textContent = 'Publish listing'; } }
 }, true);

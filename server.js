@@ -783,7 +783,7 @@ function listingRiskFlags(ownerId, listing, previousPrice = null) {
   return flags;
 }
 app.post('/listing', required, (req, res) => {
-  const { title, description, category, condition, tags = [], price, tradeOffer, images = [], videos = [], sellerCity, sellerZip, sellerCountry, locationCoordinates, pickupRadiusMiles, fulfillment, shippingPackagingCost, shippingParcel, listingMode = 'marketplace', postType = 'sale', auctionStartPrice, auctionDurationHours, stockQuantity = 1, listingKind = 'one_off', confirmedAlcoholAge, uspsShippingConfirmed } = req.body;
+  const { title, description, category, condition, tags = [], price, tradeOffer, images = [], videos = [], sellerCity, sellerZip, sellerCountry, locationCoordinates, pickupRadiusMiles, fulfillment, shippingPackagingCost, shippingParcel, listingMode = 'marketplace', postType = 'sale', auctionStartPrice, auctionDurationHours, stockQuantity = 1, listingKind = 'one_off', galleryId, confirmedAlcoholAge, uspsShippingConfirmed } = req.body;
   const validImages = Array.isArray(images) && images.length > 0 && images.length <= 5 && images.every(image => typeof image === 'string' && image.length <= 2_000_000 && (/^https?:\/\//i.test(image) || /^data:image\/(jpeg|png|webp);base64,/i.test(image)));
   const validVideos = Array.isArray(videos) && videos.length <= 1 && videos.every(video => typeof video === 'string' && video.length <= 6_000_000 && /^data:video\/(mp4|webm|quicktime);base64,/i.test(video));
   if (!title?.trim() || !description?.trim() || !category?.trim()) return res.status(400).json({ error: 'title, description, and category are required' });
@@ -838,7 +838,22 @@ app.post('/listing', required, (req, res) => {
   const locationTag = `US City/Town: ${publicCity}`;
   const listing = { id: id(), ownerId: req.user.id, title: title.trim(), description: description.trim(), category: category.trim(), condition: itemCondition, tags: [...submittedTags, locationTag], location: publicLocation, sellerCity: publicCity, sellerZip: publicZip, sellerCountry: publicCountry, locationCoordinates: coordinates, pickupRadiusMiles: pickupRadius, fulfillment: effectiveFulfillment, upsPackagingCost, shippingParcel: parcel, uspsShippingRestriction, listingMode, postType, listingKind, auctionStartPrice: listingMode === 'marketplace' ? null : startingBid, auctionEndAt: listingMode === 'marketplace' ? null : new Date(Date.now() + auctionHours * 3600000).toISOString(), auctionBids: 0, price: postType === 'showcase' ? 0 : Number(price) || 0, stockQuantity: quantity, stockRemaining: quantity, tradeOffer: postType === 'sale' && Boolean(tradeOffer) && listingKind === 'one_off', images, videos, alcoholAgeConfirmedAt: isAlcoholListing({ title, description, category, tags: submittedTags }) ? now() : null, status: 'active', likes: [], createdAt: now() };
   listing.riskFlags = listingRiskFlags(req.user.id, listing); if (listing.riskFlags.length) { listing.reviewStatus = 'flagged'; securityLog('listing_flagged', req, { userId: req.user.id, listingId: listing.id, flags: listing.riskFlags }); }
-  store.data.listings.unshift(listing); activity('listing', req.user.id, { listingId: listing.id }); store.save(); res.status(201).json(listing);
+  const galleryTargetId = String(galleryId || '').trim();
+  if (galleryTargetId) {
+    const gallery = (req.user.galleries || []).find(row => row.id === galleryTargetId);
+    if (!gallery) return res.status(400).json({ error: 'Choose one of your existing inventory galleries.' });
+    const galleryListings = [...new Set([...(gallery.listingIds || []), listing.id])];
+    if (galleryListings.length > 24) return res.status(400).json({ error: 'That gallery already has the maximum of 24 items.' });
+    gallery.listingIds = galleryListings;
+    const canvas = galleryCanvas(gallery.canvas, galleryListings);
+    if (!canvas.elements.some(element => element.type === 'item' && element.listingId === listing.id)) {
+      const index = galleryListings.length - 1;
+      canvas.elements.push({ id: `item-${listing.id}`, type: 'item', listingId: listing.id, x: 4 + (index % 3) * 32, y: 10 + Math.floor(index / 3) * 28, w: 28, h: 24 });
+    }
+    gallery.canvas = canvas;
+    gallery.updatedAt = now();
+  }
+  store.data.listings.unshift(listing); activity('listing', req.user.id, { listingId: listing.id, galleryId: galleryTargetId || undefined }); store.save(); res.status(201).json(listing);
 });
 app.get('/listing/:id', (req, res) => { const listing = store.data.listings.find(l => l.id === req.params.id); const viewer = currentUser(req); if (!listing || !privateListingAccessible(listing, viewer?.id)) return res.status(404).json({ error: 'Listing not found' }); if (recordUniqueListingMetric(listing, req, 'view')) store.save(); res.json({ ...publicListing(listing), owner: publicUser(store.data.users.find(u => u.id === listing.ownerId)), likeCount: listing.likes.length, statistics: listingStatistics(listing) }); });
 app.get('/listing/:id/statistics', required, (req, res) => { const listing = store.data.listings.find(row => row.id === req.params.id); if (!listing) return res.status(404).json({ error: 'Listing not found' }); if (listing.ownerId !== req.user.id) return res.status(403).json({ error: 'Only the listing owner can view these statistics.' }); res.json(listingStatistics(listing, true)); });
