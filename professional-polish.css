@@ -967,3 +967,14 @@ html body.browse-doomscroll .square-listing-card > .square-listing-copy > strong
   .browse-conveyor .conveyor-utility-dock > #remove-tags,
   .browse-doomscroll .doomscroll-utility-dock > #remove-tags { width: 100% !important; }
 }
+
+/* Creator-first live-room discovery. */
+.live-room-directory-head { display:flex; align-items:center; justify-content:space-between; gap:18px; grid-column:1 / -1; padding:16px 18px; border:1px solid #3c6856; border-radius:10px; background:linear-gradient(120deg,#112720,#11191b 55%,#1b2924); color:#f4f7f4; }
+.live-room-directory-head div { display:grid; gap:4px; }
+.live-room-directory-head span { color:#7fe4a4; font:800 .62rem/1 "DM Mono",monospace; letter-spacing:.1em; }
+.live-room-directory-head b { font:700 1rem/1.2 "DM Sans",sans-serif; }
+.live-room-directory-head small { color:#b6c8bd; font-size:.72rem; }
+.live-room-directory-head button { flex:0 0 auto; border:1px solid #79c995; border-radius:6px; padding:10px 13px; background:#1f5138; color:#edfff4; font:800 .66rem/1 "DM Mono",monospace; text-transform:uppercase; cursor:pointer; }
+.chatrooms-directory-card { border-color:#386955; background:linear-gradient(145deg,#13221e,#111719); }
+.chatrooms-directory-card header span { color:#8ee6ad; }
+@media(max-width:620px){.live-room-directory-head{align-items:stretch;flex-direction:column}.live-room-directory-head button{width:100%}}
