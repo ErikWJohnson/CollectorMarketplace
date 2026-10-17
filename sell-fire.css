@@ -260,3 +260,100 @@ body.app-section-listing.listing-page .description-field::before {
   background: #e7b851 !important;
   box-shadow: 0 0 10px #e7b85166 !important;
 }
+
+/* Final visual polish for the dark seller studio. */
+body.app-section-listing.listing-page .app-section-page {
+  background:
+    radial-gradient(ellipse 72% 36% at 50% 0, #d8952b18, transparent 70%),
+    linear-gradient(180deg, #151313 0, #0d0e0f 56%, #11100f 100%) !important;
+}
+
+body.app-section-listing.listing-page .app-section-intro {
+  box-shadow: inset 0 -1px #ffffff08, 0 8px 28px #0006;
+}
+
+body.app-section-listing.listing-page .app-section-intro h1 {
+  text-shadow: 0 1px 0 #ffffff10, 0 7px 22px #000a;
+}
+
+body.app-section-listing.listing-page .listing-details,
+body.app-section-listing.listing-page .listing-media-panel {
+  box-shadow: 0 18px 44px #0008, inset 0 1px #ffffff09;
+}
+
+body.app-section-listing.listing-page .listing-form-grid,
+body.app-section-listing.listing-page .listing-media-inputs,
+body.app-section-listing.listing-page .listing-location-panel,
+body.app-section-listing.listing-page .description-field {
+  box-shadow: inset 0 1px #ffffff08, 0 8px 20px #0003;
+}
+
+body.app-section-listing.listing-page .listing-form input,
+body.app-section-listing.listing-page .listing-form select,
+body.app-section-listing.listing-page .listing-form textarea {
+  transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+body.app-section-listing.listing-page .listing-form input:hover,
+body.app-section-listing.listing-page .listing-form select:hover,
+body.app-section-listing.listing-page .listing-form textarea:hover {
+  border-color: #82725a !important;
+  background: #111112 !important;
+}
+
+body.app-section-listing.listing-page .listing-upload-field {
+  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+
+body.app-section-listing.listing-page .listing-upload-field:hover {
+  transform: translateY(-1px);
+  border-color: #e7b851 !important;
+  box-shadow: 0 10px 22px #0007, inset 0 1px #ffffff09;
+}
+
+body.app-section-listing.listing-page .listing-media-panel::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0 0 auto;
+  height: 3px;
+  content: "";
+  background: linear-gradient(90deg, transparent, #e7b851, transparent);
+  opacity: .9;
+}
+
+body.app-section-listing.listing-page .listing-media-panel > * { position: relative; z-index: 1; }
+
+body.app-section-listing.listing-page .listing-image-preview {
+  box-shadow: inset 0 0 0 1px #ffffff06, inset 0 0 45px #000b;
+}
+
+body.app-section-listing.listing-page .preview-empty b { color: #f4ce76; }
+body.app-section-listing.listing-page .preview-empty span { color: #c7beb0; }
+
+body.app-section-listing.listing-page .listing-publish-bar {
+  box-shadow: 0 -12px 30px #0009, inset 0 1px #ffffff0b;
+}
+
+body.app-section-listing.listing-page .listing-publish-bar button {
+  min-height: 46px;
+  border: 1px solid #f4cb6b !important;
+  background: linear-gradient(135deg, #f4cb6b, #c98d28) !important;
+  box-shadow: 0 8px 22px #c98d283d, inset 0 1px #fff6c899 !important;
+  color: #241805 !important;
+  transition: transform .16s ease, filter .16s ease, box-shadow .16s ease;
+}
+
+body.app-section-listing.listing-page .listing-publish-bar button:hover,
+body.app-section-listing.listing-page .listing-publish-bar button:focus-visible {
+  transform: translateY(-2px);
+  filter: brightness(1.06);
+  box-shadow: 0 12px 28px #c98d2860, inset 0 1px #fff9da !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.app-section-listing.listing-page .listing-form input,
+  body.app-section-listing.listing-page .listing-form select,
+  body.app-section-listing.listing-page .listing-form textarea,
+  body.app-section-listing.listing-page .listing-upload-field,
+  body.app-section-listing.listing-page .listing-publish-bar button { transition: none; }
+}
