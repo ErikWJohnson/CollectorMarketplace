@@ -160,3 +160,103 @@ body.app-section-listing .listing-publish-bar button {
 }
 
 @media (max-width: 620px) { .sell-lava-game-host { margin-top: 20px; }.sell-lava-game header, .sell-lava-game footer { align-items: flex-start; flex-direction: column; }.sell-lava-game footer div { width: 100%; }.sell-lava-game footer button { flex: 1; }.sell-lava-field { height: 235px; } }
+
+/* One visual language for the seller workspace: charcoal surfaces, warm
+   amber emphasis, and high-contrast text. This intentionally overrides the
+   older mixed green/blue/red treatment used by individual form sections. */
+body.app-section-listing.listing-page .app-section-intro,
+body.app-section-listing.listing-page .listing-creation-progress,
+body.app-section-listing.listing-page .listing-details,
+body.app-section-listing.listing-page .listing-media-panel,
+body.app-section-listing.listing-page .listing-form-grid,
+body.app-section-listing.listing-page .listing-media-inputs,
+body.app-section-listing.listing-page .listing-location-panel,
+body.app-section-listing.listing-page .description-field,
+body.app-section-listing.listing-page .listing-workspace-assist,
+body.app-section-listing.listing-page .listing-inventory-choice,
+body.app-section-listing.listing-page .listing-post-type,
+body.app-section-listing.listing-page .listing-fulfillment-field,
+body.app-section-listing.listing-page .listing-parcel-field {
+  border-color: #5a5147 !important;
+  background: #171717f5 !important;
+}
+
+body.app-section-listing.listing-page .app-section-intro,
+body.app-section-listing.listing-page .listing-creation-progress,
+body.app-section-listing.listing-page .listing-publish-bar {
+  background: #121212fa !important;
+}
+
+body.app-section-listing.listing-page .listing-form input,
+body.app-section-listing.listing-page .listing-form textarea,
+body.app-section-listing.listing-page .listing-form select,
+body.app-section-listing.listing-page .listing-image-preview,
+body.app-section-listing.listing-page .preview-empty {
+  border-color: #5a5147 !important;
+  background: #0c0c0d !important;
+  color: #f7f1e8 !important;
+}
+
+body.app-section-listing.listing-page .listing-form input:focus,
+body.app-section-listing.listing-page .listing-form textarea:focus,
+body.app-section-listing.listing-page .listing-form select:focus {
+  border-color: #e7b851 !important;
+  box-shadow: 0 0 0 3px #e7b85124 !important;
+}
+
+body.app-section-listing.listing-page .listing-step,
+body.app-section-listing.listing-page .listing-step strong,
+body.app-section-listing.listing-page .listing-workspace-assist strong,
+body.app-section-listing.listing-page .listing-inventory-choice legend,
+body.app-section-listing.listing-page .listing-post-type legend,
+body.app-section-listing.listing-page .listing-fulfillment-field legend {
+  color: #f0c55d !important;
+}
+
+body.app-section-listing.listing-page .listing-step,
+body.app-section-listing.listing-page .listing-media-panel > div:first-child .listing-step {
+  border-color: #5a5147 !important;
+}
+
+body.app-section-listing.listing-page .listing-step b,
+body.app-section-listing.listing-page .listing-creation-progress .is-current b {
+  border-color: #e7b851 !important;
+  background: #2b2211 !important;
+  color: #ffe7aa !important;
+  box-shadow: none !important;
+}
+
+body.app-section-listing.listing-page .listing-workspace-assist span,
+body.app-section-listing.listing-page .listing-inventory-choice label,
+body.app-section-listing.listing-page .listing-post-type label,
+body.app-section-listing.listing-page .listing-fulfillment-field label {
+  border-color: #5a5147 !important;
+  background: #1d1d1e !important;
+  color: #eee8df !important;
+}
+
+body.app-section-listing.listing-page .listing-inventory-choice label:has(input:checked),
+body.app-section-listing.listing-page .listing-post-type label:has(input:checked),
+body.app-section-listing.listing-page .listing-fulfillment-field label:has(input:checked) {
+  border-color: #e7b851 !important;
+  background: #2b2211 !important;
+  color: #fff1ce !important;
+}
+
+body.app-section-listing.listing-page .listing-step small,
+body.app-section-listing.listing-page .listing-media-panel p,
+body.app-section-listing.listing-page .listing-form label i,
+body.app-section-listing.listing-page .listing-workspace-assist span,
+body.app-section-listing.listing-page .listing-inventory-choice small,
+body.app-section-listing.listing-page .listing-post-type small,
+body.app-section-listing.listing-page .listing-fulfillment-field small {
+  color: #c9c2b9 !important;
+}
+
+body.app-section-listing.listing-page .listing-form-grid::before,
+body.app-section-listing.listing-page .listing-media-inputs::before,
+body.app-section-listing.listing-page .listing-location-panel::before,
+body.app-section-listing.listing-page .description-field::before {
+  background: #e7b851 !important;
+  box-shadow: 0 0 10px #e7b85166 !important;
+}
