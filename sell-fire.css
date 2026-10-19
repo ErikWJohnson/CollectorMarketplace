@@ -350,6 +350,81 @@ body.app-section-listing.listing-page .listing-publish-bar button:focus-visible 
   box-shadow: 0 12px 28px #c98d2860, inset 0 1px #fff9da !important;
 }
 
+/* Compact, live publishing checklist: keeps the essential jobs visible before
+   sellers move into the denser listing controls below. */
+body.app-section-listing.listing-page .listing-workspace-assist {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #514739 !important;
+  border-radius: 10px;
+  background: linear-gradient(105deg, #11100f, #191714 48%, #101613) !important;
+}
+
+body.app-section-listing.listing-page .listing-workspace-assist header {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 1px 2px 5px;
+}
+
+body.app-section-listing.listing-page .listing-workspace-assist header strong {
+  margin: 0;
+  color: #f4ce76 !important;
+}
+
+body.app-section-listing.listing-page .listing-workspace-assist output {
+  color: #c9c2b9;
+  font: 800 .61rem/1 "DM Mono", monospace;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+body.app-section-listing.listing-page .listing-workspace-assist span {
+  position: relative;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  padding: 8px 9px;
+  border: 1px solid #3f3b34 !important;
+  border-radius: 7px;
+  background: #0e1010 !important;
+  color: #aaa49a !important;
+}
+
+body.app-section-listing.listing-page .listing-workspace-assist span::before {
+  content: "○";
+  color: #82796b;
+  font-size: .9rem;
+}
+
+body.app-section-listing.listing-page .listing-workspace-assist span.is-complete {
+  border-color: #3f8a69 !important;
+  background: linear-gradient(135deg, #10231b, #101916) !important;
+  color: #d6eee0 !important;
+}
+
+body.app-section-listing.listing-page .listing-workspace-assist span.is-complete::before {
+  content: "✓";
+  color: #75d29b;
+}
+
+body.app-section-listing.listing-page .listing-form.is-ready-to-publish .listing-publish-bar span::before {
+  content: "✓ Ready to publish · ";
+  color: #86dbab;
+  font-weight: 800;
+}
+
+@media (max-width: 760px) {
+  body.app-section-listing.listing-page .listing-workspace-assist { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  body.app-section-listing.listing-page .listing-workspace-assist header { grid-column: 1 / -1; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   body.app-section-listing.listing-page .listing-form input,
   body.app-section-listing.listing-page .listing-form select,
