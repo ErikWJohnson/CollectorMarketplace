@@ -3180,12 +3180,13 @@ const galleryElementPosition = element => `--gallery-x:${Number(element.x || 0)}
 function galleryCanvasMarkup(gallery, editable = false) {
   const canvas = gallery.canvas || {}; const byId = new Map((gallery.items || []).map(item => [item.id, item]));
   const image = canvas.backgroundImage ? `--gallery-board-image:url('${safe(canvas.backgroundImage)}');` : '';
-  const elements = (canvas.elements || []).map(element => {
+  const elements = (canvas.elements || []).map((element, index) => {
     const position = galleryElementPosition(element); const selection = editable ? ` data-gallery-element-id="${safe(element.id)}"` : '';
     if (element.type === 'text') return `<div class="gallery-canvas-element gallery-canvas-text"${selection} style="${position}color:${safe(element.color || '#f8f4e8')};font-size:${Number(element.fontSize || 18)}px">${safe(element.text || '').replace(/\n/g, '<br>')}</div>`;
     if (element.type === 'shape') return `<div class="gallery-canvas-element gallery-canvas-shape ${element.shape === 'circle' ? 'is-circle' : ''}"${selection} style="${position}background:${safe(element.color || '#d6ad52')};opacity:${Number(element.opacity || .28)}"></div>`;
     const item = byId.get(element.listingId); if (!item) return '';
-    const contents = `<img src="${safe(item.image || item.images?.[0] || '')}" alt="${safe(item.title)}"><span>${safe(item.title)}</span>`;
+    const number = String(index + 1).padStart(2, '0');
+    const contents = `<span class="gallery-card-art"><img src="${safe(item.image || item.images?.[0] || '')}" alt="${safe(item.title)}"></span><strong class="gallery-card-label">${safe(item.title)}</strong><i class="gallery-card-number">${number}</i>`;
     return editable ? `<div class="gallery-canvas-element gallery-canvas-item"${selection} style="${position}">${contents}</div>` : `<button type="button" class="gallery-canvas-element gallery-canvas-item" data-detail="${safe(item.id)}" aria-label="View ${safe(item.title)}" style="${position}">${contents}</button>`;
   }).join('');
   return `<div class="gallery-display-board${editable ? ' is-editable' : ''}" style="--gallery-board-color:${safe(canvas.backgroundColor || '#111820')};${image}">${elements || '<span class="gallery-board-empty">Add cards, text, or shapes in Edit display.</span>'}</div>`;
