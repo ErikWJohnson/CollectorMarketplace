@@ -466,6 +466,83 @@ html body.browse-conveyor #sentinel {
 .gallery-exhibit { display:grid; gap:16px; width:min(980px,100%); }.gallery-exhibit>header { position:relative; overflow:hidden; padding:20px; border:1px solid #5c543d; border-radius:10px; background:linear-gradient(120deg,#231d12,#15191a 66%); }.gallery-exhibit>header::after { position:absolute; right:-35px; bottom:-64px; width:175px; height:175px; border:1px solid #e2bf6640; border-radius:50%; box-shadow:0 0 38px #d5a73a28; content:""; }.gallery-exhibit>header>div{position:relative;z-index:1}.gallery-exhibit>header span{color:#e8c66a;font:800 .62rem/1 "DM Mono",monospace;letter-spacing:.1em}.gallery-exhibit h3{margin:9px 0 7px;color:#f7f1e4;font:600 clamp(1.55rem,3vw,2.4rem)/1 "Playfair Display",serif}.gallery-exhibit>header p{max-width:600px;margin:0;color:#c0baaa;font-size:.84rem;line-height:1.5}.gallery-exhibit>.gallery-display-board{min-height:min(62vh,560px);border-color:#80734e;box-shadow:inset 0 0 55px #0009,0 20px 48px #0008}.gallery-exhibit-items{padding:16px;border:1px solid #464333;border-radius:9px;background:#101312}.gallery-exhibit-items h4{margin:0 0 12px;color:#e5c15e;font:800 .67rem/1 "DM Mono",monospace;letter-spacing:.1em;text-transform:uppercase}.gallery-exhibit-items>div{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:9px}.gallery-exhibit-item{display:grid;grid-template-columns:54px minmax(0,1fr);gap:10px;align-items:center;min-width:0;border:1px solid #3f443d;border-radius:7px;padding:7px;background:#171917;color:#eee9df;text-align:left;cursor:pointer;transition:transform .16s ease,border-color .16s ease}.gallery-exhibit-item:hover,.gallery-exhibit-item:focus-visible{border-color:#d0a54e;outline:0;transform:translateY(-1px)}.gallery-exhibit-item img{width:54px;height:54px;object-fit:contain;background:#080909}.gallery-exhibit-item span{display:grid;gap:5px;min-width:0}.gallery-exhibit-item b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:.72rem/1.2 "DM Sans",sans-serif}.gallery-exhibit-item small{color:#99c9a7;font:.6rem/1.2 "DM Mono",monospace}
 @media(max-width:620px){.profile-gallery-card>footer{align-items:stretch;flex-direction:column}.profile-gallery-card .gallery-visibility{margin-left:0}.gallery-open-exhibit{justify-content:center}.gallery-exhibit>header{padding:16px}.gallery-exhibit-items>div{grid-template-columns:1fr}.gallery-exhibit>.gallery-display-board{min-height:360px}}
 
+/* Collector display case: each gallery board reads as a physical card wall,
+   with individually lit pieces instead of a flat set of image boxes. */
+.profile-gallery-card .gallery-display-board,
+.gallery-exhibit>.gallery-display-board {
+  isolation: isolate;
+  background-image:
+    radial-gradient(circle at 22% 8%, #ffe5a71d, transparent 24%),
+    radial-gradient(circle at 78% 12%, #8fb9dc17, transparent 26%),
+    linear-gradient(145deg, #050709a8, #13120d66 45%, #020304c7),
+    var(--gallery-board-image, none);
+}
+.profile-gallery-card .gallery-display-board::before,
+.gallery-exhibit>.gallery-display-board::before {
+  position:absolute;
+  z-index:0;
+  inset:0;
+  background:
+    linear-gradient(90deg, transparent 0 24.7%, #e7ca7b0b 24.9% 25.1%, transparent 25.3% 49.7%, #e7ca7b0b 49.9% 50.1%, transparent 50.3% 74.7%, #e7ca7b0b 74.9% 75.1%, transparent 75.3%),
+    linear-gradient(0deg, transparent 0 32.7%, #e7ca7b09 32.9% 33.1%, transparent 33.3% 65.7%, #e7ca7b09 65.9% 66.1%, transparent 66.3%);
+  content:"";
+  pointer-events:none;
+}
+.gallery-display-board::after { z-index:5; mix-blend-mode:normal; background:linear-gradient(115deg,#fff0 0 27%,#fff1 39%,#fff0 49% 100%),linear-gradient(180deg,#fff1,transparent 20%,transparent 71%,#000b 100%); }
+.gallery-canvas-item {
+  z-index:3;
+  overflow:visible;
+  border:0;
+  border-radius:3px;
+  padding:5px 5px 24px;
+  background:linear-gradient(135deg,#f7f4eb,#c9c4b4 72%,#8d897e);
+  box-shadow:0 12px 22px #000b,0 0 0 1px #fff8,inset 0 0 0 1px #827d70;
+  transform:perspective(700px) rotateX(1.2deg);
+}
+.gallery-canvas-item::before {
+  position:absolute;
+  z-index:-1;
+  inset:-8px -10px -13px;
+  border:1px solid #e9ca6a33;
+  border-radius:7px;
+  background:radial-gradient(ellipse at center, #e7c56522, transparent 68%);
+  box-shadow:0 0 28px #ddad3e26;
+  content:"";
+  pointer-events:none;
+}
+.gallery-canvas-item img {
+  position:relative;
+  height:100%;
+  border:1px solid #504d45;
+  background:linear-gradient(135deg,#171a1c,#040505);
+  box-shadow:inset 0 0 16px #000b;
+}
+.gallery-canvas-item span {
+  position:absolute;
+  right:5px;
+  bottom:5px;
+  left:5px;
+  overflow:hidden;
+  padding:5px 6px;
+  border-top:1px solid #aaa394;
+  color:#25231e;
+  text-overflow:ellipsis;
+  text-shadow:0 1px #fff8;
+  white-space:nowrap;
+  font:800 .56rem/1 "DM Mono",monospace;
+}
+.gallery-canvas-item:hover,.gallery-canvas-item:focus-visible {
+  z-index:7;
+  border:0;
+  transform:perspective(700px) translateY(-5px) scale(1.045) rotateX(0deg);
+  filter:brightness(1.09) saturate(1.06);
+}
+.gallery-exhibit .gallery-canvas-item { padding:7px 7px 27px; }
+.gallery-exhibit .gallery-canvas-item span { right:7px; bottom:6px; left:7px; font-size:.62rem; }
+.gallery-exhibit-item { position:relative; overflow:hidden; background:linear-gradient(110deg,#1d1b14,#111313); }
+.gallery-exhibit-item::after { position:absolute; top:0; bottom:0; left:0; width:3px; background:linear-gradient(#f0ce75,#a57c2f); content:""; }
+@media (prefers-reduced-motion: reduce){.gallery-canvas-item,.gallery-canvas-item span{transition:none!important}}
+
 /* A purchase is always the same affirmative action, regardless of browse mode.
    This final rule intentionally wins over the older gold/green theme rules. */
 .listing-actions .action-buy,
