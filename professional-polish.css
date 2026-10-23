@@ -551,6 +551,13 @@ html body.browse-conveyor #sentinel {
 .gallery-canvas-item > .gallery-card-label { position:absolute; right:5px; bottom:5px; left:5px; overflow:hidden; padding:5px 19px 5px 6px; border-top:1px solid #aaa394; color:#25231e; text-overflow:ellipsis; text-shadow:0 1px #fff8; white-space:nowrap; font:800 .56rem/1 "DM Mono",monospace; }
 .gallery-canvas-item > .gallery-card-number { position:absolute; right:7px; bottom:7px; color:#746c5e; font:900 .5rem/1 "DM Mono",monospace; font-style:normal; letter-spacing:.04em; }
 .gallery-exhibit .gallery-canvas-item > .gallery-card-label { right:7px; bottom:6px; left:7px; font-size:.62rem; }.gallery-exhibit .gallery-canvas-item > .gallery-card-number{right:9px;bottom:9px;font-size:.55rem}
+.gallery-card-label { transition:transform .18s ease,opacity .18s ease; }
+.gallery-card-meta { position:absolute; z-index:4; right:6px; bottom:6px; left:6px; display:grid; gap:3px; min-width:0; padding:7px; border:1px solid #e9dfc2a8; background:#141510ed; color:#f7f1df; box-shadow:0 7px 16px #000a; opacity:0; pointer-events:none; transform:translateY(7px); transition:transform .18s ease,opacity .18s ease; }
+.gallery-card-meta em { overflow:hidden; color:#d2c5a3; text-overflow:ellipsis; white-space:nowrap; font:700 .48rem/1.15 "DM Mono",monospace; font-style:normal; letter-spacing:.02em; }
+.gallery-card-meta b { color:#83db9c; font:900 .67rem/1 "DM Mono",monospace; }.gallery-card-meta i { color:#f3d170; font:800 .46rem/1 "DM Mono",monospace; font-style:normal; letter-spacing:.06em; text-transform:uppercase; }
+.gallery-canvas-item:hover > .gallery-card-label,.gallery-canvas-item:focus-visible > .gallery-card-label { opacity:0; transform:translateY(4px); }.gallery-canvas-item:hover > .gallery-card-meta,.gallery-canvas-item:focus-visible > .gallery-card-meta{opacity:1;transform:translateY(0)}.gallery-canvas-item:hover > .gallery-card-number,.gallery-canvas-item:focus-visible > .gallery-card-number{opacity:0}
+.gallery-exhibit .gallery-card-meta { right:8px; bottom:8px; left:8px; padding:8px; }.gallery-exhibit .gallery-card-meta em{font-size:.56rem}.gallery-exhibit .gallery-card-meta b{font-size:.76rem}.gallery-exhibit .gallery-card-meta i{font-size:.52rem}
+@media (prefers-reduced-motion: reduce){.gallery-card-label,.gallery-card-meta{transition:none!important}}
 
 /* A purchase is always the same affirmative action, regardless of browse mode.
    This final rule intentionally wins over the older gold/green theme rules. */
