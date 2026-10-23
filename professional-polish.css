@@ -559,6 +559,24 @@ html body.browse-conveyor #sentinel {
 .gallery-exhibit .gallery-card-meta { right:8px; bottom:8px; left:8px; padding:8px; }.gallery-exhibit .gallery-card-meta em{font-size:.56rem}.gallery-exhibit .gallery-card-meta b{font-size:.76rem}.gallery-exhibit .gallery-card-meta i{font-size:.52rem}
 @media (prefers-reduced-motion: reduce){.gallery-card-label,.gallery-card-meta{transition:none!important}}
 
+/* Stronger display cards: substantial slab frame, readable information plate,
+   and a deliberate collector-case lift rather than a light image thumbnail. */
+.gallery-canvas-item {
+  border:3px solid #d8d0bd;
+  border-radius:5px;
+  padding:6px 6px 31px;
+  background:linear-gradient(145deg,#fffdf4 0%,#c6bdab 64%,#807868 100%);
+  box-shadow:0 15px 0 #080909a8,0 21px 30px #000d,0 0 0 1px #514b41, inset 0 0 0 1px #fff;
+}
+.gallery-canvas-item::before { inset:-11px -12px -19px; border-color:#efce704d; box-shadow:0 0 36px #dba63b3b; }
+.gallery-canvas-item > .gallery-card-art { border:2px solid #3c3a34; box-shadow:inset 0 0 0 2px #111, inset 0 0 22px #000d; }
+.gallery-canvas-item > .gallery-card-label { right:6px; bottom:6px; left:6px; min-height:18px; padding:6px 22px 6px 7px; border:1px solid #918777; border-top:2px solid #635c51; background:linear-gradient(180deg,#f9f5e9,#d2c8b7); color:#171713; font-size:.6rem; letter-spacing:.015em; }
+.gallery-canvas-item > .gallery-card-number { right:10px; bottom:10px; padding-left:5px; border-left:1px solid #a79d8d; color:#534d43; font-size:.56rem; }
+.gallery-canvas-item:hover,.gallery-canvas-item:focus-visible { box-shadow:0 19px 0 #080909b8,0 31px 38px #000e,0 0 0 2px #f3cc66, inset 0 0 0 1px #fff; transform:perspective(700px) translateY(-8px) scale(1.065) rotateX(0deg); }
+.gallery-card-meta { right:7px; bottom:7px; left:7px; gap:5px; padding:9px; border:1px solid #f0d57d; border-left:3px solid #78d399; background:linear-gradient(135deg,#151711f8,#252315f8); box-shadow:0 10px 23px #000d; }
+.gallery-card-meta em{font-size:.52rem}.gallery-card-meta b{font-size:.76rem}.gallery-card-meta i{font-size:.5rem}
+.gallery-exhibit .gallery-canvas-item { border-width:4px; padding:8px 8px 36px; }.gallery-exhibit .gallery-canvas-item > .gallery-card-label{right:8px;bottom:8px;left:8px;padding:7px 25px 7px 8px;font-size:.68rem}.gallery-exhibit .gallery-canvas-item > .gallery-card-number{right:12px;bottom:12px;font-size:.62rem}
+
 /* A purchase is always the same affirmative action, regardless of browse mode.
    This final rule intentionally wins over the older gold/green theme rules. */
 .listing-actions .action-buy,
