@@ -645,6 +645,17 @@ html body.browse-conveyor #sentinel {
 .gallery-display-board.gallery-auto-layout { padding:0; background-color:#090b0c; }
 .gallery-display-board.gallery-auto-layout .gallery-canvas-item { box-sizing:border-box; }
 
+/* Gallery themes and decor give each collector a real curatorial voice. */
+.gallery-display-board.gallery-theme-vault{background-image:radial-gradient(circle at 50% 6%,#f6d27b24,transparent 29%),linear-gradient(135deg,#080a0c,#1e1910 52%,#07090a),var(--gallery-board-image,none)}
+.gallery-display-board.gallery-theme-royal{background-image:radial-gradient(ellipse at 50% 0,#f5cf6a36,transparent 35%),repeating-linear-gradient(90deg,#351c2e 0 3px,#1c1120 3px 30px),linear-gradient(135deg,#2d1428,#090a10),var(--gallery-board-image,none)}
+.gallery-display-board.gallery-theme-aurora{background-image:radial-gradient(circle at 15% 10%,#71e4dc35,transparent 28%),radial-gradient(circle at 85% 8%,#8c72ff2e,transparent 31%),linear-gradient(150deg,#07141c,#132b2b 50%,#0b0c1a),var(--gallery-board-image,none)}
+.gallery-display-board.gallery-theme-ember{background-image:radial-gradient(circle at 50% 0,#ff9b3f30,transparent 32%),linear-gradient(155deg,#2b0e08,#491a0a 48%,#100809),var(--gallery-board-image,none)}
+.gallery-display-board.gallery-theme-noir{background-image:radial-gradient(circle at 50% 0,#ffffff16,transparent 32%),repeating-linear-gradient(135deg,#141619 0 2px,#0a0c0e 2px 13px),linear-gradient(#151619,#060708),var(--gallery-board-image,none)}
+.gallery-decoration-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 12px;border:1px solid #5b4e31;background:linear-gradient(110deg,#221c10,#131716)}
+.gallery-decoration-toolbar>b{margin-right:4px;color:#f2cb68;font:900 .61rem/1 "DM Mono",monospace;letter-spacing:.12em;text-transform:uppercase}
+.gallery-decoration-toolbar button{border:1px solid #756340;padding:8px 10px;background:#191914;color:#ead89a;font:800 .58rem/1 "DM Mono",monospace;cursor:pointer;transition:transform .16s ease,border-color .16s ease,background .16s ease}
+.gallery-decoration-toolbar button:hover,.gallery-decoration-toolbar button:focus-visible{border-color:#f4d16c;background:#392c14;outline:0;transform:translateY(-1px)}
+
 /* A purchase is always the same affirmative action, regardless of browse mode.
    This final rule intentionally wins over the older gold/green theme rules. */
 .listing-actions .action-buy,

@@ -251,10 +251,11 @@ function publicListing(listing) { const { impressionVisitors, viewVisitors, ...s
 const galleryColor = value => /^#[0-9a-f]{3}(?:[0-9a-f]{3})?$/i.test(String(value || '').trim()) ? String(value).trim() : '';
 const galleryImage = value => { const image = String(value || '').trim(); return /^https:\/\/[^\s]{1,2000}$/i.test(image) || /^data:image\/(jpeg|png|webp);base64,[a-z0-9+/=]{1,1400000}$/i.test(image) ? image : ''; };
 const galleryNumber = (value, fallback) => Number.isFinite(Number(value)) ? Math.max(0, Math.min(100, Math.round(Number(value) * 10) / 10)) : fallback;
+const galleryTheme = value => ['vault', 'royal', 'aurora', 'ember', 'noir'].includes(String(value || '').trim()) ? String(value).trim() : 'vault';
 // Start a new gallery as a spacious, two-column museum wall.  The smaller
 // thumbnail grid made rare cards look incidental; this reserves enough room
 // for the image, provenance label, and inspection affordance of each piece.
-function defaultGalleryCanvas(listingIds = []) { return { backgroundColor: '#111820', backgroundImage: '', elements: listingIds.slice(0, 6).map((listingId, index) => ({ id: `item-${listingId}`, type: 'item', listingId, x: 5 + (index % 2) * 47, y: 5 + Math.floor(index / 2) * 31, w: 43, h: 27 })) }; }
+function defaultGalleryCanvas(listingIds = []) { return { theme: 'vault', backgroundColor: '#111820', backgroundImage: '', elements: listingIds.slice(0, 6).map((listingId, index) => ({ id: `item-${listingId}`, type: 'item', listingId, x: 5 + (index % 2) * 47, y: 5 + Math.floor(index / 2) * 31, w: 43, h: 27 })) }; }
 function galleryCanvas(input, listingIds = []) {
   const base = defaultGalleryCanvas(listingIds); const source = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
   const allowedListings = new Set(listingIds); const raw = Array.isArray(source.elements) ? source.elements.slice(0, 60) : base.elements;
@@ -267,7 +268,7 @@ function galleryCanvas(input, listingIds = []) {
     if (type === 'shape') { element.shape = entry.shape === 'circle' ? 'circle' : 'rectangle'; element.color = galleryColor(entry.color) || '#d6ad52'; element.opacity = Math.max(.05, Math.min(1, Number(entry.opacity) || .28)); }
     return element;
   }).filter(Boolean);
-  return { backgroundColor: galleryColor(source.backgroundColor) || base.backgroundColor, backgroundImage: galleryImage(source.backgroundImage), elements: elements.length ? elements : base.elements };
+  return { theme: galleryTheme(source.theme || base.theme), backgroundColor: galleryColor(source.backgroundColor) || base.backgroundColor, backgroundImage: galleryImage(source.backgroundImage), elements: elements.length ? elements : base.elements };
 }
 function publicGalleries(user, includePrivate = false) {
   const visibleListings = new Map(store.data.listings
