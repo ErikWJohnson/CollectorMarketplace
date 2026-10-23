@@ -577,6 +577,14 @@ html body.browse-conveyor #sentinel {
 .gallery-card-meta em{font-size:.52rem}.gallery-card-meta b{font-size:.76rem}.gallery-card-meta i{font-size:.5rem}
 .gallery-exhibit .gallery-canvas-item { border-width:4px; padding:8px 8px 36px; }.gallery-exhibit .gallery-canvas-item > .gallery-card-label{right:8px;bottom:8px;left:8px;padding:7px 25px 7px 8px;font-size:.68rem}.gallery-exhibit .gallery-canvas-item > .gallery-card-number{right:12px;bottom:12px;font-size:.62rem}
 
+/* Larger cards are the default visual focus. Editor cards remain unscaled so
+   their drag target continues to match the board exactly. */
+.profile-gallery-card .gallery-display-board { min-height:320px; }
+.gallery-display-board:not(.is-editable) .gallery-canvas-item { transform:perspective(700px) scale(1.12) rotateX(1.2deg); transform-origin:center; }
+.gallery-display-board:not(.is-editable) .gallery-canvas-item:hover,.gallery-display-board:not(.is-editable) .gallery-canvas-item:focus-visible { transform:perspective(700px) translateY(-9px) scale(1.18) rotateX(0deg); }
+.gallery-exhibit>.gallery-display-board { min-height:min(68vh,620px); }
+@media(max-width:620px){.profile-gallery-card .gallery-display-board{min-height:285px}.gallery-display-board:not(.is-editable) .gallery-canvas-item{transform:perspective(700px) scale(1.07) rotateX(1deg)}.gallery-display-board:not(.is-editable) .gallery-canvas-item:hover,.gallery-display-board:not(.is-editable) .gallery-canvas-item:focus-visible{transform:perspective(700px) translateY(-6px) scale(1.12) rotateX(0deg)}.gallery-exhibit>.gallery-display-board{min-height:400px}}
+
 /* A purchase is always the same affirmative action, regardless of browse mode.
    This final rule intentionally wins over the older gold/green theme rules. */
 .listing-actions .action-buy,
