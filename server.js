@@ -251,7 +251,10 @@ function publicListing(listing) { const { impressionVisitors, viewVisitors, ...s
 const galleryColor = value => /^#[0-9a-f]{3}(?:[0-9a-f]{3})?$/i.test(String(value || '').trim()) ? String(value).trim() : '';
 const galleryImage = value => { const image = String(value || '').trim(); return /^https:\/\/[^\s]{1,2000}$/i.test(image) || /^data:image\/(jpeg|png|webp);base64,[a-z0-9+/=]{1,1400000}$/i.test(image) ? image : ''; };
 const galleryNumber = (value, fallback) => Number.isFinite(Number(value)) ? Math.max(0, Math.min(100, Math.round(Number(value) * 10) / 10)) : fallback;
-function defaultGalleryCanvas(listingIds = []) { return { backgroundColor: '#111820', backgroundImage: '', elements: listingIds.slice(0, 9).map((listingId, index) => ({ id: `item-${listingId}`, type: 'item', listingId, x: 3 + (index % 3) * 32, y: 4 + Math.floor(index / 3) * 32, w: 29, h: 27 })) }; }
+// Start a new gallery as a spacious, two-column museum wall.  The smaller
+// thumbnail grid made rare cards look incidental; this reserves enough room
+// for the image, provenance label, and inspection affordance of each piece.
+function defaultGalleryCanvas(listingIds = []) { return { backgroundColor: '#111820', backgroundImage: '', elements: listingIds.slice(0, 6).map((listingId, index) => ({ id: `item-${listingId}`, type: 'item', listingId, x: 5 + (index % 2) * 47, y: 5 + Math.floor(index / 2) * 31, w: 43, h: 27 })) }; }
 function galleryCanvas(input, listingIds = []) {
   const base = defaultGalleryCanvas(listingIds); const source = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
   const allowedListings = new Set(listingIds); const raw = Array.isArray(source.elements) ? source.elements.slice(0, 60) : base.elements;
@@ -857,7 +860,7 @@ app.post('/listing', required, (req, res) => {
     const canvas = galleryCanvas(gallery.canvas, galleryListings);
     if (!canvas.elements.some(element => element.type === 'item' && element.listingId === listing.id)) {
       const index = galleryListings.length - 1;
-      canvas.elements.push({ id: `item-${listing.id}`, type: 'item', listingId: listing.id, x: 4 + (index % 3) * 32, y: 10 + Math.floor(index / 3) * 28, w: 28, h: 24 });
+      canvas.elements.push({ id: `item-${listing.id}`, type: 'item', listingId: listing.id, x: 5 + (index % 2) * 47, y: 5 + Math.floor(index / 2) * 31, w: 43, h: 27 });
     }
     gallery.canvas = canvas;
     gallery.updatedAt = now();

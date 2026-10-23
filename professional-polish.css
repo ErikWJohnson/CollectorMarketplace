@@ -585,6 +585,27 @@ html body.browse-conveyor #sentinel {
 .gallery-exhibit>.gallery-display-board { min-height:min(68vh,620px); }
 @media(max-width:620px){.profile-gallery-card .gallery-display-board{min-height:285px}.gallery-display-board:not(.is-editable) .gallery-canvas-item{transform:perspective(700px) scale(1.07) rotateX(1deg)}.gallery-display-board:not(.is-editable) .gallery-canvas-item:hover,.gallery-display-board:not(.is-editable) .gallery-canvas-item:focus-visible{transform:perspective(700px) translateY(-6px) scale(1.12) rotateX(0deg)}.gallery-exhibit>.gallery-display-board{min-height:400px}}
 
+/* Precision collection layout: every gallery reads as an exhibit, with broad
+   bays, generous viewing space, and cards large enough to inspect at a glance. */
+.profile-gallery-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px; max-width:1480px; }
+.profile-gallery-card { min-height:590px; padding:20px; border-color:#75633a; background:linear-gradient(145deg,#302819 0%,#161916 43%,#0d1011 100%); box-shadow:0 22px 45px #0009,inset 0 0 0 1px #f4d77c1c; }
+.profile-gallery-card:only-child { grid-column:1/-1; }
+.profile-gallery-card .gallery-display-board { min-height:435px; margin-top:8px; border-color:#a38a4a; border-radius:10px; box-shadow:inset 0 0 70px #000c,0 14px 28px #0009; }
+.profile-gallery-card .gallery-display-board::after { background:linear-gradient(108deg,#fff0 0 22%,#fff2 38%,#fff0 50% 100%),linear-gradient(180deg,#fff1,transparent 18%,transparent 70%,#000d 100%); }
+.profile-gallery-card .gallery-canvas-item { min-width:0; }
+.profile-gallery-card .gallery-card-label { min-height:24px; padding:8px 27px 8px 9px; font-size:.68rem; }
+.profile-gallery-card .gallery-card-number { right:12px; bottom:12px; font-size:.62rem; }
+.profile-gallery-card .gallery-card-meta { gap:6px; padding:11px; }
+.profile-gallery-card .gallery-card-meta em { font-size:.58rem; }
+.profile-gallery-card .gallery-card-meta b { font-size:.86rem; }
+.profile-gallery-card .gallery-card-meta i { font-size:.56rem; }
+.gallery-exhibit { width:min(1240px,100%); }
+.gallery-exhibit>.gallery-display-board { min-height:min(74vh,760px); }
+.gallery-exhibit .gallery-canvas-item { padding:9px 9px 40px; }
+.gallery-exhibit .gallery-card-label { min-height:28px; padding:9px 30px 9px 10px; font-size:.74rem; }
+@media(max-width:860px){.profile-gallery-grid{grid-template-columns:1fr}.profile-gallery-card{min-height:0}.profile-gallery-card .gallery-display-board{min-height:390px}}
+@media(max-width:620px){.profile-gallery-card{padding:15px}.profile-gallery-card .gallery-display-board{min-height:330px}.profile-gallery-card .gallery-card-label{min-height:18px;padding:6px 20px 6px 6px;font-size:.56rem}.profile-gallery-card .gallery-card-number{right:8px;bottom:9px;font-size:.5rem}.gallery-exhibit>.gallery-display-board{min-height:500px}}
+
 /* A purchase is always the same affirmative action, regardless of browse mode.
    This final rule intentionally wins over the older gold/green theme rules. */
 .listing-actions .action-buy,
