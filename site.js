@@ -3185,13 +3185,10 @@ const galleryAutoItemLayout = (index, count) => {
   const height = (100 - gutter * (rows + 1)) / rows;
   return { x: gutter + (index % columns) * (width + gutter), y: gutter + Math.floor(index / columns) * (height + gutter), w: width, h: height };
 };
-const galleryPositionMatches = (entry, expected) => ['x', 'y', 'w', 'h'].every(key => Math.abs(Number(entry?.[key]) - expected[key]) < .2);
-const isAutomaticGalleryLayout = elements => elements.length > 0 && elements.length <= 9 && elements.every((entry, index) => {
-  if (entry?.type !== 'item') return false;
-  const legacy = { x: 3 + (index % 3) * 32, y: 4 + Math.floor(index / 3) * 32, w: 29, h: 27 };
-  const spacious = { x: 5 + (index % 2) * 47, y: 5 + Math.floor(index / 2) * 31, w: 43, h: 27 };
-  return galleryPositionMatches(entry, legacy) || galleryPositionMatches(entry, spacious);
-});
+// A card-only collection is a display wall, not a freeform composition.  Pack
+// legacy and new galleries alike so their cards fill the case instead of
+// preserving accidental blank space from older thumbnail coordinates.
+const isAutomaticGalleryLayout = elements => elements.length > 0 && elements.length <= 9 && elements.every(entry => entry?.type === 'item');
 function galleryCanvasMarkup(gallery, editable = false) {
   const canvas = gallery.canvas || {}; const byId = new Map((gallery.items || []).map(item => [item.id, item]));
   const image = canvas.backgroundImage ? `--gallery-board-image:url('${safe(canvas.backgroundImage)}');` : '';

@@ -644,6 +644,8 @@ html body.browse-conveyor #sentinel {
    edited board keeps its manually placed open space. */
 .gallery-display-board.gallery-auto-layout { padding:0; background-color:#090b0c; }
 .gallery-display-board.gallery-auto-layout .gallery-canvas-item { box-sizing:border-box; }
+.gallery-display-board.gallery-auto-layout .gallery-canvas-item > .gallery-card-art { background:#050607; }
+.gallery-display-board.gallery-auto-layout .gallery-canvas-item > .gallery-card-art img { object-fit:contain; }
 
 /* A purchase is always the same affirmative action, regardless of browse mode.
    This final rule intentionally wins over the older gold/green theme rules. */
