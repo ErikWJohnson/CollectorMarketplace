@@ -606,6 +606,40 @@ html body.browse-conveyor #sentinel {
 @media(max-width:860px){.profile-gallery-grid{grid-template-columns:1fr}.profile-gallery-card{min-height:0}.profile-gallery-card .gallery-display-board{min-height:390px}}
 @media(max-width:620px){.profile-gallery-card{padding:15px}.profile-gallery-card .gallery-display-board{min-height:330px}.profile-gallery-card .gallery-card-label{min-height:18px;padding:6px 20px 6px 6px;font-size:.56rem}.profile-gallery-card .gallery-card-number{right:8px;bottom:9px;font-size:.5rem}.gallery-exhibit>.gallery-display-board{min-height:500px}}
 
+/* The display case is the destination, not a thumbnail strip.  Give it the
+   viewport so every positioned card gains real inspection height. */
+.profile-gallery-card .gallery-display-board {
+  min-height:max(680px,calc(100dvh - 190px));
+}
+.profile-gallery-card:only-child .gallery-display-board {
+  min-height:max(760px,calc(100dvh - 130px));
+}
+.gallery-exhibit>.gallery-display-board {
+  min-height:max(760px,calc(100dvh - 150px));
+}
+.profile-gallery-card .gallery-canvas-item,
+.gallery-exhibit .gallery-canvas-item {
+  transform:perspective(850px) scale(1.09) rotateX(1deg);
+}
+.profile-gallery-card .gallery-canvas-item:hover,
+.profile-gallery-card .gallery-canvas-item:focus-visible,
+.gallery-exhibit .gallery-canvas-item:hover,
+.gallery-exhibit .gallery-canvas-item:focus-visible {
+  transform:perspective(850px) translateY(-10px) scale(1.15) rotateX(0deg);
+}
+@media(max-width:860px){
+  .profile-gallery-card .gallery-display-board,
+  .profile-gallery-card:only-child .gallery-display-board { min-height:max(570px,calc(100dvh - 170px)); }
+  .gallery-exhibit>.gallery-display-board { min-height:max(620px,calc(100dvh - 140px)); }
+}
+@media(max-width:620px){
+  .profile-gallery-card .gallery-display-board,
+  .profile-gallery-card:only-child .gallery-display-board { min-height:max(500px,calc(100dvh - 150px)); }
+  .gallery-exhibit>.gallery-display-board { min-height:max(560px,calc(100dvh - 110px)); }
+  .profile-gallery-card .gallery-canvas-item,
+  .gallery-exhibit .gallery-canvas-item { transform:perspective(700px) scale(1.04) rotateX(.5deg); }
+}
+
 /* A purchase is always the same affirmative action, regardless of browse mode.
    This final rule intentionally wins over the older gold/green theme rules. */
 .listing-actions .action-buy,
