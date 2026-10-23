@@ -640,6 +640,11 @@ html body.browse-conveyor #sentinel {
   .gallery-exhibit .gallery-canvas-item { transform:perspective(700px) scale(1.04) rotateX(.5deg); }
 }
 
+/* Auto-arranged collections use the entire display face.  Only a deliberately
+   edited board keeps its manually placed open space. */
+.gallery-display-board.gallery-auto-layout { padding:0; background-color:#090b0c; }
+.gallery-display-board.gallery-auto-layout .gallery-canvas-item { box-sizing:border-box; }
+
 /* A purchase is always the same affirmative action, regardless of browse mode.
    This final rule intentionally wins over the older gold/green theme rules. */
 .listing-actions .action-buy,

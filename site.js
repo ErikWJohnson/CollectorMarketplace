@@ -3177,10 +3177,28 @@ Promise.all([loadMarket(), Promise.all([fetch('data/auctions.json').then(respons
 refreshPlatformWorldwideHighScores();
 setInterval(updateLiveAuctionRailClocks, 1000);
 const galleryElementPosition = element => `--gallery-x:${Number(element.x || 0)}%;--gallery-y:${Number(element.y || 0)}%;--gallery-w:${Number(element.w || 20)}%;--gallery-h:${Number(element.h || 12)}%;`;
+const galleryAutoItemLayout = (index, count) => {
+  const rows = count <= 3 ? 1 : count <= 6 ? 2 : 3;
+  const columns = Math.ceil(count / rows);
+  const gutter = 4;
+  const width = (100 - gutter * (columns + 1)) / columns;
+  const height = (100 - gutter * (rows + 1)) / rows;
+  return { x: gutter + (index % columns) * (width + gutter), y: gutter + Math.floor(index / columns) * (height + gutter), w: width, h: height };
+};
+const galleryPositionMatches = (entry, expected) => ['x', 'y', 'w', 'h'].every(key => Math.abs(Number(entry?.[key]) - expected[key]) < .2);
+const isAutomaticGalleryLayout = elements => elements.length > 0 && elements.length <= 9 && elements.every((entry, index) => {
+  if (entry?.type !== 'item') return false;
+  const legacy = { x: 3 + (index % 3) * 32, y: 4 + Math.floor(index / 3) * 32, w: 29, h: 27 };
+  const spacious = { x: 5 + (index % 2) * 47, y: 5 + Math.floor(index / 2) * 31, w: 43, h: 27 };
+  return galleryPositionMatches(entry, legacy) || galleryPositionMatches(entry, spacious);
+});
 function galleryCanvasMarkup(gallery, editable = false) {
   const canvas = gallery.canvas || {}; const byId = new Map((gallery.items || []).map(item => [item.id, item]));
   const image = canvas.backgroundImage ? `--gallery-board-image:url('${safe(canvas.backgroundImage)}');` : '';
-  const elements = (canvas.elements || []).map((element, index) => {
+  const canvasElements = canvas.elements || [];
+  const automaticLayout = !editable && isAutomaticGalleryLayout(canvasElements);
+  const renderedElements = automaticLayout ? canvasElements.map((element, index) => ({ ...element, ...galleryAutoItemLayout(index, canvasElements.length) })) : canvasElements;
+  const elements = renderedElements.map((element, index) => {
     const position = galleryElementPosition(element); const selection = editable ? ` data-gallery-element-id="${safe(element.id)}"` : '';
     if (element.type === 'text') return `<div class="gallery-canvas-element gallery-canvas-text"${selection} style="${position}color:${safe(element.color || '#f8f4e8')};font-size:${Number(element.fontSize || 18)}px">${safe(element.text || '').replace(/\n/g, '<br>')}</div>`;
     if (element.type === 'shape') return `<div class="gallery-canvas-element gallery-canvas-shape ${element.shape === 'circle' ? 'is-circle' : ''}"${selection} style="${position}background:${safe(element.color || '#d6ad52')};opacity:${Number(element.opacity || .28)}"></div>`;
@@ -3192,7 +3210,7 @@ function galleryCanvasMarkup(gallery, editable = false) {
     const contents = `<span class="gallery-card-art"><img src="${safe(item.image || item.images?.[0] || '')}" alt="${safe(item.title)}"></span><strong class="gallery-card-label">${safe(item.title)}</strong><small class="gallery-card-meta"><em>${safe(condition)} · ${safe(category)}</em><b>${money(item.price)}</b><i>${safe(availability)}</i></small><i class="gallery-card-number">${number}</i>`;
     return editable ? `<div class="gallery-canvas-element gallery-canvas-item"${selection} style="${position}">${contents}</div>` : `<button type="button" class="gallery-canvas-element gallery-canvas-item" data-detail="${safe(item.id)}" aria-label="View ${safe(item.title)} · ${safe(condition)} · ${money(item.price)} · ${safe(availability)}" style="${position}">${contents}</button>`;
   }).join('');
-  return `<div class="gallery-display-board${editable ? ' is-editable' : ''}" style="--gallery-board-color:${safe(canvas.backgroundColor || '#111820')};${image}">${elements || '<span class="gallery-board-empty">Add cards, text, or shapes in Edit display.</span>'}</div>`;
+  return `<div class="gallery-display-board${editable ? ' is-editable' : ''}${automaticLayout ? ' gallery-auto-layout' : ''}" style="--gallery-board-color:${safe(canvas.backgroundColor || '#111820')};${image}">${elements || '<span class="gallery-board-empty">Add cards, text, or shapes in Edit display.</span>'}</div>`;
 }
 function openGalleryExhibit(gallery, owner) {
   if (!gallery) return;
