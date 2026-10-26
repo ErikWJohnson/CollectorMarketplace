@@ -3193,7 +3193,7 @@ function galleryCanvasMarkup(gallery, editable = false) {
   const canvas = gallery.canvas || {}; const byId = new Map((gallery.items || []).map(item => [item.id, item]));
   const image = canvas.backgroundImage ? `--gallery-board-image:url('${safe(canvas.backgroundImage)}');` : '';
   const canvasElements = canvas.elements || [];
-  const automaticLayout = !editable && isAutomaticGalleryLayout(canvasElements);
+  const automaticLayout = !editable && canvas.autoLayout !== false && isAutomaticGalleryLayout(canvasElements);
   const renderedElements = automaticLayout ? canvasElements.map((element, index) => ({ ...element, ...galleryAutoItemLayout(index, canvasElements.length) })) : canvasElements;
   const elements = renderedElements.map((element, index) => {
     const position = galleryElementPosition(element); const selection = editable ? ` data-gallery-element-id="${safe(element.id)}"` : '';
@@ -3250,12 +3250,32 @@ openProfile = async (...args) => {
 let galleryDesign = null;
 let galleryDesignDrag = null;
 const galleryDesignElement = id => galleryDesign?.canvas?.elements?.find(element => element.id === id) || null;
+const galleryGeometryControls = element => element ? `<fieldset class="gallery-geometry-controls"><legend>Position & size</legend><label>Left<input type="number" min="0" max="96" step="1" value="${Math.round(Number(element.x || 0))}" data-gallery-selected-x></label><label>Top<input type="number" min="0" max="96" step="1" value="${Math.round(Number(element.y || 0))}" data-gallery-selected-y></label><label>Width<input type="number" min="4" max="100" step="1" value="${Math.round(Number(element.w || 20))}" data-gallery-selected-w></label><label>Height<input type="number" min="4" max="100" step="1" value="${Math.round(Number(element.h || 12))}" data-gallery-selected-h></label></fieldset>` : '';
+const galleryDesignerSelection = selected => !selected ? '<span>Select a card or decoration to edit it.</span>' : `<b>Selected · ${safe(selected.type === 'item' ? 'collection card' : selected.type)}</b>${selected.type === 'text' ? `<label>Text <textarea maxlength="180" data-gallery-selected-text>${safe(selected.text || '')}</textarea></label><label>Color <input type="color" value="${safe(selected.color || '#f8f4e8')}" data-gallery-selected-color></label><label>Text size <input type="range" min="10" max="48" value="${Number(selected.fontSize || 18)}" data-gallery-selected-size></label>` : selected.type === 'shape' ? `<label>Color <input type="color" value="${safe(selected.color || '#d6ad52')}" data-gallery-selected-color></label><label>Opacity <input type="range" min="0.05" max="1" step="0.05" value="${Number(selected.opacity || .28)}" data-gallery-selected-opacity></label>` : '<span>Resize the card, then drag it anywhere on the board.</span>'}${galleryGeometryControls(selected)}<button type="button" class="profile-gallery-delete" data-gallery-remove-element>Remove selected</button>`;
+function applyGalleryLayout(mode) {
+  if (!galleryDesign) return;
+  const cards = galleryDesign.canvas.elements.filter(element => element.type === 'item');
+  if (!cards.length) return;
+  galleryDesign.canvas.autoLayout = false;
+  if (mode === 'wall') {
+    cards.forEach((card, index) => Object.assign(card, galleryAutoItemLayout(index, cards.length)));
+    redrawGalleryDesigner(); return;
+  }
+  if (mode === 'spotlight') {
+    const sideCount = Math.max(1, cards.length - 1); const slot = 88 / sideCount;
+    cards.forEach((card, index) => Object.assign(card, index === 0 ? { x: 4, y: 7, w: 56, h: 86 } : { x: 65, y: 6 + (index - 1) * slot, w: 30, h: Math.max(12, slot - 3) }));
+  } else if (mode === 'shelf') {
+    const columns = Math.min(4, cards.length); const rows = Math.ceil(cards.length / columns); const gutter = 3; const width = (100 - gutter * (columns + 1)) / columns; const height = (100 - gutter * (rows + 1)) / rows;
+    cards.forEach((card, index) => Object.assign(card, { x: gutter + (index % columns) * (width + gutter), y: gutter + Math.floor(index / columns) * (height + gutter), w: width, h: height }));
+  }
+  redrawGalleryDesigner();
+}
 function galleryDesignMarkup() {
   const gallery = galleryDesign; if (!gallery) return '';
   const selected = galleryDesignElement(gallery.selectedId);
   const itemOptions = (gallery.items || []).map(item => `<option value="${safe(item.id)}">${safe(item.title)}</option>`).join('');
   const canvas = gallery.canvas || {};
-  return `<form class="modal-form gallery-designer-form" data-gallery-designer="${safe(gallery.id)}"><section class="gallery-designer-toolbar"><label>Background <input type="color" value="${safe(canvas.backgroundColor || '#111820')}" data-gallery-canvas-background></label><label>Background image URL <input type="url" maxlength="2000" value="${safe(canvas.backgroundImage || '')}" placeholder="https://…" data-gallery-canvas-image></label><button type="button" data-gallery-add-text>Add text</button><button type="button" data-gallery-add-shape="rectangle">Add rectangle</button><button type="button" data-gallery-add-shape="circle">Add circle</button><label>Add card <select data-gallery-add-item><option value="">Choose an item</option>${itemOptions}</select></label></section><section class="gallery-designer-stage-wrap"><p>Drag cards, captions, and shapes anywhere on the board. Select an element to edit or remove it.</p>${galleryCanvasMarkup(gallery, true)}</section><section class="gallery-designer-inspector">${selected ? `<b>Selected · ${safe(selected.type)}</b>${selected.type === 'text' ? `<label>Text <textarea maxlength="180" data-gallery-selected-text>${safe(selected.text || '')}</textarea></label><label>Color <input type="color" value="${safe(selected.color || '#f8f4e8')}" data-gallery-selected-color></label><label>Size <input type="range" min="10" max="48" value="${Number(selected.fontSize || 18)}" data-gallery-selected-size></label>` : selected.type === 'shape' ? `<label>Color <input type="color" value="${safe(selected.color || '#d6ad52')}" data-gallery-selected-color></label><label>Opacity <input type="range" min="0.05" max="1" step="0.05" value="${Number(selected.opacity || .28)}" data-gallery-selected-opacity></label>` : `<span>Item cards use the listing photo, title, and current gallery status.</span>`}<button type="button" class="profile-gallery-delete" data-gallery-remove-element>Remove selected</button>` : '<span>Select a board element to change it.</span>'}</section><footer class="listing-publish-bar"><span>Display boards can contain up to 60 elements. Only your selected gallery items are saved.</span><button type="submit">Save gallery display</button></footer></form>`;
+  return `<form class="modal-form gallery-designer-form" data-gallery-designer="${safe(gallery.id)}"><section class="gallery-designer-toolbar"><label>Background <input type="color" value="${safe(canvas.backgroundColor || '#111820')}" data-gallery-canvas-background></label><label>Background image URL <input type="url" maxlength="2000" value="${safe(canvas.backgroundImage || '')}" placeholder="https://…" data-gallery-canvas-image></label><label>Add card <select data-gallery-add-item><option value="">Choose an item</option>${itemOptions}</select></label><button type="button" data-gallery-add-text>Add text</button><button type="button" data-gallery-add-shape="rectangle">Add rectangle</button><button type="button" data-gallery-add-shape="circle">Add circle</button></section><section class="gallery-layout-toolbar" aria-label="Gallery layout and decor"><b>Layout</b><button type="button" data-gallery-layout="wall">Fill wall</button><button type="button" data-gallery-layout="spotlight">Spotlight</button><button type="button" data-gallery-layout="shelf">Shelf</button><i></i><b>Accents</b><button type="button" data-gallery-add-accent="title">Title plaque</button><button type="button" data-gallery-add-accent="frame">Gold frame</button><button type="button" data-gallery-add-accent="light">Spotlight glow</button></section><section class="gallery-designer-stage-wrap"><p>Choose a layout, add accents, then drag and resize every card or decoration. Use Fill wall any time you want the case packed edge to edge.</p>${galleryCanvasMarkup(gallery, true)}</section><section class="gallery-designer-inspector">${galleryDesignerSelection(selected)}</section><footer class="listing-publish-bar"><span>Layouts, backgrounds, card sizes, captions, and accents are saved with this display.</span><button type="submit">Save gallery display</button></footer></form>`;
 }
 function openGalleryDesigner(galleryId) {
   const source = (session?.user?.galleries || []).find(gallery => gallery.id === galleryId);
@@ -3278,6 +3298,8 @@ document.addEventListener('change', event => {
   if (selected && event.target.matches('[data-gallery-selected-color]')) selected.color = event.target.value;
   if (selected && event.target.matches('[data-gallery-selected-size]')) selected.fontSize = Number(event.target.value);
   if (selected && event.target.matches('[data-gallery-selected-opacity]')) selected.opacity = Number(event.target.value);
+  const geometryKey = [['[data-gallery-selected-x]', 'x'], ['[data-gallery-selected-y]', 'y'], ['[data-gallery-selected-w]', 'w'], ['[data-gallery-selected-h]', 'h']].find(([selector]) => event.target.matches(selector));
+  if (selected && geometryKey) { const [, key] = geometryKey; const value = Number(event.target.value); selected[key] = key === 'w' || key === 'h' ? Math.max(4, Math.min(100, value || 4)) : Math.max(0, Math.min(100, value || 0)); galleryDesign.canvas.autoLayout = false; }
   redrawGalleryDesigner();
 });
 document.addEventListener('pointerdown', event => {
@@ -3317,6 +3339,17 @@ document.addEventListener('click', event => {
     return;
   }
   if (event.target.closest('[data-gallery-add-text]')) { addGalleryDesignElement({ type: 'text', text: 'New caption', color: '#f8f4e8', fontSize: 18 }); return; }
+  const layout = event.target.closest('[data-gallery-layout]');
+  if (layout) { applyGalleryLayout(layout.dataset.galleryLayout); return; }
+  const accent = event.target.closest('[data-gallery-add-accent]');
+  if (accent) {
+    const accents = {
+      title: { type: 'text', text: 'CURATED COLLECTION', color: '#f6db82', fontSize: 24, x: 9, y: 5, w: 82, h: 10 },
+      frame: { type: 'shape', shape: 'rectangle', color: '#d7ac49', opacity: .16, x: 2, y: 2, w: 96, h: 96 },
+      light: { type: 'shape', shape: 'circle', color: '#f4ca63', opacity: .2, x: 28, y: 2, w: 44, h: 40 }
+    };
+    addGalleryDesignElement(accents[accent.dataset.galleryAddAccent]); return;
+  }
   const shape = event.target.closest('[data-gallery-add-shape]');
   if (shape) { addGalleryDesignElement({ type: 'shape', shape: shape.dataset.galleryAddShape, color: '#d6ad52', opacity: .28 }); return; }
   if (event.target.closest('[data-gallery-remove-element]') && galleryDesign?.selectedId) { galleryDesign.canvas.elements = galleryDesign.canvas.elements.filter(element => element.id !== galleryDesign.selectedId); galleryDesign.selectedId = ''; redrawGalleryDesigner(); return; }

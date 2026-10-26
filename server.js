@@ -254,7 +254,7 @@ const galleryNumber = (value, fallback) => Number.isFinite(Number(value)) ? Math
 // Start a new gallery as a spacious, two-column museum wall.  The smaller
 // thumbnail grid made rare cards look incidental; this reserves enough room
 // for the image, provenance label, and inspection affordance of each piece.
-function defaultGalleryCanvas(listingIds = []) { return { backgroundColor: '#111820', backgroundImage: '', elements: listingIds.slice(0, 6).map((listingId, index) => ({ id: `item-${listingId}`, type: 'item', listingId, x: 5 + (index % 2) * 47, y: 5 + Math.floor(index / 2) * 31, w: 43, h: 27 })) }; }
+function defaultGalleryCanvas(listingIds = []) { return { autoLayout: true, backgroundColor: '#111820', backgroundImage: '', elements: listingIds.slice(0, 6).map((listingId, index) => ({ id: `item-${listingId}`, type: 'item', listingId, x: 5 + (index % 2) * 47, y: 5 + Math.floor(index / 2) * 31, w: 43, h: 27 })) }; }
 function galleryCanvas(input, listingIds = []) {
   const base = defaultGalleryCanvas(listingIds); const source = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
   const allowedListings = new Set(listingIds); const raw = Array.isArray(source.elements) ? source.elements.slice(0, 60) : base.elements;
@@ -267,7 +267,7 @@ function galleryCanvas(input, listingIds = []) {
     if (type === 'shape') { element.shape = entry.shape === 'circle' ? 'circle' : 'rectangle'; element.color = galleryColor(entry.color) || '#d6ad52'; element.opacity = Math.max(.05, Math.min(1, Number(entry.opacity) || .28)); }
     return element;
   }).filter(Boolean);
-  return { backgroundColor: galleryColor(source.backgroundColor) || base.backgroundColor, backgroundImage: galleryImage(source.backgroundImage), elements: elements.length ? elements : base.elements };
+  return { autoLayout: source.autoLayout !== false, backgroundColor: galleryColor(source.backgroundColor) || base.backgroundColor, backgroundImage: galleryImage(source.backgroundImage), elements: elements.length ? elements : base.elements };
 }
 function publicGalleries(user, includePrivate = false) {
   const visibleListings = new Map(store.data.listings
