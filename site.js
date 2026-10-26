@@ -3180,7 +3180,7 @@ const galleryElementPosition = element => `--gallery-x:${Number(element.x || 0)}
 const galleryAutoItemLayout = (index, count) => {
   const rows = count <= 3 ? 1 : count <= 6 ? 2 : 3;
   const columns = Math.ceil(count / rows);
-  const gutter = 4;
+  const gutter = 7;
   const width = (100 - gutter * (columns + 1)) / columns;
   const height = (100 - gutter * (rows + 1)) / rows;
   return { x: gutter + (index % columns) * (width + gutter), y: gutter + Math.floor(index / columns) * (height + gutter), w: width, h: height };
@@ -3256,7 +3256,14 @@ let galleryDesign = null;
 let galleryDesignDrag = null;
 const galleryDesignElement = id => galleryDesign?.canvas?.elements?.find(element => element.id === id) || null;
 const galleryGeometryControls = element => element ? `<fieldset class="gallery-geometry-controls"><legend>Position & size</legend><label>Left<input type="number" min="0" max="96" step="1" value="${Math.round(Number(element.x || 0))}" data-gallery-selected-x></label><label>Top<input type="number" min="0" max="96" step="1" value="${Math.round(Number(element.y || 0))}" data-gallery-selected-y></label><label>Width<input type="number" min="4" max="100" step="1" value="${Math.round(Number(element.w || 20))}" data-gallery-selected-w></label><label>Height<input type="number" min="4" max="100" step="1" value="${Math.round(Number(element.h || 12))}" data-gallery-selected-h></label></fieldset>` : '';
-const galleryDesignerSelection = selected => !selected ? '<span>Select a card or decoration to edit it.</span>' : `<b>Selected · ${safe(selected.type === 'item' ? 'collection card' : selected.type)}</b>${selected.type === 'text' ? `<label>Text <textarea maxlength="180" data-gallery-selected-text>${safe(selected.text || '')}</textarea></label><label>Color <input type="color" value="${safe(selected.color || '#f8f4e8')}" data-gallery-selected-color></label><label>Text size <input type="range" min="10" max="48" value="${Number(selected.fontSize || 18)}" data-gallery-selected-size></label>` : selected.type === 'shape' ? `<label>Color <input type="color" value="${safe(selected.color || '#d6ad52')}" data-gallery-selected-color></label><label>Opacity <input type="range" min="0.05" max="1" step="0.05" value="${Number(selected.opacity || .28)}" data-gallery-selected-opacity></label>` : '<span>Resize the card, then drag it anywhere on the board.</span>'}${galleryGeometryControls(selected)}<button type="button" class="profile-gallery-delete" data-gallery-remove-element>Remove selected</button>`;
+const galleryDesignerSelection = selected => !selected ? '<span>Select a card or decoration to edit it.</span>' : `<b>Selected · ${safe(selected.type === 'item' ? 'collection card' : selected.type)}</b>${selected.type === 'text' ? `<label>Text <textarea maxlength="180" data-gallery-selected-text>${safe(selected.text || '')}</textarea></label><label>Color <input type="color" value="${safe(selected.color || '#f8f4e8')}" data-gallery-selected-color></label><label>Text size <input type="range" min="10" max="48" value="${Number(selected.fontSize || 18)}" data-gallery-selected-size></label>` : selected.type === 'shape' ? `<label>Color <input type="color" value="${safe(selected.color || '#d6ad52')}" data-gallery-selected-color></label><label>Opacity <input type="range" min="0.05" max="1" step="0.05" value="${Number(selected.opacity || .28)}" data-gallery-selected-opacity></label>` : '<span>Resize the card, then drag it anywhere on the board.</span>'}${galleryGeometryControls(selected)}<div class="gallery-nudge-controls" aria-label="Move selected element"><small>Move selected</small><span><button type="button" data-gallery-nudge="up" aria-label="Move up">↑</button></span><span><button type="button" data-gallery-nudge="left" aria-label="Move left">←</button><button type="button" data-gallery-nudge="down" aria-label="Move down">↓</button><button type="button" data-gallery-nudge="right" aria-label="Move right">→</button></span><em>Arrow keys nudge · Shift moves faster</em></div><button type="button" class="profile-gallery-delete" data-gallery-remove-element>Remove selected</button>`;
+function nudgeGalleryElement(direction, step = 2) {
+  const selected = galleryDesignElement(galleryDesign?.selectedId); if (!selected) return;
+  const change = { left: [-step, 0], right: [step, 0], up: [0, -step], down: [0, step] }[direction]; if (!change) return;
+  selected.x = Math.max(0, Math.min(100 - Number(selected.w || 0), Number(selected.x || 0) + change[0]));
+  selected.y = Math.max(0, Math.min(100 - Number(selected.h || 0), Number(selected.y || 0) + change[1]));
+  galleryDesign.canvas.autoLayout = false; redrawGalleryDesigner();
+}
 function applyGalleryLayout(mode) {
   if (!galleryDesign) return;
   const cards = galleryDesign.canvas.elements.filter(element => element.type === 'item');
@@ -3310,7 +3317,7 @@ document.addEventListener('change', event => {
 document.addEventListener('pointerdown', event => {
   const element = event.target.closest?.('.gallery-display-board.is-editable [data-gallery-element-id]'); if (!element || !galleryDesign) return;
   const board = element.closest('.gallery-display-board'); const rect = board.getBoundingClientRect(); const selected = galleryDesignElement(element.dataset.galleryElementId); if (!selected) return;
-  galleryDesign.selectedId = selected.id; galleryDesignDrag = { board, element, selected, rect }; element.setPointerCapture?.(event.pointerId); event.preventDefault();
+  galleryDesign.selectedId = selected.id; galleryDesign.canvas.autoLayout = false; galleryDesignDrag = { board, element, selected, rect }; element.setPointerCapture?.(event.pointerId); event.preventDefault();
 });
 document.addEventListener('pointermove', event => {
   if (!galleryDesignDrag) return; const drag = galleryDesignDrag;
@@ -3319,6 +3326,11 @@ document.addEventListener('pointermove', event => {
   drag.element.style.setProperty('--gallery-x', `${drag.selected.x}%`); drag.element.style.setProperty('--gallery-y', `${drag.selected.y}%`);
 });
 document.addEventListener('pointerup', () => { if (!galleryDesignDrag) return; galleryDesignDrag = null; redrawGalleryDesigner(); });
+document.addEventListener('keydown', event => {
+  if (!galleryDesign || !modal.open || event.target.matches('input, textarea, select, button')) return;
+  const direction = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }[event.key];
+  if (!direction) return; event.preventDefault(); nudgeGalleryElement(direction, event.shiftKey ? 6 : 2);
+});
 document.addEventListener('click', event => {
   if (event.target.closest('[data-post-item]')) {
     openListingForm();
@@ -3346,6 +3358,8 @@ document.addEventListener('click', event => {
   if (event.target.closest('[data-gallery-add-text]')) { addGalleryDesignElement({ type: 'text', text: 'New caption', color: '#f8f4e8', fontSize: 18 }); return; }
   const layout = event.target.closest('[data-gallery-layout]');
   if (layout) { applyGalleryLayout(layout.dataset.galleryLayout); return; }
+  const nudge = event.target.closest('[data-gallery-nudge]');
+  if (nudge) { nudgeGalleryElement(nudge.dataset.galleryNudge); return; }
   const accent = event.target.closest('[data-gallery-add-accent]');
   if (accent) {
     const accents = {
