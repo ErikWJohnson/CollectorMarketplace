@@ -1222,7 +1222,19 @@ document.addEventListener('keydown', event => {
   document.querySelector(`.bottom-nav [data-${destination}]`)?.click();
 });
 const applyHashLocation = () => {
-  const hash = location.hash.slice(1).toLowerCase();
+  const rawHash = location.hash.slice(1);
+  const hash = rawHash.toLowerCase();
+  const galleryRoute = rawHash.match(/^gallery\/([^/]+)\/([^/]+)$/i);
+  if (galleryRoute) {
+    const [, ownerId, galleryId] = galleryRoute;
+    const routeId = beginWorkspaceRoute('gallery');
+    api(`/user/${encodeURIComponent(ownerId)}`).then(profile => {
+      const gallery = (profile.galleries || []).find(row => String(row.id) === galleryId);
+      if (!gallery) throw new Error('This gallery is unavailable or private.');
+      if (routeId === workspaceRouteId && location.hash.slice(1) === rawHash) openGalleryExhibit(gallery, profile, false);
+    }).catch(showError);
+    return;
+  }
   const listingWorkspace = hash.match(/^listing\/([^/]+)\/(promotion|statistics)$/);
   if (listingWorkspace) { if (!session) return openAuthPanel('login'); const [, listingId, page] = listingWorkspace; return (page === 'promotion' ? openListingAdvertising(listingId, false) : openListingStatistics(listingId, false)).catch(showError); }
   const relistWorkspace = hash.match(/^relist\/([^/]+)$/);
@@ -1937,9 +1949,9 @@ function openAppSection(kind, title, copy, content = '') {
   if (modal.open) modal.close(); stopAutoScroll(); stopConveyor(); stopAuctionWaterfall(); stopJungleChatGame(); stopJungleChatAmbience(); stopAccountVeniceAmbience(); stopSellLavaAmbience(); stopGothicCheckoutAmbience(); stopSellLavaGame(); stopVeniceSailingGame(); stopGothicHuntGame(); clearInterval(auctionClock); clearInterval(auctionFeedClock);
   document.querySelector('.conveyor-smog-layer')?.remove();
   document.querySelector('.conveyor-orbit-layer')?.remove();
-  document.body.classList.remove('auction-mode', 'browse-conveyor', 'browse-squared', 'chat-open', 'account-open', 'purchase-open', 'comments-open', 'listing-page', 'app-section-chat', 'app-section-community', 'app-section-account', 'app-section-listing', 'app-section-membership', 'app-section-help', 'app-section-raffles', 'app-section-purchase', 'app-section-valuation', 'app-section-leaderboard');
+  document.body.classList.remove('auction-mode', 'browse-conveyor', 'browse-squared', 'chat-open', 'account-open', 'purchase-open', 'comments-open', 'listing-page', 'app-section-chat', 'app-section-community', 'app-section-account', 'app-section-gallery', 'app-section-listing', 'app-section-membership', 'app-section-help', 'app-section-raffles', 'app-section-purchase', 'app-section-valuation', 'app-section-leaderboard');
   document.body.classList.add('app-section-mode', `app-section-${kind}`); syncBrowseModeUi(); if (kind === 'chat') startJungleChatAmbience(); if (kind === 'account') startAccountVeniceAmbience(); if (kind === 'listing') startSellLavaAmbience(); if (kind === 'purchase') startGothicCheckoutAmbience(); if (observer) observer.disconnect(); sentinel.hidden = true;
-  const workspaceLabel = kind === 'account' ? 'Collector workspace' : kind === 'listing' ? 'Seller workspace' : kind === 'membership' ? 'Membership' : kind === 'help' ? 'Collector support' : kind === 'raffles' ? 'Verified prize draws' : kind === 'community' ? 'Collector groups' : kind === 'purchase' ? 'Secure checkout' : kind === 'valuation' ? 'AI market value' : kind === 'leaderboard' ? 'Global scores' : 'Social workspace';
+  const workspaceLabel = kind === 'account' ? 'Collector workspace' : kind === 'gallery' ? 'Collector exhibit' : kind === 'listing' ? 'Seller workspace' : kind === 'membership' ? 'Membership' : kind === 'help' ? 'Collector support' : kind === 'raffles' ? 'Verified prize draws' : kind === 'community' ? 'Collector groups' : kind === 'purchase' ? 'Secure checkout' : kind === 'valuation' ? 'AI market value' : kind === 'leaderboard' ? 'Global scores' : 'Social workspace';
   const purchaseDecor = kind === 'purchase' ? '<div class="gothic-checkout-scene" aria-hidden="true"><i class="castle castle-left"><b></b><b></b><b></b></i><i class="castle castle-right"><b></b><b></b></i><i class="gargoyle gargoyle-left">♜</i><i class="gargoyle gargoyle-right">♜</i><i class="moon"></i></div>' : '';
   stream.innerHTML = `<section class="app-section-page">${purchaseDecor}<header class="app-section-intro"><span>${workspaceLabel}</span><h1>${title}</h1><p>${copy || ''}</p></header><div class="app-section-content">${content}${kind === 'account' ? '<div class="account-sailing-game-host" aria-label="Venice Cannon Run game"></div>' : ''}${kind === 'listing' ? '<div class="sell-lava-game-host" aria-label="Lava Dash Run game"></div>' : ''}</div></section>`;
   if (kind === 'account') { syncAccountVeniceControl(); mountVeniceSailingGame(); }
@@ -3209,15 +3221,20 @@ function galleryCanvasMarkup(gallery, editable = false) {
   }).join('');
   return `<div class="gallery-display-board gallery-board-${Math.min(9, canvasElements.length)}${editable ? ' is-editable' : ''}${automaticLayout ? ' gallery-auto-layout' : ''}" role="group" aria-label="${safe(gallery.title || 'Collector gallery')} display board" style="--gallery-board-color:${safe(canvas.backgroundColor || '#111820')};${image}">${elements || '<span class="gallery-board-empty">Add cards, text, or shapes in Edit display.</span>'}</div>`;
 }
-function openGalleryExhibit(gallery, owner) {
+function openGalleryExhibit(gallery, owner, updateRoute = true) {
   if (!gallery) return;
+  const routeId = beginWorkspaceRoute('gallery');
+  const route = `gallery/${encodeURIComponent(owner?.id || '')}/${encodeURIComponent(gallery.id)}`;
+  if (updateRoute) setWorkspaceHash(route);
+  if (routeId !== workspaceRouteId) return;
   const items = (gallery.items || []).map(item => `<button type="button" class="gallery-exhibit-item" data-detail="${safe(item.id)}"><img src="${safe(item.image || item.images?.[0] || '')}" alt="${safe(item.title)}"><span><b>${safe(item.title)}</b><small>${safe(item.condition || 'Collector item')} · ${money(item.price)}</small></span></button>`).join('') || '<p class="profile-empty">This exhibit does not have any display items yet.</p>';
   const visibility = gallery.isPublic === false ? 'Private inventory' : 'Public exhibit';
   const collection = gallery.items || [];
   const available = collection.filter(item => item.status === 'active').length;
   const totalValue = collection.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
   const avatar = owner?.avatar || '';
-  openModal(`Gallery · ${safe(gallery.title)}`, `${visibility} by @${safe(owner?.username || 'collector')}`, `<section class="gallery-exhibit"><header><div class="gallery-exhibit-curator">${avatar ? `<img src="${safe(avatar)}" alt="">` : `<i>${safe(String(owner?.username || 'C').slice(0, 1).toUpperCase())}</i>`}<span>CURATED BY @${safe(owner?.username || 'collector')}</span></div><div><span>${visibility.toUpperCase()} · ${collection.length} ITEM${collection.length === 1 ? '' : 'S'}</span><h3>${safe(gallery.title)}</h3>${gallery.description ? `<p>${safe(gallery.description)}</p>` : '<p>A curated collector display.</p>'}</div><dl class="gallery-exhibit-metrics"><div><dt>Collection</dt><dd>${collection.length} pieces</dd></div><div><dt>Available</dt><dd>${available} listed</dd></div><div><dt>Display value</dt><dd>${money(totalValue)}</dd></div></dl></header>${galleryCanvasMarkup(gallery)}<section class="gallery-exhibit-items"><h4>Exhibit index <small>Open any piece for full details</small></h4><div>${items}</div></section></section>`);
+  const back = session?.user?.id === owner?.id ? '<button type="button" data-account>← Back to my account</button>' : `<button type="button" data-profile="${safe(owner?.id || '')}">← Back to @${safe(owner?.username || 'collector')}</button>`;
+  openAppSection('gallery', gallery.title, `${visibility} by @${safe(owner?.username || 'collector')}. Gallery pieces can remain displayed and available for sale at the same time.`, `<section class="gallery-exhibit"><nav class="gallery-exhibit-nav">${back}</nav><header><div class="gallery-exhibit-curator">${avatar ? `<img src="${safe(avatar)}" alt="">` : `<i>${safe(String(owner?.username || 'C').slice(0, 1).toUpperCase())}</i>`}<span>CURATED BY @${safe(owner?.username || 'collector')}</span></div><div><span>${visibility.toUpperCase()} · ${collection.length} ITEM${collection.length === 1 ? '' : 'S'}</span><h3>${safe(gallery.title)}</h3>${gallery.description ? `<p>${safe(gallery.description)}</p>` : '<p>A curated collector display.</p>'}</div><dl class="gallery-exhibit-metrics"><div><dt>Collection</dt><dd>${collection.length} pieces</dd></div><div><dt>Available</dt><dd>${available} listed</dd></div><div><dt>Display value</dt><dd>${money(totalValue)}</dd></div></dl></header>${galleryCanvasMarkup(gallery)}<section class="gallery-exhibit-items"><h4>Exhibit index <small>Open any piece for full details</small></h4><div>${items}</div></section></section>`);
 }
 function galleryWorkspaceMarkup(profile, own = false) {
   const galleries = Array.isArray(profile?.galleries) ? profile.galleries : [];
@@ -3349,7 +3366,8 @@ document.addEventListener('click', event => {
   if (editor) { openGalleryDesigner(editor.dataset.galleryEditor); return; }
   const galleryOpen = event.target.closest('[data-gallery-open]');
   if (galleryOpen) {
-    api(`/user/${galleryOpen.dataset.galleryOwner}`).then(profile => openGalleryExhibit((profile.galleries || []).find(gallery => gallery.id === galleryOpen.dataset.galleryOpen), profile)).catch(showError);
+    beginWorkspaceRoute('gallery');
+    setWorkspaceHash(`gallery/${encodeURIComponent(galleryOpen.dataset.galleryOwner)}/${encodeURIComponent(galleryOpen.dataset.galleryOpen)}`);
     return;
   }
   if (event.target.closest('[data-gallery-add-text]')) { addGalleryDesignElement({ type: 'text', text: 'New caption', color: '#f8f4e8', fontSize: 18 }); return; }
