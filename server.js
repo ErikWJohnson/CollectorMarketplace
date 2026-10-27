@@ -637,6 +637,35 @@ app.put('/account/galleries/:id', required, (req, res) => {
   gallery.title = title; gallery.description = description; gallery.listingIds = listingIds; gallery.isPublic = isPublic; gallery.canvas = galleryCanvas(req.body.canvas === undefined ? gallery.canvas : req.body.canvas, listingIds); gallery.updatedAt = now(); activity('gallery_updated', req.user.id, { galleryId: gallery.id, isPublic }); store.save();
   res.json(publicGalleries(req.user, true).find(row => row.id === gallery.id));
 });
+// A display placement is never an exclusivity setting.  A collector can keep a
+// piece on a gallery wall and have it available in the marketplace at the same
+// time.  This also provides a safe recovery route for older "collection post"
+// entries that had been added to a gallery before that distinction was clear.
+app.post('/account/galleries/:id/restore-sales', required, (req, res) => {
+  const gallery = (req.user.galleries || []).find(row => row.id === req.params.id);
+  if (!gallery) return res.status(404).json({ error: 'Gallery not found.' });
+  const galleryListingIds = new Set((gallery.listingIds || []).map(String));
+  const requested = Array.isArray(req.body.items) ? req.body.items : [];
+  if (!requested.length) return res.status(400).json({ error: 'Choose at least one gallery piece to put back on sale.' });
+  const restored = [];
+  for (const entry of requested) {
+    const listingId = String(entry?.listingId || '');
+    const listing = store.data.listings.find(row => row.id === listingId && row.ownerId === req.user.id);
+    if (!listing || !galleryListingIds.has(listingId)) return res.status(400).json({ error: 'Every selected item must belong to this gallery.' });
+    if (['sold', 'traded', 'pending_delivery'].includes(listing.status)) return res.status(400).json({ error: `“${listing.title}” cannot be put back on sale while its current order or trade is still open.` });
+    const suppliedPrice = entry?.price === '' || entry?.price === undefined ? Number(listing.price) : Number(entry.price);
+    if (!Number.isFinite(suppliedPrice) || suppliedPrice < 150) return res.status(400).json({ error: `Set a sale price of at least $150 for “${listing.title}”.` });
+    listing.postType = 'sale';
+    listing.price = Math.round(suppliedPrice * 100) / 100;
+    if (listing.status === 'archived' && Number(listing.stockRemaining ?? listing.stockQuantity ?? 1) > 0) {
+      listing.status = 'active'; listing.archivedAt = null; listing.archivedReason = null;
+    }
+    restored.push(listing.id);
+  }
+  activity('gallery_items_restored_to_sale', req.user.id, { galleryId: gallery.id, listingIds: restored });
+  store.save();
+  res.json({ restoredListingIds: restored, gallery: publicGalleries(req.user, true).find(row => row.id === gallery.id) });
+});
 app.delete('/account/galleries/:id', required, (req, res) => {
   const galleries = Array.isArray(req.user.galleries) ? req.user.galleries : [];
   const before = galleries.length;
