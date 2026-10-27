@@ -1242,6 +1242,7 @@ const applyHashLocation = () => {
   if (hash.startsWith('purchase/')) { const listingId = hash.slice('purchase/'.length); const item = listings.find(listing => String(listing.id).toLowerCase() === listingId); if (!item) return; if (!session) return openAuthPanel('login'); if (item.ownerId === session.user.id) return openModal('Your own listing', 'You cannot buy your own listing. Use your account page to edit, archive, or manage it instead.'); const routeId = beginWorkspaceRoute('purchase'); api('/account/shipping-profile').catch(() => ({})).then(profile => { if (routeId === workspaceRouteId && location.hash.slice(1).toLowerCase() === hash) openPurchasePage(item, profile, false); }).catch(showError); return; }
   if (hash === 'help') { openHelpPage(false); return; }
   if (hash === 'raffles') { openRaffleCenter(false).catch(showError); return; }
+  if (hash === 'wanted') { openWantedCenter(false).catch(showError); return; }
   if (hash === 'search' || hash === 'tags') { openDiscoveryShortcut(hash); return; }
   const destination = Object.values(keyboardNavigation).find(item => item.hash === hash);
   if (destination) document.querySelector(destination.selector)?.click();
@@ -1945,13 +1946,28 @@ async function openRaffleCenter(updateRoute = true) {
   openAppSection('raffles', 'Raffle Center', 'Enter verified collector prize draws for free. No purchase or payment is required to enter; official rules and eligibility are shown with every raffle.', `${createForm}<section class="raffle-list">${cards || '<section class="raffle-empty"><b>No raffle is open yet.</b><p>Verified platform prize draws will appear here when their official rules are ready.</p></section>'}</section><p class="raffle-disclaimer">No purchase necessary. Void where prohibited. CollectorMarketplace raffles are free-entry prize promotions; review every raffle’s official rules before entering.</p>`);
 }
 
+async function openWantedCenter(updateRoute = true) {
+  if (!session) return openAuthPanel('login');
+  const routeId = beginWorkspaceRoute('wanted');
+  if (updateRoute) setWorkspaceHash('wanted');
+  const requests = await api('/api/wanted');
+  if (routeId !== workspaceRouteId) return;
+  const cards = requests.map(request => {
+    const mine = request.ownerId === session.user.id;
+    const image = request.image ? `<img src="${safe(request.image)}" alt="">` : '<span class="wanted-card-mark" aria-hidden="true">⌕</span>';
+    const tags = (request.tags || []).map(tag => `<i>#${safe(tag)}</i>`).join('');
+    return `<article class="wanted-card"><div class="wanted-card-image">${image}</div><section><header><span>WANTED</span><small>Expires ${safe(new Date(request.expiresAt).toLocaleDateString())}</small></header><h2>${safe(request.title)}</h2><p>${safe(request.description)}</p><dl><div><dt>Offer</dt><dd>${money(request.offer)}</dd></div><div><dt>Condition</dt><dd>${safe(request.desiredCondition || 'Any condition')}</dd></div><div><dt>Category</dt><dd>${safe(request.category)}</dd></div></dl>${tags ? `<div class="wanted-tags">${tags}</div>` : ''}<footer><button type="button" data-profile="${safe(request.ownerId)}">@${safe(request.owner?.username || 'collector')}</button>${mine ? `<button type="button" data-wanted-close="${safe(request.id)}">Close request</button>` : `<button type="button" class="wanted-contact" data-collector-chat="${safe(request.ownerId)}">I have one</button>`}</footer></section></article>`;
+  }).join('') || '<section class="wanted-empty"><b>No active wanted posts yet.</b><p>Be the first collector to say what you are looking for.</p></section>';
+  openAppSection('wanted', 'Wanted Board', 'Post the collectible you are looking for and the amount you are prepared to offer. Offers are interest only—keep payment and delivery on CollectorMarketplace.', `<section class="wanted-board"><header class="wanted-board-intro"><div><span>COLLECTOR REQUESTS</span><h2>Find the missing piece.</h2><p>Wanted posts connect collectors directly. Once you find a match, use messages to agree on details, then create a normal protected listing for checkout.</p></div><button type="button" class="transaction-submit" data-wanted-create>Post a wanted request</button></header><section class="wanted-grid">${cards}</section></section>`);
+}
+
 function openAppSection(kind, title, copy, content = '') {
   if (modal.open) modal.close(); stopAutoScroll(); stopConveyor(); stopAuctionWaterfall(); stopJungleChatGame(); stopJungleChatAmbience(); stopAccountVeniceAmbience(); stopSellLavaAmbience(); stopGothicCheckoutAmbience(); stopSellLavaGame(); stopVeniceSailingGame(); stopGothicHuntGame(); clearInterval(auctionClock); clearInterval(auctionFeedClock);
   document.querySelector('.conveyor-smog-layer')?.remove();
   document.querySelector('.conveyor-orbit-layer')?.remove();
-  document.body.classList.remove('auction-mode', 'browse-conveyor', 'browse-squared', 'chat-open', 'account-open', 'purchase-open', 'comments-open', 'listing-page', 'app-section-chat', 'app-section-community', 'app-section-account', 'app-section-gallery', 'app-section-listing', 'app-section-membership', 'app-section-help', 'app-section-raffles', 'app-section-purchase', 'app-section-valuation', 'app-section-leaderboard');
+  document.body.classList.remove('auction-mode', 'browse-conveyor', 'browse-squared', 'chat-open', 'account-open', 'purchase-open', 'comments-open', 'listing-page', 'app-section-chat', 'app-section-community', 'app-section-account', 'app-section-gallery', 'app-section-wanted', 'app-section-listing', 'app-section-membership', 'app-section-help', 'app-section-raffles', 'app-section-purchase', 'app-section-valuation', 'app-section-leaderboard');
   document.body.classList.add('app-section-mode', `app-section-${kind}`); syncBrowseModeUi(); if (kind === 'chat') startJungleChatAmbience(); if (kind === 'account') startAccountVeniceAmbience(); if (kind === 'listing') startSellLavaAmbience(); if (kind === 'purchase') startGothicCheckoutAmbience(); if (observer) observer.disconnect(); sentinel.hidden = true;
-  const workspaceLabel = kind === 'account' ? 'Collector workspace' : kind === 'gallery' ? 'Collector exhibit' : kind === 'listing' ? 'Seller workspace' : kind === 'membership' ? 'Membership' : kind === 'help' ? 'Collector support' : kind === 'raffles' ? 'Verified prize draws' : kind === 'community' ? 'Collector groups' : kind === 'purchase' ? 'Secure checkout' : kind === 'valuation' ? 'AI market value' : kind === 'leaderboard' ? 'Global scores' : 'Social workspace';
+  const workspaceLabel = kind === 'account' ? 'Collector workspace' : kind === 'gallery' ? 'Collector exhibit' : kind === 'wanted' ? 'Collector requests' : kind === 'listing' ? 'Seller workspace' : kind === 'membership' ? 'Membership' : kind === 'help' ? 'Collector support' : kind === 'raffles' ? 'Verified prize draws' : kind === 'community' ? 'Collector groups' : kind === 'purchase' ? 'Secure checkout' : kind === 'valuation' ? 'AI market value' : kind === 'leaderboard' ? 'Global scores' : 'Social workspace';
   const purchaseDecor = kind === 'purchase' ? '<div class="gothic-checkout-scene" aria-hidden="true"><i class="castle castle-left"><b></b><b></b><b></b></i><i class="castle castle-right"><b></b><b></b></i><i class="gargoyle gargoyle-left">♜</i><i class="gargoyle gargoyle-right">♜</i><i class="moon"></i></div>' : '';
   stream.innerHTML = `<section class="app-section-page">${purchaseDecor}<header class="app-section-intro"><span>${workspaceLabel}</span><h1>${title}</h1><p>${copy || ''}</p></header><div class="app-section-content">${content}${kind === 'account' ? '<div class="account-sailing-game-host" aria-label="Venice Cannon Run game"></div>' : ''}${kind === 'listing' ? '<div class="sell-lava-game-host" aria-label="Lava Dash Run game"></div>' : ''}</div></section>`;
   if (kind === 'account') { syncAccountVeniceControl(); mountVeniceSailingGame(); }
@@ -3350,6 +3366,17 @@ document.addEventListener('keydown', event => {
   if (!direction) return; event.preventDefault(); nudgeGalleryElement(direction, event.shiftKey ? 6 : 2);
 });
 document.addEventListener('click', event => {
+  if (event.target.closest('[data-wanted]')) { openWantedCenter().catch(showError); return; }
+  if (event.target.closest('[data-wanted-create]')) {
+    openModal('Post a wanted request', 'Describe the exact item you are trying to find and your offer. This is not a checkout or binding payment request.', `<form class="modal-form wanted-create-form"><label>What are you looking for?<input required name="title" maxlength="120" placeholder="e.g. 1998 Pokémon Blastoise holo"></label><label>Category<input required name="category" maxlength="80" placeholder="Trading cards"></label><label>Desired condition <small>Optional</small><input name="desiredCondition" maxlength="80" placeholder="Near mint, complete, boxed…"></label><label>Your offer (USD)<input required name="offer" type="number" min="1" max="1000000" step="0.01" placeholder="250"></label><label>Details<textarea required name="description" minlength="10" maxlength="2000" placeholder="Edition, size, missing accessories, acceptable wear, and any other details that help a seller match your request."></textarea></label><label>Tags <small>Optional · comma-separated</small><input name="tags" maxlength="480" placeholder="pokemon, wotc, blastoise"></label><label>Reference image URL <small>Optional</small><input name="image" type="url" maxlength="2000" placeholder="https://…"></label><label>Keep request open for<select name="durationDays"><option value="14">14 days</option><option value="30" selected>30 days</option><option value="60">60 days</option><option value="90">90 days</option></select></label><button class="transaction-submit">Publish wanted request</button></form>`);
+    return;
+  }
+  const wantedClose = event.target.closest('[data-wanted-close]');
+  if (wantedClose) {
+    if (!window.confirm('Close this wanted request? It will no longer appear on the Wanted Board.')) return;
+    api(`/api/wanted/${wantedClose.dataset.wantedClose}`, { method: 'PUT', body: JSON.stringify({ status: 'closed' }) }).then(() => openWantedCenter(false)).catch(showError);
+    return;
+  }
   if (event.target.closest('[data-post-item]')) {
     openListingForm();
     return;
@@ -3412,6 +3439,23 @@ document.addEventListener('click', event => {
   }
 });
 document.addEventListener('submit', async event => {
+  const wantedForm = event.target.closest?.('.wanted-create-form');
+  if (wantedForm) {
+    event.preventDefault();
+    const fields = new FormData(wantedForm);
+    const tags = String(fields.get('tags') || '').split(',').map(tag => tag.trim()).filter(Boolean);
+    const button = wantedForm.querySelector('button[type="submit"]');
+    if (button) { button.disabled = true; button.textContent = 'Publishing…'; }
+    try {
+      await api('/api/wanted', { method: 'POST', body: JSON.stringify({ title: fields.get('title'), category: fields.get('category'), desiredCondition: fields.get('desiredCondition'), offer: fields.get('offer'), description: fields.get('description'), tags, image: fields.get('image'), durationDays: fields.get('durationDays') }) });
+      if (modal.open) modal.close();
+      await openWantedCenter(false);
+    } catch (error) {
+      if (button) { button.disabled = false; button.textContent = 'Publish wanted request'; }
+      showError(error);
+    }
+    return;
+  }
   const saleForm = event.target.closest?.('.gallery-sale-form');
   if (saleForm) {
     event.preventDefault();
