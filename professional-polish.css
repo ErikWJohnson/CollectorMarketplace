@@ -477,7 +477,7 @@ html body.browse-conveyor #sentinel {
    large, immersive display wall. */
 .app-section-account .profile-gallery-card { min-height:0; padding:15px; }
 .app-section-account .profile-gallery-card .gallery-display-board,
-.app-section-account .profile-gallery-card:only-child .gallery-display-board { min-height:250px; max-height:250px; margin-top:6px; }
+.app-section-account .profile-gallery-card:only-child .gallery-display-board { min-height:185px; max-height:185px; margin-top:6px; }
 .app-section-account .profile-gallery-card .gallery-card-label { min-height:16px; padding:5px 18px 5px 6px; font-size:.52rem; }
 .app-section-account .profile-gallery-card .gallery-card-number { right:7px; bottom:8px; font-size:.48rem; }
 .app-section-gallery .app-section-content { width:min(1400px,100%); }
@@ -485,7 +485,7 @@ html body.browse-conveyor #sentinel {
 .gallery-exhibit-nav { display:flex; margin-bottom:-7px; }
 .gallery-exhibit-nav button { border:1px solid #866e37; border-radius:5px; padding:8px 10px; background:#17150e; color:#efd376; font:800 .6rem/1 "DM Mono",monospace; cursor:pointer; }
 .gallery-exhibit-nav button:hover,.gallery-exhibit-nav button:focus-visible { border-color:#e5c25f; background:#302713; color:#fff5cb; outline:0; }
-@media(max-width:620px){.app-section-account .profile-gallery-card .gallery-display-board,.app-section-account .profile-gallery-card:only-child .gallery-display-board{min-height:210px;max-height:210px}}
+@media(max-width:620px){.app-section-account .profile-gallery-card .gallery-display-board,.app-section-account .profile-gallery-card:only-child .gallery-display-board{min-height:165px;max-height:165px}}
 .gallery-open-exhibit span { font-size:.95rem; transition:transform .16s ease; }.gallery-open-exhibit:hover,.gallery-open-exhibit:focus-visible{border-color:#f5d16b;background:#3a301a;color:#fff7d6;outline:0;transform:translateY(-1px)}.gallery-open-exhibit:hover span{transform:translateX(2px)}
 .gallery-description-empty { color:#8f928f!important; font-style:italic; }
 .profile-gallery-card .gallery-visibility { margin-left:auto; }
