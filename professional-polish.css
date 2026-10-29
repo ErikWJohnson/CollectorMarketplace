@@ -1111,6 +1111,39 @@ html body.browse-doomscroll .wanted-card dd { color: #3b3440 !important; }
   }
 }
 
+/* Doomscroll category controls are deliberately fixed as four peer groups.
+   Communities gets a three-column action row, which prevents Live rooms from
+   becoming an orphaned third line while preserving the same hierarchy as the
+   other categories. */
+@media (min-width: 761px) {
+  html body.browse-doomscroll .search-scope {
+    grid-template-columns: minmax(0, 1fr) minmax(0, .84fr) minmax(0, 1.72fr) minmax(0, .88fr) !important;
+    gap: 10px !important;
+  }
+  html body.browse-doomscroll .search-scope > section {
+    display: grid !important;
+    grid-template-rows: auto auto;
+    align-self: stretch;
+  }
+  html body.browse-doomscroll .search-scope > section > div,
+  html body.browse-doomscroll .search-scope > section:nth-child(3) > div {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr)) !important;
+    min-height: 44px !important;
+    flex-wrap: nowrap !important;
+  }
+  html body.browse-doomscroll .search-scope > section:nth-child(3) > div {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+  html body.browse-doomscroll .search-scope button,
+  html body.browse-doomscroll .search-scope > section:nth-child(3) button {
+    width: 100%;
+    min-width: 0 !important;
+    padding-inline: clamp(4px, .65vw, 9px) !important;
+    white-space: nowrap !important;
+  }
+}
+
 /* Browse mode readability.  Each view has a distinct canvas, but all primary
    information keeps a deliberate high-contrast text hierarchy. */
 .metadata-hidden .popular-tags,
