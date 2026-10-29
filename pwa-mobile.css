@@ -101,9 +101,12 @@
   .listing-filter-controls {
     gap:5px !important;
     min-height:0 !important;
-    padding:5px !important;
+    padding:4px 5px !important;
     border-radius:8px !important;
     scrollbar-width:none;
+    overflow-x:auto !important;
+    overscroll-behavior-inline:contain;
+    -webkit-overflow-scrolling:touch;
   }
   .listing-filter-controls::-webkit-scrollbar { display:none; }
   .listing-filter-controls > *,
@@ -116,7 +119,8 @@
     line-height:1 !important;
   }
   .listing-filter-controls button { padding:6px 8px !important; letter-spacing:.02em !important; }
-  .listing-filter-controls .viewer-location { padding-inline:8px !important; }
+  .listing-filter-controls .viewer-location { padding-inline:8px !important; font-size:0 !important; }
+  .listing-filter-controls .viewer-location::after { content:"Near me"; font-size:.6rem; }
   .listing-filter-controls .sort-listings,
   .listing-filter-controls .price-range { gap:4px !important; color:transparent !important; font-size:0 !important; }
   .listing-filter-controls .sort-listings { padding:0 !important; }
@@ -124,8 +128,15 @@
   .listing-filter-controls .price-range { display:flex !important; align-items:center; padding:0 !important; }
   .listing-filter-controls .price-range input { width:68px; min-width:68px !important; padding:5px 7px !important; color:#d8e3ea !important; font-size:.6rem !important; }
   .listing-filter-controls .price-range span { color:#8998a4 !important; font-size:.7rem !important; }
-  .listing-filter-controls .checkout-preference { white-space:nowrap; }
-  .listing-filter-controls .private-shipping-settings { max-width:154px; overflow:hidden; text-overflow:ellipsis; }
+  /* Mobile uses concise names instead of shrinking desktop labels until they
+     become unreadable. The source text stays in the accessibility tree. */
+  .listing-filter-controls .checkout-preference { flex:0 0 auto; white-space:nowrap; font-size:0 !important; }
+  .listing-filter-controls [data-checkout-location]::after { content:"Address"; font-size:.6rem; }
+  .listing-filter-controls [data-checkout-payment]::after { content:"PayPal"; font-size:.6rem; }
+  .listing-filter-controls [data-checkout-delivery]::after { content:"USPS"; font-size:.6rem; }
+  .listing-filter-controls [data-checkout-estimate]::after { content:"EST"; font-size:.6rem; }
+  .listing-filter-controls .private-shipping-settings { flex:0 0 auto; max-width:none; overflow:visible; text-overflow:clip; font-size:0 !important; }
+  .listing-filter-controls .private-shipping-settings::after { content:"Shipping"; font-size:.6rem; }
 }
 
 @media (max-width:420px) {
@@ -135,6 +146,12 @@
   .listing-filter-controls select,
   .listing-filter-controls input { min-height:32px !important; height:32px !important; }
   .listing-filter-controls button { padding-inline:7px !important; font-size:.54rem !important; }
+  .listing-filter-controls .viewer-location,
+  .listing-filter-controls .checkout-preference,
+  .listing-filter-controls .private-shipping-settings { font-size:0 !important; }
+  .listing-filter-controls .viewer-location::after,
+  .listing-filter-controls .checkout-preference::after,
+  .listing-filter-controls .private-shipping-settings::after { font-size:.55rem; }
   .listing-filter-controls .sort-listings select { width:112px; min-width:112px !important; }
   .listing-filter-controls .price-range input { width:60px; min-width:60px !important; }
 }
