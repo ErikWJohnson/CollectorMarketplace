@@ -3088,10 +3088,33 @@ document.addEventListener('submit', async event => { const form = event.target; 
   } catch (error) { const listingForm = form.closest('.listing-form'); if (listingForm) { saveListingDraft(listingForm); const button = listingForm.querySelector('button[type="submit"], button:not([type])'); if (button) { button.disabled = false; button.textContent = 'Publish listing'; } listingForm.querySelector('.listing-submit-error')?.remove(); listingForm.querySelector('.listing-publish-bar')?.insertAdjacentHTML('beforebegin', `<p class="listing-submit-error" role="alert">${safe(error.message)}</p>`); } else showError(error); }
 } });
 document.addEventListener('submit', event => { const form = event.target.closest('[data-auction-bid-form]'); if (!form) return; event.preventDefault(); if (!session) return openAuthPanel('login'); const lot = auctions.find(row => row.id === form.dataset.auctionBidForm); const amount = Number(new FormData(form).get('amount')); if (!lot || amount < Number(lot.currentBid) + 5) { form.querySelector('input').setCustomValidity(`Enter at least ${money(Number(lot?.currentBid || 0) + 5)}.`); form.reportValidity(); return; } form.querySelector('input').setCustomValidity(''); lot.currentBid = amount; lot.bids = Number(lot.bids) + 1; auctionActivity.unshift({ lotId: lot.id, initials: String(session.user.username).slice(0, 2).toUpperCase(), name: `@${session.user.username}`, amount, time: 'Just now' }); renderFilteredAuctionHouse(); const panel = document.querySelector('.auction-price'); panel?.classList.add('bid-confirmed'); setTimeout(() => panel?.classList.remove('bid-confirmed'), 1200); });
-document.addEventListener('input', event => { const listingForm = event.target.closest('.listing-form'); if (listingForm) { saveListingDraft(listingForm); syncListingWorkspaceChecklist(listingForm); } if (event.target.closest('.fee-calculator')) updateFeeSummary(); if (event.target.matches('[data-auction-bid-form] [name="amount"]')) syncAuctionBidEstimate(event.target.closest('[data-auction-bid-form]')); if (event.target.matches('#shipping-name, #shipping-street1, #shipping-street2, #shipping-city, #shipping-state, #shipping-zip')) { clearTimeout(checkoutAddressTimer); checkoutAddressTimer = setTimeout(() => calculateCheckoutDeliveryFromAddress(event.target), 650); } if (event.target.closest('.trade-builder-form')) { if (event.target.matches('[name="senderCashAmount"], [name="receiverCashAmount"]')) syncTradeCashInput(event.target); updateTradeSelectionCounts(); } if (event.target.matches('[name="imageUrls"]')) syncListingPreview(); if (event.target.matches('[data-comment-composer]')) { const count = event.target.closest('.comment-form')?.querySelector('[data-comment-count]'); if (count) count.textContent = `${event.target.value.length} / 1000`; } if (event.target.matches('[data-comment-emoji-search]')) { const host = event.target.closest('.comment-emoji-host'); if (host) { host.innerHTML = renderCommentEmojiPicker(event.target.value); host.querySelector('[data-comment-emoji-search]')?.focus(); } } });
+document.addEventListener('input', event => { const listingForm = event.target.closest('.listing-form'); if (listingForm) { saveListingDraft(listingForm); syncListingWorkspaceChecklist(listingForm); } if (event.target.closest('.fee-calculator')) updateFeeSummary(); if (event.target.matches('[data-auction-bid-form] [name="amount"]')) syncAuctionBidEstimate(event.target.closest('[data-auction-bid-form]')); if (event.target.matches('#shipping-name, #shipping-street1, #shipping-street2, #shipping-city, #shipping-state, #shipping-zip')) { clearTimeout(checkoutAddressTimer); checkoutAddressTimer = setTimeout(() => calculateCheckoutDeliveryFromAddress(event.target), 650); } if (event.target.closest('.trade-builder-form')) { if (event.target.matches('[name="senderCashAmount"], [name="receiverCashAmount"]')) syncTradeCashInput(event.target); updateTradeSelectionCounts(); } if (event.target.matches('[name="imageUrls"]')) syncListingPreview(); if (event.target.matches('[data-comment-composer]')) { const count = event.target.closest('.comment-form')?.querySelector('[data-comment-count]'); if (count) count.textContent = `${event.target.value.length} / 1000`; } if (event.target.matches('[data-comment-emoji-search]')) { const host = event.target.closest('.comment-emoji-host'); if (host) { host.innerHTML = renderCommentEmojiPicker(event.target.value); host.querySelector('[data-comment-emoji-search]')?.focus(); } } if (event.target.matches('.wanted-create-form [name="wantedImageUrl"]')) { const form = event.target.closest('.wanted-create-form'); const url = String(event.target.value || '').trim(); const stored = form?.querySelector('[name="image"]'); const preview = form?.querySelector('.wanted-image-preview'); const status = form?.querySelector('.wanted-image-status'); if (stored && preview && status && (!url || /^https:\/\/[^\s]{1,2000}$/i.test(url))) { stored.value = url; preview.hidden = !url; if (url) preview.src = url; status.textContent = url ? 'Reference image link ready to publish.' : 'Upload or paste an image directly into this form.'; } } });
 document.addEventListener('change', event => { const listingForm = event.target.closest('.listing-form'); if (listingForm) { saveListingDraft(listingForm); syncListingWorkspaceChecklist(listingForm); if (event.target.matches('[name="fulfillment"], [name="postType"]')) syncUspsShippingAttestation(listingForm); } if (event.target.closest('.trade-builder-form')) updateTradeSelectionCounts(); if (event.target.matches('#delivery-provider, #shipping-rate-option')) calculateCheckoutDeliveryFromAddress(event.target); });
 document.addEventListener('focusin', event => { if (event.target.matches('input[name="courier"]')) enableCarrierPicker(event.target); });
 document.addEventListener('change', async event => {
+  if (event.target.matches('[name="wantedImageFile"]')) {
+    const form = event.target.closest('.wanted-create-form');
+    const file = event.target.files?.[0];
+    const imageInput = form?.querySelector('[name="image"]');
+    const preview = form?.querySelector('.wanted-image-preview');
+    const status = form?.querySelector('.wanted-image-status');
+    if (!form || !imageInput || !preview || !status) return;
+    if (!file) { imageInput.value = ''; preview.hidden = true; status.textContent = 'Upload or paste an image directly into this form.'; return; }
+    try {
+      const image = await optimizeListingImage(file);
+      if (image.length > 1400000) throw new Error('Choose a smaller reference image.');
+      imageInput.value = image;
+      preview.src = image;
+      preview.hidden = false;
+      status.textContent = `${file.name || 'Reference image'} ready to publish.`;
+    } catch (error) {
+      event.target.value = '';
+      imageInput.value = '';
+      preview.hidden = true;
+      status.textContent = error.message;
+    }
+    return;
+  }
   if (!event.target.matches('[name="chatImageFile"]')) return;
   const file = event.target.files?.[0];
   const form = event.target.closest('.collector-message-form');
@@ -3117,6 +3140,25 @@ document.addEventListener('click', event => { const toggle = event.target.closes
 document.addEventListener('paste', async event => { const form = event.target.closest?.('.listing-form'); if (!form) return; const images = [...(event.clipboardData?.files || [])].filter(file => file.type.startsWith('image/')); if (!images.length) return; event.preventDefault(); try { await prepareListingFiles(images, true); } catch (error) { showError(error); } });
 document.addEventListener('paste', async event => { const editor = event.target.closest?.('.listing-editor-form') || (modal.open ? modal.querySelector('.listing-editor-form') : null); if (!editor) return; const images = clipboardImageFiles(event.clipboardData); if (!images.length) return; event.preventDefault(); try { await addListingEditorImages(editor, images); } catch (error) { showError(error); } });
 document.addEventListener('paste', async event => { const form = event.target.closest?.('.profile-form'); if (!form) return; const song = [...(event.clipboardData?.files || [])].find(file => file.type === 'audio/mpeg' || file.type === 'audio/mp3' || /\.mp3$/i.test(file.name)); if (!song) return; event.preventDefault(); try { const input = form.querySelector('[name="lobbySong"]'); const status = form.querySelector('[data-lobby-song-status]'); if (input) input.value = await readLobbySong(song); if (status) status.textContent = `${song.name || 'MP3'} ready to save.`; } catch (error) { showError(error); } });
+document.addEventListener('paste', async event => {
+  const form = event.target.closest?.('.wanted-create-form');
+  if (!form) return;
+  const file = clipboardImageFiles(event.clipboardData)[0];
+  if (!file) return;
+  event.preventDefault();
+  const input = form.querySelector('[name="image"]');
+  const preview = form.querySelector('.wanted-image-preview');
+  const status = form.querySelector('.wanted-image-status');
+  if (!input || !preview || !status) return;
+  try {
+    const image = await optimizeListingImage(file);
+    if (image.length > 1400000) throw new Error('Choose a smaller reference image.');
+    input.value = image;
+    preview.src = image;
+    preview.hidden = false;
+    status.textContent = 'Pasted reference image ready to publish.';
+  } catch (error) { showError(error); }
+});
 document.addEventListener('click', async event => { const link = event.target.closest('[data-copy-url]'); if (!link) return; event.preventDefault(); const url = link.dataset.copyUrl; try { await navigator.clipboard.writeText(url); const original = link.textContent; link.textContent = 'URL copied'; link.setAttribute('aria-label', 'URL copied to clipboard'); setTimeout(() => { link.textContent = original; link.setAttribute('aria-label', 'Copy CollectorMarketplace.net URL'); }, 1400); } catch { link.title = `Copy this URL: ${url}`; } });
 window.addEventListener('pagehide', () => { voiceChat.leave(); stopAuctionWaterfall(); });
 
@@ -3368,7 +3410,7 @@ document.addEventListener('keydown', event => {
 document.addEventListener('click', event => {
   if (event.target.closest('[data-wanted]')) { openWantedCenter().catch(showError); return; }
   if (event.target.closest('[data-wanted-create]')) {
-    openModal('Post a wanted request', 'Describe the exact item you are trying to find and your offer. This is not a checkout or binding payment request.', `<form class="modal-form wanted-create-form"><label>What are you looking for?<input required name="title" maxlength="120" placeholder="e.g. 1998 Pokémon Blastoise holo"></label><label>Category<input required name="category" maxlength="80" placeholder="Trading cards"></label><label>Desired condition <small>Optional</small><input name="desiredCondition" maxlength="80" placeholder="Near mint, complete, boxed…"></label><label>Your offer (USD)<input required name="offer" type="number" min="1" max="1000000" step="0.01" placeholder="250"></label><label>Details<textarea required name="description" minlength="10" maxlength="2000" placeholder="Edition, size, missing accessories, acceptable wear, and any other details that help a seller match your request."></textarea></label><label>Tags <small>Optional · comma-separated</small><input name="tags" maxlength="480" placeholder="pokemon, wotc, blastoise"></label><label>Reference image URL <small>Optional</small><input name="image" type="url" maxlength="2000" placeholder="https://…"></label><label>Keep request open for<select name="durationDays"><option value="14">14 days</option><option value="30" selected>30 days</option><option value="60">60 days</option><option value="90">90 days</option></select></label><button class="transaction-submit">Publish wanted request</button></form>`);
+    openModal('Post a wanted request', 'Describe the exact item you are trying to find and your offer. This is not a checkout or binding payment request.', `<form class="modal-form wanted-create-form"><label>What are you looking for?<input required name="title" maxlength="120" placeholder="e.g. 1998 Pokémon Blastoise holo"></label><label>Category<input required name="category" maxlength="80" placeholder="Trading cards"></label><label>Desired condition <small>Optional</small><input name="desiredCondition" maxlength="80" placeholder="Near mint, complete, boxed…"></label><label>Your offer (USD)<input required name="offer" type="number" min="1" max="1000000" step="0.01" placeholder="250"></label><label>Details<textarea required name="description" minlength="10" maxlength="2000" placeholder="Edition, size, missing accessories, acceptable wear, and any other details that help a seller match your request."></textarea></label><label>Tags <small>Optional · comma-separated</small><input name="tags" maxlength="480" placeholder="pokemon, wotc, blastoise"></label><fieldset class="wanted-reference-image"><legend>Reference image <small>Optional</small></legend><input type="hidden" name="image"><label class="profile-upload">Upload an image<input name="wantedImageFile" type="file" accept="image/jpeg,image/png,image/webp"></label><label>or paste an image link<input name="wantedImageUrl" type="url" maxlength="2000" placeholder="https://…"></label><output class="wanted-image-status" aria-live="polite">Upload or paste an image directly into this form.</output><img class="wanted-image-preview" alt="Reference image preview" hidden></fieldset><label>Keep request open for<select name="durationDays"><option value="14">14 days</option><option value="30" selected>30 days</option><option value="60">60 days</option><option value="90">90 days</option></select></label><button class="transaction-submit">Publish wanted request</button></form>`);
     return;
   }
   const wantedClose = event.target.closest('[data-wanted-close]');
@@ -3447,7 +3489,8 @@ document.addEventListener('submit', async event => {
     const button = wantedForm.querySelector('button[type="submit"]');
     if (button) { button.disabled = true; button.textContent = 'Publishing…'; }
     try {
-      await api('/api/wanted', { method: 'POST', body: JSON.stringify({ title: fields.get('title'), category: fields.get('category'), desiredCondition: fields.get('desiredCondition'), offer: fields.get('offer'), description: fields.get('description'), tags, image: fields.get('image'), durationDays: fields.get('durationDays') }) });
+      const image = String(fields.get('image') || fields.get('wantedImageUrl') || '').trim();
+      await api('/api/wanted', { method: 'POST', body: JSON.stringify({ title: fields.get('title'), category: fields.get('category'), desiredCondition: fields.get('desiredCondition'), offer: fields.get('offer'), description: fields.get('description'), tags, image, durationDays: fields.get('durationDays') }) });
       if (modal.open) modal.close();
       await openWantedCenter(false);
     } catch (error) {
