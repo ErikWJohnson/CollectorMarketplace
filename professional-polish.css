@@ -955,18 +955,6 @@ html body.browse-squared .masthead .header-wanted:focus-visible {
   background: #1d2c37 !important;
   color: #fff2c4 !important;
 }
-html body.browse-conveyor .search-scope button[data-search-scope="wanted"],
-html body.browse-squared .search-scope button[data-search-scope="wanted"] {
-  color: #c9e4d5 !important;
-  border-color: #386653 !important;
-  background: #10231d !important;
-}
-html body.browse-conveyor .search-scope button[data-search-scope="wanted"].active,
-html body.browse-squared .search-scope button[data-search-scope="wanted"].active {
-  color: #fff1bc !important;
-  border-color: #e1b958 !important;
-  background: linear-gradient(135deg, #273c2d, #3b3218) !important;
-}
 html body.browse-doomscroll .masthead .header-wanted {
   border-color: #d2ad9b !important;
   background: #fffdf9df !important;
@@ -978,16 +966,6 @@ html body.browse-doomscroll .masthead .header-wanted:focus-visible {
   border-color: #b76e68 !important;
   background: #fff0df !important;
   color: #6d3145 !important;
-}
-html body.browse-doomscroll .search-scope button[data-search-scope="wanted"] {
-  color: #85425a !important;
-  border-color: #d78c8e !important;
-  background: #fff1e5 !important;
-}
-html body.browse-doomscroll .search-scope button[data-search-scope="wanted"].active {
-  color: #412434 !important;
-  border-color: #ad5d6d !important;
-  background: linear-gradient(135deg, #ffd89e, #f1a1a0) !important;
 }
 html body.browse-doomscroll .wanted-card {
   border-color: #d9988d !important;
@@ -1557,8 +1535,7 @@ html body.browse-doomscroll .search-scope button:focus-visible {
   color: #23101f !important;
   border-color: #91425c !important;
 }
-html body.browse-doomscroll .search-scope button.active,
-html body.browse-doomscroll .search-scope button[data-search-scope="wanted"].active {
+html body.browse-doomscroll .search-scope button.active {
   color: #24101f !important;
   text-shadow: 0 1px #fff5 !important;
 }
