@@ -783,6 +783,67 @@ html body.browse-doomscroll .listing-actions .action-buy:hover { color: #effff5 
 .search-scope button { min-height: 34px; transition: transform .16s ease, border-color .16s ease, background .16s ease; }
 .search-scope button:hover { transform: translateY(-1px); border-color: #668aa4 !important; }
 
+/* Looking-to-buy is a Browse control, so keep its new filter and its header
+   action native to each of the three Browse presentations. */
+html body.browse-conveyor .masthead .header-wanted,
+html body.browse-squared .masthead .header-wanted {
+  border-color: #41586b !important;
+  background: linear-gradient(180deg, #182632, #111a21) !important;
+  color: #d5e5f0 !important;
+  box-shadow: inset 0 1px #dff4ff0b;
+}
+html body.browse-conveyor .masthead .header-wanted:hover,
+html body.browse-conveyor .masthead .header-wanted:focus-visible,
+html body.browse-squared .masthead .header-wanted:hover,
+html body.browse-squared .masthead .header-wanted:focus-visible {
+  border-color: #e4bd58 !important;
+  background: #1d2c37 !important;
+  color: #fff2c4 !important;
+}
+html body.browse-conveyor .search-scope button[data-search-scope="wanted"],
+html body.browse-squared .search-scope button[data-search-scope="wanted"] {
+  color: #c9e4d5 !important;
+  border-color: #386653 !important;
+  background: #10231d !important;
+}
+html body.browse-conveyor .search-scope button[data-search-scope="wanted"].active,
+html body.browse-squared .search-scope button[data-search-scope="wanted"].active {
+  color: #fff1bc !important;
+  border-color: #e1b958 !important;
+  background: linear-gradient(135deg, #273c2d, #3b3218) !important;
+}
+html body.browse-doomscroll .masthead .header-wanted {
+  border-color: #d2ad9b !important;
+  background: #fffdf9df !important;
+  color: #273541 !important;
+  box-shadow: inset 0 1px #fff;
+}
+html body.browse-doomscroll .masthead .header-wanted:hover,
+html body.browse-doomscroll .masthead .header-wanted:focus-visible {
+  border-color: #b76e68 !important;
+  background: #fff0df !important;
+  color: #6d3145 !important;
+}
+html body.browse-doomscroll .search-scope button[data-search-scope="wanted"] {
+  color: #85425a !important;
+  border-color: #d78c8e !important;
+  background: #fff1e5 !important;
+}
+html body.browse-doomscroll .search-scope button[data-search-scope="wanted"].active {
+  color: #412434 !important;
+  border-color: #ad5d6d !important;
+  background: linear-gradient(135deg, #ffd89e, #f1a1a0) !important;
+}
+html body.browse-doomscroll .wanted-card {
+  border-color: #d9988d !important;
+  background: #fff8efed !important;
+  box-shadow: 0 12px 28px #8e45514a !important;
+}
+html body.browse-doomscroll .wanted-card h2,
+html body.browse-doomscroll .wanted-card p,
+html body.browse-doomscroll .wanted-card dt,
+html body.browse-doomscroll .wanted-card dd { color: #3b3440 !important; }
+
 .popular-tags,
 .live-auction-rail,
 .popular-listing-rail,
