@@ -557,6 +557,12 @@ html body.browse-doomscroll .live-room-directory-head button:hover {
   background: linear-gradient(135deg, #ffe09a, #f4ae87) !important;
   color: #24101f !important;
 }
+.browse-doomscroll .browse-mode-toggle kbd {
+  border-color: #c26c6b !important;
+  background: #fff0c7 !important;
+  color: #643142 !important;
+  box-shadow: inset 0 1px #fff9;
+}
 .live-room-directory-head button {
   max-width: 100%;
   overflow: hidden;
