@@ -99,6 +99,11 @@
    available by swiping the rail; the row no longer dominates the screen. */
 @media (max-width:900px) {
   .listing-filter-controls {
+    display:flex !important;
+    flex-direction:row !important;
+    flex-wrap:nowrap !important;
+    align-items:center !important;
+    justify-content:flex-start !important;
     gap:5px !important;
     min-height:0 !important;
     padding:4px 5px !important;
@@ -118,6 +123,7 @@
     font-size:.58rem !important;
     line-height:1 !important;
   }
+  .listing-filter-controls > * { flex:0 0 auto !important; }
   .listing-filter-controls button { padding:6px 8px !important; letter-spacing:.02em !important; }
   .listing-filter-controls .viewer-location { padding-inline:8px !important; font-size:0 !important; }
   .listing-filter-controls .viewer-location::after { content:"Near me"; font-size:.6rem; }
