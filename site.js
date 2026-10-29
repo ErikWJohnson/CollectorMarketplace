@@ -3441,6 +3441,11 @@ document.addEventListener('keydown', event => {
   if (!direction) return; event.preventDefault(); nudgeGalleryElement(direction, event.shiftKey ? 6 : 2);
 });
 document.addEventListener('click', event => {
+  if (event.target.closest('[data-wanted-board]')) {
+    openWantedCenter();
+    activateNav('wanted-board');
+    return;
+  }
   if (event.target.closest('[data-wanted]')) { document.querySelector('.header-nav [data-home]')?.click(); setSearchScope('wanted'); return; }
   if (event.target.closest('[data-wanted-create]')) {
     openWantedRequestPage();
