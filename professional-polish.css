@@ -1304,3 +1304,41 @@ html body.browse-doomscroll .square-listing-card > .square-listing-copy > strong
 .chatrooms-directory-card { border-color:#386955; background:linear-gradient(145deg,#13221e,#111719); }
 .chatrooms-directory-card header span { color:#8ee6ad; }
 @media(max-width:620px){.live-room-directory-head{align-items:stretch;flex-direction:column}.live-room-directory-head button{width:100%}}
+
+/* Keep every Doomscroll category label intact as Browse gains more controls.
+   At desktop widths the button counts, rather than arbitrary equal columns,
+   determine each group’s share of the row. */
+@media (min-width: 901px) {
+  html body.browse-doomscroll .search-scope {
+    grid-template-columns: minmax(0, 1.45fr) minmax(0, 1.45fr) minmax(0, 2.15fr) minmax(132px, 1fr) !important;
+    gap: 10px !important;
+  }
+  html body.browse-doomscroll .search-scope > section > div {
+    grid-auto-columns: minmax(0, 1fr) !important;
+  }
+  html body.browse-doomscroll .search-scope > section:nth-child(2) > div,
+  html body.browse-doomscroll .search-scope > section:nth-child(3) > div {
+    display: grid !important;
+    grid-auto-flow: column !important;
+    grid-auto-columns: minmax(0, 1fr) !important;
+  }
+  html body.browse-doomscroll .search-scope > section:nth-child(2) button,
+  html body.browse-doomscroll .search-scope > section:nth-child(3) button {
+    overflow: visible !important;
+    text-overflow: clip !important;
+    font-size: clamp(.56rem, .76vw, .72rem) !important;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 900px) {
+  html body.browse-doomscroll .search-scope {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+  html body.browse-doomscroll .search-scope > section > div,
+  html body.browse-doomscroll .search-scope > section:nth-child(3) > div {
+    display: grid !important;
+    grid-auto-flow: column !important;
+    grid-auto-columns: minmax(0, 1fr) !important;
+  }
+}
