@@ -286,7 +286,7 @@ let metadataVisible = localStorage.getItem('collector-marketplace-metadata-visib
 const searchScopes = ['listings', 'wanted', 'accounts', 'galleries', 'collectives', 'brands', 'chatrooms', 'couriers'];
 const socialScopeMeta = {
   listings: { heading: 'Fresh drops', noun: 'listing' }, accounts: { heading: 'Collector network', noun: 'collector' },
-  wanted: { heading: 'Looking to buy', noun: 'wanted request' },
+  wanted: { heading: 'Collector requests', noun: 'wanted request' },
   galleries: { heading: 'Public collector galleries', noun: 'gallery' },
   collectives: { heading: 'Collector groups', noun: 'group' }, brands: { heading: 'Brand communities', noun: 'brand' },
   couriers: { heading: 'Delivery network', noun: 'service' }, chatrooms: { heading: 'Live collector rooms', noun: 'room' }
@@ -1936,7 +1936,7 @@ function renderFeed(reset = true) {
   if (searchScope === 'wanted') {
     const rows = filteredWantedRequests();
     const cards = rows.map(wantedBrowseCard).join('') || '<section class="wanted-empty"><b>No wanted requests match that search.</b><p>Try another term, or be the first collector to post what you are seeking.</p></section>';
-    stream.innerHTML = `<section class="wanted-browse-feed"><header class="wanted-browse-heading"><div><span>MARKETPLACE FILTER · LOOKING TO BUY</span><b>Collector requests</b><small>Browse items collectors are actively trying to purchase, or post a request of your own.</small></div><button type="button" class="transaction-submit" data-wanted-create>${session ? 'Post a wanted request' : 'Sign in to post a request'}</button></header><section class="wanted-grid">${cards}</section></section>`;
+    stream.innerHTML = `<section class="wanted-browse-feed"><section class="wanted-grid">${cards}</section></section>`;
     document.querySelector('#result-count').textContent = `${rows.length} wanted request${rows.length === 1 ? '' : 's'}`;
     sentinel.textContent = rows.length ? 'Looking to Buy · active collector requests' : 'No active wanted requests yet.';
     syncBrowseModeUi();
