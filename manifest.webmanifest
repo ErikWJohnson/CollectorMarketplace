@@ -1,0 +1,15 @@
+{
+  "id": "/",
+  "name": "Collector Marketplace",
+  "short_name": "Collector",
+  "description": "Buy, sell, trade, and discover collectibles with collectors everywhere.",
+  "start_url": "/#browse",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0d1116",
+  "theme_color": "#0d1116",
+  "orientation": "any",
+  "icons": [
+    { "src": "/favicon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

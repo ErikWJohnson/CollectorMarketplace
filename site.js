@@ -2691,7 +2691,7 @@ const syncTagRoute = (replace = false) => {
 const reloadTagRoute = () => { syncTagRoute(); renderTagMatchMode(); renderTags(); if (auctionTagView) refreshTaggedAuction(); else renderFeed(); };
 const applyTagRoute = () => { const route = routeTags(); tagMatchMode = route.mode; activeTags = route.active.map(tag => tag.toLowerCase()); lockedTags = route.locked.map(tag => tag.toLowerCase()); voidTags = route.voided.map(tag => tag.toLowerCase()); setSearchScope(route.scope, false); saveLockedTags(); if (route.isTagRoute || route.scope !== 'listings' || [...route.active, ...route.locked, ...route.voided].length) syncTagRoute(true); renderTagMatchMode(); setDiscoveryMode(route.isTagRoute || [...route.active, ...route.locked, ...route.voided].length ? 'tags' : 'search'); renderTags(); renderFeed(); };
 function toggleTag(tag, action = 'toggle') { const value = tag.toLowerCase(); const selected = activeTags.includes(value); if (action === 'add') { if (!selected) activeTags = [...activeTags, value]; else return; } else if (action === 'remove') { if (!selected) return; activeTags = activeTags.filter(current => current !== value); } else activeTags = selected ? activeTags.filter(current => current !== value) : [...activeTags, value]; reloadTagRoute(); }
-function activateNav(name) { document.querySelectorAll('.bottom-nav button').forEach(button => button.classList.toggle('active', button.matches(`[data-${name}]`))); }
+function activateNav(name) { document.querySelectorAll('.bottom-nav button').forEach(button => button.classList.toggle('active', button.matches(`[data-${name}]`))); const mobileName = ({ home: 'home', market: 'explore', sell: 'create', chat: 'community', account: 'profile', raffles: 'community', auction: 'explore', 'wanted-board': 'explore' })[name]; if (mobileName) document.querySelectorAll('.mobile-app-nav button').forEach(button => button.classList.toggle('active', button.dataset.mobileTab === mobileName)); }
 function auctionTime(lot) { if (lot.auctionEndless) return 'ENDLESS'; const left = Math.max(0, Math.floor((lot.endAt - Date.now()) / 1000)); const hours = String(Math.floor(left / 3600)).padStart(2, '0'); const minutes = String(Math.floor(left % 3600 / 60)).padStart(2, '0'); const seconds = String(left % 60).padStart(2, '0'); return `${hours}:${minutes}:${seconds}`; }
 function updateAuctionClocks() { document.querySelectorAll('[data-auction-clock]').forEach(node => { const lot = auctions.find(row => row.id === node.dataset.auctionClock); if (lot) { node.textContent = auctionTime(lot); if (node.previousElementSibling && lot.auctionEndless) node.previousElementSibling.textContent = 'Open indefinitely'; node.closest('.auction-countdown')?.classList.toggle('is-urgent', !lot.auctionEndless && lot.endAt - Date.now() < 3600000); } }); }
 function pauseAuctionFeed(milliseconds = 15000) { auctionFeedPausedUntil = Math.max(auctionFeedPausedUntil, Date.now() + milliseconds); }
@@ -3585,3 +3585,57 @@ window.addEventListener('popstate', () => {
   applyTagRoute();
   applyHashLocation();
 });
+
+/* Phone navigation is additive. It maps the high-frequency actions to five
+   native-style tabs while the full desktop dock remains available on desktop. */
+document.addEventListener('click', event => {
+  const mobileHome = event.target.closest('[data-mobile-home]');
+  const mobileExplore = event.target.closest('[data-mobile-explore]');
+  const mobileCreate = event.target.closest('[data-mobile-create]');
+  const mobileCommunity = event.target.closest('[data-mobile-community]');
+  if (mobileHome) { document.querySelector('.header-nav [data-home]')?.click(); return; }
+  if (mobileExplore) {
+    document.querySelector('.header-nav [data-home]')?.click();
+    window.setTimeout(() => { setSearchScope('listings'); activateNav('market'); search?.focus({ preventScroll: true }); }, 0);
+    return;
+  }
+  if (mobileCreate) {
+    activateNav('sell');
+    openModal('Create', 'Choose what you want to share with collectors. You can publish a marketplace listing, a wanted request, or a curated inventory gallery.', '<section class="mobile-create-sheet"><button type="button" data-sell><b>List an item</b><span>Sell, trade, or showcase a collectible.</span></button><button type="button" data-wanted-create><b>Post a wanted request</b><span>Tell collectors what you are looking to buy.</span></button><button type="button" data-gallery-create><b>Build a gallery</b><span>Arrange items into a private or public exhibit.</span></button></section>');
+    return;
+  }
+  if (mobileCommunity) {
+    document.querySelector('.header-nav [data-home]')?.click();
+    window.setTimeout(() => { setSearchScope('collectives'); activateNav('chat'); }, 0);
+  }
+});
+
+/* Installed users get an explicit, safe update choice. The worker caches only
+   the public shell; all auth, checkout, messages, delivery, and API traffic
+   always remains network-only. */
+function showPwaUpdate(registration) {
+  if (document.querySelector('.pwa-update-banner')) return;
+  const banner = document.createElement('aside');
+  banner.className = 'pwa-update-banner';
+  banner.setAttribute('role', 'status');
+  banner.innerHTML = '<span>An app update is ready.</span><button type="button">Update</button>';
+  banner.querySelector('button').addEventListener('click', () => registration.waiting?.postMessage({ type: 'SKIP_WAITING' }));
+  document.body.append(banner);
+}
+function registerPwa() {
+  if (!('serviceWorker' in navigator) || !window.isSecureContext) return;
+  let refreshed = false;
+  navigator.serviceWorker.register('/service-worker.js', { updateViaCache: 'none' }).then(registration => {
+    if (registration.waiting) showPwaUpdate(registration);
+    registration.addEventListener('updatefound', () => {
+      const worker = registration.installing;
+      worker?.addEventListener('statechange', () => { if (worker.state === 'installed' && navigator.serviceWorker.controller) showPwaUpdate(registration); });
+    });
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (refreshed) return;
+      refreshed = true;
+      window.location.reload();
+    });
+  }).catch(() => {});
+}
+window.addEventListener('load', registerPwa, { once: true });

@@ -1,6 +1,6 @@
 /* Final phone-first safety layer. Older visual experiments use fixed desktop
    widths in a few places; these rules keep every workspace inside the actual
-   device viewport and leave room for the persistent six-action dock. */
+   device viewport and leave room for the persistent mobile app navigation. */
 @media (max-width: 680px) {
   html,
   body {
