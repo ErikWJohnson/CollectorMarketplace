@@ -1364,3 +1364,22 @@ html body.browse-doomscroll .square-listing-card > .square-listing-copy > strong
     line-height: 1 !important;
   }
 }
+
+/* Desktop Doomscroll uses the same compact, content-sized category cluster as
+   Conveyor and Squared—not a full-width set of stretched panels. */
+@media (min-width: 901px) {
+  html body.browse-doomscroll .discovery.mode-search .search-scope {
+    grid-template-columns: 170px 178px 226px 94px !important;
+    width: fit-content !important;
+    max-width: calc(100% - (var(--browse-gutter) * 2)) !important;
+    margin: 0 auto !important;
+    padding: 10px 0 8px !important;
+    gap: 9px !important;
+  }
+  html body.browse-doomscroll .search-scope > section > div,
+  html body.browse-doomscroll .search-scope > section:nth-child(2) > div,
+  html body.browse-doomscroll .search-scope > section:nth-child(3) > div {
+    grid-auto-flow: column !important;
+    grid-auto-columns: minmax(0, 1fr) !important;
+  }
+}
