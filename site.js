@@ -15,7 +15,7 @@ const priceMax = document.querySelector('#price-max');
 const sentinel = document.querySelector('#sentinel');
 const modal = document.querySelector('#modal');
 const modalContent = document.querySelector('#modal-content');
-let listings = [], auctions = [], accounts = [], galleries = [], collectives = [], brands = [], couriers = [], chatrooms = [], deliveries = [], uploadedListingImages = [], uploadedListingVideos = [], activeCategory = 'All', activeQuery = '', activeTags = [], searchScope = 'listings', sortMode = 'popular', marketMode = localStorage.getItem('collector-marketplace-mode') || 'all', page = 1, observer, searchRenderTimer, auctionClock;
+let listings = [], wantedRequests = [], auctions = [], accounts = [], galleries = [], collectives = [], brands = [], couriers = [], chatrooms = [], deliveries = [], uploadedListingImages = [], uploadedListingVideos = [], activeCategory = 'All', activeQuery = '', activeTags = [], searchScope = 'listings', sortMode = 'popular', marketMode = localStorage.getItem('collector-marketplace-mode') || 'all', page = 1, observer, searchRenderTimer, auctionClock;
 const auctionWaterfallAudio = document.querySelector('#auction-waterfall-audio');
 const jungleChatAudio = document.querySelector('#jungle-chat-audio');
 const accountVeniceAudio = document.querySelector('#account-venice-audio');
@@ -283,9 +283,10 @@ let browseMode = ['conveyor', 'doomscroll', 'squared'].includes(savedBrowseMode)
 // Keep the browse canvas focused on first visit; only persist an explicit user choice.
 let metadataVisible = localStorage.getItem('collector-marketplace-metadata-visible') === 'true';
 // Keep comma/period keyboard navigation in the same order as the visible scope bar.
-const searchScopes = ['listings', 'accounts', 'galleries', 'collectives', 'brands', 'chatrooms', 'couriers'];
+const searchScopes = ['listings', 'wanted', 'accounts', 'galleries', 'collectives', 'brands', 'chatrooms', 'couriers'];
 const socialScopeMeta = {
   listings: { heading: 'Fresh drops', noun: 'listing' }, accounts: { heading: 'Collector network', noun: 'collector' },
+  wanted: { heading: 'Looking to buy', noun: 'wanted request' },
   galleries: { heading: 'Public collector galleries', noun: 'gallery' },
   collectives: { heading: 'Collector groups', noun: 'group' }, brands: { heading: 'Brand communities', noun: 'brand' },
   couriers: { heading: 'Delivery network', noun: 'service' }, chatrooms: { heading: 'Live collector rooms', noun: 'room' }
@@ -294,11 +295,12 @@ const setSearchScope = (scope, syncRoute = true) => {
   if (!searchScopes.includes(scope)) return;
   searchScope = scope;
   document.querySelectorAll('[data-search-scope]').forEach(button => button.classList.toggle('active', button.dataset.searchScope === searchScope));
-  search.placeholder = searchScope === 'listings' ? 'Search collector finds' : searchScope === 'accounts' ? 'Find collectors by name or interest' : searchScope === 'galleries' ? 'Find public collector galleries' : searchScope === 'collectives' ? 'Find collector groups and interests' : searchScope === 'brands' ? 'Find brands and their communities' : searchScope === 'couriers' ? 'Find collector-friendly delivery services' : 'Find live collector rooms';
+  search.placeholder = searchScope === 'listings' ? 'Search collector finds' : searchScope === 'wanted' ? 'Search what collectors want to buy' : searchScope === 'accounts' ? 'Find collectors by name or interest' : searchScope === 'galleries' ? 'Find public collector galleries' : searchScope === 'collectives' ? 'Find collector groups and interests' : searchScope === 'brands' ? 'Find brands and their communities' : searchScope === 'couriers' ? 'Find collector-friendly delivery services' : 'Find live collector rooms';
   const marketHeading = document.querySelector('.market-head span');
   if (marketHeading) marketHeading.textContent = socialScopeMeta[searchScope].heading;
   syncBrowseModeUi();
-  renderFeed();
+  if (searchScope === 'wanted') loadWantedRequests().catch(() => {}).finally(() => renderFeed());
+  else renderFeed();
   if (syncRoute && typeof syncTagRoute === 'function') syncTagRoute();
 };
 const ensureGalleryScopeControl = () => {
@@ -1172,10 +1174,9 @@ const setWorkspaceHash = hash => {
 // Claim the destination before any asynchronous panel request begins. If a
 // previous request resolves later, openModal will ignore that stale result.
 document.addEventListener('click', event => {
-  const target = event.target.closest('[data-home],[data-market],[data-wanted],[data-auction],[data-chat],[data-sell],[data-account],[data-raffles],[data-curator],[data-help],[data-profile],[data-collector-chat],[data-conversation],[data-trade-chat],[data-delivery]');
+  const target = event.target.closest('[data-home],[data-market],[data-auction],[data-chat],[data-sell],[data-account],[data-raffles],[data-curator],[data-help],[data-profile],[data-collector-chat],[data-conversation],[data-trade-chat],[data-delivery]');
   if (!target) return;
   if (target.matches('[data-home],[data-market]')) { beginWorkspaceRoute('browse'); document.body.classList.remove('app-section-membership', 'listing-page'); }
-  else if (target.matches('[data-wanted]')) beginWorkspaceRoute('wanted');
   else if (target.matches('[data-auction]')) { beginWorkspaceRoute('auction'); document.body.classList.remove('app-section-listing', 'app-section-membership', 'listing-page'); }
   else if (target.matches('[data-chat],[data-collector-chat],[data-conversation],[data-trade-chat],[data-delivery]')) beginWorkspaceRoute('chat');
   else if (target.matches('[data-sell]')) beginWorkspaceRoute('listing');
@@ -1774,6 +1775,16 @@ const filteredDirectory = () => {
   const query = activeQuery.toLowerCase();
   return source.filter(item => `${item.username || ''} ${item.name || ''} ${item.title || ''} ${item.owner?.username || ''} ${item.bio || ''} ${item.description || ''} ${item.category || ''} ${(item.tags || []).join(' ')}`.toLowerCase().includes(query) && tagsMatchDirectory(directoryItemTags(item, searchScope)));
 };
+const filteredWantedRequests = () => {
+  const query = activeQuery.toLowerCase().trim();
+  return wantedRequests.filter(request => `${request.title || ''} ${request.description || ''} ${request.category || ''} ${request.desiredCondition || ''} ${(request.tags || []).join(' ')}`.toLowerCase().includes(query) && tagsMatchDirectory((request.tags || []).map(tag => String(tag).toLowerCase())));
+};
+const wantedBrowseCard = request => {
+  const mine = session?.user?.id === request.ownerId;
+  const image = request.image ? `<img src="${safe(request.image)}" alt="">` : '<span class="wanted-card-mark" aria-hidden="true">⌕</span>';
+  const tags = (request.tags || []).slice(0, 5).map(tag => `<i>#${safe(tag)}</i>`).join('');
+  return `<article class="wanted-card"><div class="wanted-card-image">${image}</div><section><header><span>LOOKING TO BUY</span><small>Expires ${safe(new Date(request.expiresAt).toLocaleDateString())}</small></header><h2>${safe(request.title)}</h2><p>${safe(request.description)}</p><dl><div><dt>Offer</dt><dd>${money(request.offer)}</dd></div><div><dt>Condition</dt><dd>${safe(request.desiredCondition || 'Any condition')}</dd></div><div><dt>Category</dt><dd>${safe(request.category)}</dd></div></dl>${tags ? `<div class="wanted-tags">${tags}</div>` : ''}<footer><button type="button" data-profile="${safe(request.ownerId)}">@${safe(request.owner?.username || 'collector')}</button>${mine ? `<button type="button" data-wanted-close="${safe(request.id)}">Close request</button>` : `<button type="button" class="wanted-contact" data-collector-chat="${safe(request.ownerId)}">I have one</button>`}</footer></section></article>`;
+};
 const stateFor = id => postState[id] || (postState[id] = { score: 0, vote: 0, comments: [] });
 const savePostState = () => localStorage.setItem('collector-marketplace-post-state', JSON.stringify(postState));
 const squareCard = item => {
@@ -1921,6 +1932,15 @@ function renderFeed(reset = true) {
   // Search, checkout, location, and tag events all refresh the feed. Those
   // updates belong only to Browse and must never replace an open workspace.
   if (!canRenderBrowseFeed()) return;
+  if (searchScope === 'wanted') {
+    const rows = filteredWantedRequests();
+    const cards = rows.map(wantedBrowseCard).join('') || '<section class="wanted-empty"><b>No wanted requests match that search.</b><p>Try another term, or be the first collector to post what you are seeking.</p></section>';
+    stream.innerHTML = `<section class="wanted-browse-feed"><header class="wanted-browse-heading"><div><span>MARKETPLACE FILTER · LOOKING TO BUY</span><b>Collector requests</b><small>Browse items collectors are actively trying to purchase, or post a request of your own.</small></div><button type="button" class="transaction-submit" data-wanted-create>${session ? 'Post a wanted request' : 'Sign in to post a request'}</button></header><section class="wanted-grid">${cards}</section></section>`;
+    document.querySelector('#result-count').textContent = `${rows.length} wanted request${rows.length === 1 ? '' : 's'}`;
+    sentinel.textContent = rows.length ? 'Looking to Buy · active collector requests' : 'No active wanted requests yet.';
+    syncBrowseModeUi();
+    return;
+  }
   if (searchScope !== 'listings') { const rows = filteredDirectory(); const meta = socialScopeMeta[searchScope]; const originals = rows.map(item => directoryCard(item, searchScope)).join(''); const copies = browseMode === 'conveyor' && rows.length ? Array.from({ length: 2 }, () => rows.map(item => directoryCard(item, searchScope, true)).join('')).join('') : ''; const hostAction = searchScope === 'chatrooms' ? `<section class="live-room-directory-head"><div><span>COLLECTOR-HOSTED LIVE ROOMS</span><b>Start your own live video room</b><small>Hosts control the camera or screen share; viewers see the host stage first.</small></div><button type="button" data-live-room-create>${session ? 'Host a room' : 'Sign in to host'}</button></section>` : ''; stream.innerHTML = hostAction + (originals ? originals + copies : `<p class="load-state">No ${meta.noun}s match that search yet.</p>`); document.querySelector('#result-count').textContent = `${rows.length} ${meta.noun}${rows.length === 1 ? '' : 's'}`; sentinel.textContent = rows.length ? (browseMode === 'conveyor' ? 'Conveyor mode · looping continuously' : 'Community directory complete.') : 'Try another name, interest, or tag.'; syncBrowseModeUi(); return; }
   const rows = alternatePromotedListings(filtered()); if (reset) page = 1; const pageSize = 4; const visible = browseMode === 'conveyor' || browseMode === 'squared' ? rows : rows.slice(0, page * pageSize);
   const renderCard = browseMode === 'squared' ? squareCard : card;
@@ -1947,11 +1967,15 @@ async function openRaffleCenter(updateRoute = true) {
   openAppSection('raffles', 'Raffle Center', 'Enter verified collector prize draws for free. No purchase or payment is required to enter; official rules and eligibility are shown with every raffle.', `${createForm}<section class="raffle-list">${cards || '<section class="raffle-empty"><b>No raffle is open yet.</b><p>Verified platform prize draws will appear here when their official rules are ready.</p></section>'}</section><p class="raffle-disclaimer">No purchase necessary. Void where prohibited. CollectorMarketplace raffles are free-entry prize promotions; review every raffle’s official rules before entering.</p>`);
 }
 
+async function loadWantedRequests() {
+  wantedRequests = await api('/api/wanted');
+  return wantedRequests;
+}
 async function openWantedCenter(updateRoute = true) {
   if (!session) return openAuthPanel('login');
   const routeId = beginWorkspaceRoute('wanted');
   if (updateRoute) setWorkspaceHash('wanted');
-  const requests = await api('/api/wanted');
+  const requests = await loadWantedRequests();
   if (routeId !== workspaceRouteId) return;
   const cards = requests.map(request => {
     const mine = request.ownerId === session.user.id;
@@ -3409,7 +3433,7 @@ document.addEventListener('keydown', event => {
   if (!direction) return; event.preventDefault(); nudgeGalleryElement(direction, event.shiftKey ? 6 : 2);
 });
 document.addEventListener('click', event => {
-  if (event.target.closest('[data-wanted]')) { openWantedCenter().catch(showError); return; }
+  if (event.target.closest('[data-wanted]')) { document.querySelector('.header-nav [data-home]')?.click(); setSearchScope('wanted'); return; }
   if (event.target.closest('[data-wanted-create]')) {
     openModal('Post a wanted request', 'Describe the exact item you are trying to find and your offer. This is not a checkout or binding payment request.', `<form class="modal-form wanted-create-form"><label>What are you looking for?<input required name="title" maxlength="120" placeholder="e.g. 1998 Pokémon Blastoise holo"></label><label>Category<input required name="category" maxlength="80" placeholder="Trading cards"></label><label>Desired condition <small>Optional</small><input name="desiredCondition" maxlength="80" placeholder="Near mint, complete, boxed…"></label><label>Your offer (USD)<input required name="offer" type="number" min="1" max="1000000" step="0.01" placeholder="250"></label><label>Details<textarea required name="description" minlength="10" maxlength="2000" placeholder="Edition, size, missing accessories, acceptable wear, and any other details that help a seller match your request."></textarea></label><label>Tags <small>Optional · comma-separated</small><input name="tags" maxlength="480" placeholder="pokemon, wotc, blastoise"></label><fieldset class="wanted-reference-image"><legend>Reference image <small>Optional</small></legend><input type="hidden" name="image"><label class="profile-upload">Upload an image<input name="wantedImageFile" type="file" accept="image/jpeg,image/png,image/webp"></label><label>or paste an image link<input name="wantedImageUrl" type="url" maxlength="2000" placeholder="https://…"></label><output class="wanted-image-status" aria-live="polite">Upload or paste an image directly into this form.</output><img class="wanted-image-preview" alt="Reference image preview" hidden></fieldset><label>Keep request open for<select name="durationDays"><option value="14">14 days</option><option value="30" selected>30 days</option><option value="60">60 days</option><option value="90">90 days</option></select></label><button class="transaction-submit">Publish wanted request</button></form>`);
     return;
@@ -3417,7 +3441,7 @@ document.addEventListener('click', event => {
   const wantedClose = event.target.closest('[data-wanted-close]');
   if (wantedClose) {
     if (!window.confirm('Close this wanted request? It will no longer appear on the Wanted Board.')) return;
-    api(`/api/wanted/${wantedClose.dataset.wantedClose}`, { method: 'PUT', body: JSON.stringify({ status: 'closed' }) }).then(() => openWantedCenter(false)).catch(showError);
+    api(`/api/wanted/${wantedClose.dataset.wantedClose}`, { method: 'PUT', body: JSON.stringify({ status: 'closed' }) }).then(async () => { await loadWantedRequests(); if (searchScope === 'wanted') renderFeed(); else openWantedCenter(false); }).catch(showError);
     return;
   }
   if (event.target.closest('[data-post-item]')) {
@@ -3493,7 +3517,8 @@ document.addEventListener('submit', async event => {
       const image = String(fields.get('image') || fields.get('wantedImageUrl') || '').trim();
       await api('/api/wanted', { method: 'POST', body: JSON.stringify({ title: fields.get('title'), category: fields.get('category'), desiredCondition: fields.get('desiredCondition'), offer: fields.get('offer'), description: fields.get('description'), tags, image, durationDays: fields.get('durationDays') }) });
       if (modal.open) modal.close();
-      await openWantedCenter(false);
+      await loadWantedRequests();
+      setSearchScope('wanted');
     } catch (error) {
       if (button) { button.disabled = false; button.textContent = 'Publish wanted request'; }
       showError(error);
