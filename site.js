@@ -1172,9 +1172,10 @@ const setWorkspaceHash = hash => {
 // Claim the destination before any asynchronous panel request begins. If a
 // previous request resolves later, openModal will ignore that stale result.
 document.addEventListener('click', event => {
-  const target = event.target.closest('[data-home],[data-market],[data-auction],[data-chat],[data-sell],[data-account],[data-raffles],[data-curator],[data-help],[data-profile],[data-collector-chat],[data-conversation],[data-trade-chat],[data-delivery]');
+  const target = event.target.closest('[data-home],[data-market],[data-wanted],[data-auction],[data-chat],[data-sell],[data-account],[data-raffles],[data-curator],[data-help],[data-profile],[data-collector-chat],[data-conversation],[data-trade-chat],[data-delivery]');
   if (!target) return;
   if (target.matches('[data-home],[data-market]')) { beginWorkspaceRoute('browse'); document.body.classList.remove('app-section-membership', 'listing-page'); }
+  else if (target.matches('[data-wanted]')) beginWorkspaceRoute('wanted');
   else if (target.matches('[data-auction]')) { beginWorkspaceRoute('auction'); document.body.classList.remove('app-section-listing', 'app-section-membership', 'listing-page'); }
   else if (target.matches('[data-chat],[data-collector-chat],[data-conversation],[data-trade-chat],[data-delivery]')) beginWorkspaceRoute('chat');
   else if (target.matches('[data-sell]')) beginWorkspaceRoute('listing');
