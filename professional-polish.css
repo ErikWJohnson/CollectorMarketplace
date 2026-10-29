@@ -53,7 +53,7 @@ a:focus-visible {
   color: #17120a !important;
   box-shadow: 0 5px 16px #0000003d;
 }
-.masthead .header-wanted{position:static!important;top:auto!important;right:auto!important;order:8;display:inline-flex;align-items:center;align-self:center;flex:0 0 auto;width:auto!important;height:auto!important;margin:0!important;border:1px solid #5e9671!important;border-radius:6px!important;padding:8px 10px;background:linear-gradient(135deg,#183725,#102319)!important;color:#d3f1d9!important;font:800 .58rem/1 "DM Mono",monospace;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;cursor:pointer}.masthead .header-wanted:hover,.masthead .header-wanted:focus-visible{border-color:#a6e6b4!important;background:linear-gradient(135deg,#245035,#163423)!important;color:#fff!important}
+.masthead .header-wanted{position:static!important;top:auto!important;right:auto!important;order:8;display:inline-flex;align-items:center;align-self:center;flex:0 0 auto;width:auto!important;height:auto!important;margin:0!important;border:1px solid #3d4a55!important;border-radius:6px!important;padding:8px 10px;background:#111820!important;color:#c5ced7!important;font:800 .58rem/1 "DM Mono",monospace;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;cursor:pointer}.masthead .header-wanted:hover,.masthead .header-wanted:focus-visible{border-color:#e4bd58!important;background:#1b2731!important;color:#fff!important}
 .header-account {
   position: static !important;
   top: auto !important;
