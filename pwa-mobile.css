@@ -94,3 +94,47 @@
   .mobile-app-nav button b { font-size:21px; }
   .mobile-app-nav .mobile-create b { width:42px; height:42px; margin-top:-22px; }
 }
+
+/* Dense browse controls for phones and landscape phones. Every option remains
+   available by swiping the rail; the row no longer dominates the screen. */
+@media (max-width:900px) {
+  .listing-filter-controls {
+    gap:5px !important;
+    min-height:0 !important;
+    padding:5px !important;
+    border-radius:8px !important;
+    scrollbar-width:none;
+  }
+  .listing-filter-controls::-webkit-scrollbar { display:none; }
+  .listing-filter-controls > *,
+  .listing-filter-controls button,
+  .listing-filter-controls select,
+  .listing-filter-controls input {
+    min-height:34px !important;
+    height:34px !important;
+    font-size:.58rem !important;
+    line-height:1 !important;
+  }
+  .listing-filter-controls button { padding:6px 8px !important; letter-spacing:.02em !important; }
+  .listing-filter-controls .viewer-location { padding-inline:8px !important; }
+  .listing-filter-controls .sort-listings,
+  .listing-filter-controls .price-range { gap:4px !important; color:transparent !important; font-size:0 !important; }
+  .listing-filter-controls .sort-listings { padding:0 !important; }
+  .listing-filter-controls .sort-listings select { width:126px; min-width:126px !important; padding:5px 24px 5px 8px !important; color:#d8e3ea !important; font-size:.62rem !important; }
+  .listing-filter-controls .price-range { display:flex !important; align-items:center; padding:0 !important; }
+  .listing-filter-controls .price-range input { width:68px; min-width:68px !important; padding:5px 7px !important; color:#d8e3ea !important; font-size:.6rem !important; }
+  .listing-filter-controls .price-range span { color:#8998a4 !important; font-size:.7rem !important; }
+  .listing-filter-controls .checkout-preference { white-space:nowrap; }
+  .listing-filter-controls .private-shipping-settings { max-width:154px; overflow:hidden; text-overflow:ellipsis; }
+}
+
+@media (max-width:420px) {
+  .listing-filter-controls { width:calc(100% - 16px) !important; margin-top:6px !important; }
+  .listing-filter-controls > *,
+  .listing-filter-controls button,
+  .listing-filter-controls select,
+  .listing-filter-controls input { min-height:32px !important; height:32px !important; }
+  .listing-filter-controls button { padding-inline:7px !important; font-size:.54rem !important; }
+  .listing-filter-controls .sort-listings select { width:112px; min-width:112px !important; }
+  .listing-filter-controls .price-range input { width:60px; min-width:60px !important; }
+}
