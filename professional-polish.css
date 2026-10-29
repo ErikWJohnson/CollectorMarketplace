@@ -1360,7 +1360,7 @@ html body.browse-doomscroll .square-listing-card > .square-listing-copy > strong
   html body.browse-doomscroll .search-scope button {
     min-height: 34px !important;
     padding: 7px 9px !important;
-    font-size: .62rem !important;
+    font: 800 .68rem/1 "DM Mono", monospace !important;
     line-height: 1 !important;
   }
 }
