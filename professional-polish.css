@@ -506,6 +506,66 @@ html body.browse-doomscroll .discovery.mode-tags .tag-group-buttons button:hover
   color: #24101f !important;
 }
 
+/* The live-room host invitation belongs to the active Browse world. */
+.browse-conveyor .live-room-directory-head,
+.browse-squared .live-room-directory-head {
+  border-color: #3f6781 !important;
+  border-radius: 5px !important;
+  padding: 10px 12px !important;
+  background: linear-gradient(125deg, #102333, #101923 58%, #172b37) !important;
+  box-shadow: inset 0 1px #dff5ff0a;
+}
+.browse-conveyor .live-room-directory-head span,
+.browse-squared .live-room-directory-head span { color: #85cdec !important; }
+.browse-conveyor .live-room-directory-head b,
+.browse-squared .live-room-directory-head b { color: #edf6fb !important; }
+.browse-conveyor .live-room-directory-head small,
+.browse-squared .live-room-directory-head small { color: #aec3d2 !important; }
+.browse-conveyor .live-room-directory-head button,
+.browse-squared .live-room-directory-head button {
+  border-color: #72b7db !important;
+  border-radius: 4px !important;
+  background: linear-gradient(135deg, #193d55, #1d5d78) !important;
+  color: #ecf9ff !important;
+  box-shadow: inset 0 1px #e9faff18;
+}
+.browse-conveyor .live-room-directory-head button:hover,
+.browse-squared .live-room-directory-head button:hover {
+  border-color: #f0c968 !important;
+  background: linear-gradient(135deg, #24536d, #277a91) !important;
+  color: #fff6cf !important;
+}
+html body.browse-doomscroll .live-room-directory-head {
+  border-color: #cf8a83 !important;
+  border-radius: 5px !important;
+  padding: 10px 12px !important;
+  background: linear-gradient(125deg, #fff0d5ef, #ffc9b1eb 58%, #efaa9de8) !important;
+  box-shadow: inset 0 1px #fff9;
+}
+html body.browse-doomscroll .live-room-directory-head span { color: #913e59 !important; }
+html body.browse-doomscroll .live-room-directory-head b { color: #35172c !important; }
+html body.browse-doomscroll .live-room-directory-head small { color: #694554 !important; }
+html body.browse-doomscroll .live-room-directory-head button {
+  border-color: #aa5268 !important;
+  border-radius: 4px !important;
+  background: linear-gradient(135deg, #ffd36f, #ee9b76) !important;
+  color: #301320 !important;
+  box-shadow: inset 0 1px #fff9;
+}
+html body.browse-doomscroll .live-room-directory-head button:hover {
+  border-color: #783448 !important;
+  background: linear-gradient(135deg, #ffe09a, #f4ae87) !important;
+  color: #24101f !important;
+}
+.live-room-directory-head button {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  text-align: center;
+  text-wrap: balance;
+}
+
 /* Public gallery discovery lives alongside collector search without crowding the
    People group.  Previews deliberately show only public, active listings. */
 .galleries-directory-card { overflow: hidden; }
