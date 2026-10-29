@@ -1,5 +1,5 @@
 /* Static shell only: never cache account, chat, payment, delivery, or API data. */
-const CACHE_NAME = 'collector-marketplace-shell-v1';
+const CACHE_NAME = 'collector-marketplace-shell-v2';
 const SHELL_ASSETS = [
   '/', '/index.html', '/offline.html', '/site.js', '/site.css', '/layout-fixes.css',
   '/full-width.css', '/immersive-feed.css', '/persistent-dock.css', '/mobile-responsive.css',
