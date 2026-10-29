@@ -1342,3 +1342,25 @@ html body.browse-doomscroll .square-listing-card > .square-listing-copy > strong
     grid-auto-columns: minmax(0, 1fr) !important;
   }
 }
+
+/* All three Browse modes share one category-control scale. Doomscroll keeps
+   its sunset palette, but no longer uses taller or larger type than Conveyor
+   and Squared. */
+@media (min-width: 761px) {
+  html body.browse-conveyor .search-scope > section > span,
+  html body.browse-squared .search-scope > section > span,
+  html body.browse-doomscroll .search-scope > section > span {
+    min-height: 30px !important;
+    padding: 7px 9px !important;
+    font-size: .56rem !important;
+    line-height: 1 !important;
+  }
+  html body.browse-conveyor .search-scope button,
+  html body.browse-squared .search-scope button,
+  html body.browse-doomscroll .search-scope button {
+    min-height: 34px !important;
+    padding: 7px 9px !important;
+    font-size: .62rem !important;
+    line-height: 1 !important;
+  }
+}
