@@ -1383,3 +1383,36 @@ html body.browse-doomscroll .square-listing-card > .square-listing-copy > strong
     grid-auto-columns: minmax(0, 1fr) !important;
   }
 }
+
+/* Doomscroll uses light sunset surfaces, so its primary controls need a
+   deeper ink color than the soft brown inherited from the early theme pass. */
+html body.browse-doomscroll .mode-tabs button,
+html body.browse-doomscroll .market-head,
+html body.browse-doomscroll .search-mode-bar .search,
+html body.browse-doomscroll .search-mode-bar .search input,
+html body.browse-doomscroll .search-scope > section > span {
+  color: #35172c !important;
+}
+html body.browse-doomscroll .search-scope button {
+  color: #30172a !important;
+  text-shadow: 0 1px #fff8 !important;
+}
+html body.browse-doomscroll .search-scope button:hover,
+html body.browse-doomscroll .search-scope button:focus-visible {
+  color: #23101f !important;
+  border-color: #91425c !important;
+}
+html body.browse-doomscroll .search-scope button.active,
+html body.browse-doomscroll .search-scope button[data-search-scope="wanted"].active {
+  color: #24101f !important;
+  text-shadow: 0 1px #fff5 !important;
+}
+html body.browse-doomscroll .popular-tags > b,
+html body.browse-doomscroll .popular-tags button,
+html body.browse-doomscroll .listing-filter-controls,
+html body.browse-doomscroll .listing-filter-controls label,
+html body.browse-doomscroll .listing-filter-controls button,
+html body.browse-doomscroll .listing-filter-controls select,
+html body.browse-doomscroll .listing-filter-controls input {
+  color: #362034 !important;
+}
