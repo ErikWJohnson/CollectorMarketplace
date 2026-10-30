@@ -268,3 +268,10 @@
   .listing-filter-controls .sort-listings select { width:112px; min-width:112px !important; }
   .listing-filter-controls .price-range input { width:60px; min-width:60px !important; }
 }
+
+/* Games keep their paint work isolated from the marketplace feed. This avoids
+   layout invalidation from each moving sprite on older phones. */
+@media (max-width:680px) {
+  :is(.rocket-game-playfield,.puppy-game-playfield,.gothic-hunt-game,.sell-lava-game,.account-sailing-game,.auction-falls-game,.jungle-snake-game) { contain:layout paint style; }
+  :is(.rocket-game-layer,.puppy-game-layer) { will-change:contents; }
+}

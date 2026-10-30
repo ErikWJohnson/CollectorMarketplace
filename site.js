@@ -145,7 +145,7 @@ function updateGothicHuntGame(stamp) { const game=gothicHuntGame;if(!game.starte
 function updateGothicHuntGame(stamp) {
   const game = gothicHuntGame; game.host.dataset.highScore = String(game.best); game.host.dataset.aim = game.aimDirection < 0 ? 'left' : 'right';
   if (!game.started || !game.host?.isConnected || !document.body.classList.contains('app-section-purchase')) return;
-  const delta = Math.min(34, stamp - game.lastFrame || 16); game.lastFrame = stamp;
+  const delta = Math.min(80, stamp - game.lastFrame || 16); game.lastFrame = stamp;
   const oldY = game.playerY;
   const move = (game.movingRight ? 1 : 0) - (game.movingLeft ? 1 : 0);
   game.playerX = Math.max(5, game.playerX + move * delta * .035);
@@ -178,7 +178,7 @@ function updateGothicHuntGame(stamp) {
   if ((touching || struck || barreled) && stamp > game.invulnerableUntil) { game.health--; game.invulnerableUntil = stamp + 1100; game.enemyShots = []; game.barrels = []; playVeniceGameSound(gameSpaceshipExplosionAudio, .18); if (!game.health) return endGothicHuntGame('The castle guards overwhelmed you.'); }
   const reachedLevel = Math.floor(game.playerY / 140) + 1;
   if (reachedLevel > game.highestScoredLevel) { game.score += (reachedLevel - game.highestScoredLevel) * 100; game.highestScoredLevel = reachedLevel; }
-  if (game.score > game.best) { game.best = Math.floor(game.score); localStorage.setItem('collector-marketplace-gargoyle-hunt-high-score', String(game.best)); game.host.dataset.highScore = String(game.best); } renderGothicHuntGame(); game.frame = requestAnimationFrame(updateGothicHuntGame);
+  if (game.score > game.best) { game.best = Math.floor(game.score); localStorage.setItem('collector-marketplace-gargoyle-hunt-high-score', String(game.best)); game.host.dataset.highScore = String(game.best); } if (shouldRenderMinigame(game, stamp)) renderGothicHuntGame(); game.frame = requestAnimationFrame(updateGothicHuntGame);
 }
 function launchGothicHuntGame(startLevel = 1) { clearTimeout(gothicHuntGame.restartTimer); cancelAnimationFrame(gothicHuntGame.frame); resetGothicHuntGame(); if (startLevel === 2) { gothicHuntGame.playerY = 140; gothicHuntGame.cameraY = 62; gothicHuntGame.highestScoredLevel = 2; } gothicHuntGame.started = true; renderGothicHuntGame(); gothicHuntGame.frame = requestAnimationFrame(updateGothicHuntGame); }
 function stopGothicHuntGame() { clearTimeout(gothicHuntGame.restartTimer); cancelAnimationFrame(gothicHuntGame.frame); gothicHuntGame.frame = 0; gothicHuntGame.started = false; gothicHuntGame.host = null; }
@@ -203,7 +203,7 @@ function shootSellLavaRunner() { const game = sellLavaGame; const now = performa
 function moveSellLavaRunner(direction) { const game = sellLavaGame; if (!game.started) return; game.playerX = Math.max(7, Math.min(88, game.playerX + direction * 7)); renderSellLavaGame(); }
 function updateSellLavaGame(timestamp) {
   const game = sellLavaGame; if (!game.started || !game.host?.isConnected || !document.body.classList.contains('app-section-listing')) return;
-  const delta = Math.min(40, timestamp - game.lastFrame || 16); game.lastFrame = timestamp; game.score += delta / 28;
+  const delta = Math.min(80, timestamp - game.lastFrame || 16); game.lastFrame = timestamp; game.score += delta / 28;
   const scrollSpeed = .018 + Math.min(.011, game.score / 15000);
   game.platforms.forEach(item => { item.x -= scrollSpeed * delta; }); game.obstacles.forEach(item => { item.x -= scrollSpeed * delta; }); game.enemies.forEach(item => { item.x -= scrollSpeed * delta * .62; item.y += Math.sin((timestamp + item.seed) / 210) * .08 * delta; }); game.shots.forEach(item => { item.x += .13 * delta; });
   if (timestamp - game.lastSpawn > Math.max(760, 1180 - game.score * 1.4)) {
@@ -221,7 +221,7 @@ function updateSellLavaGame(timestamp) {
   const destroyed = game.enemies.filter(enemy => game.shots.some(shot => shot.x >= enemy.x - 3 && shot.x <= enemy.x + 4 && shot.y >= enemy.y - 4 && shot.y <= enemy.y + 28));
   if (destroyed.length) { game.enemies = game.enemies.filter(enemy => !destroyed.includes(enemy)); game.shots = game.shots.filter(shot => !destroyed.some(enemy => shot.x >= enemy.x - 3 && shot.x <= enemy.x + 4 && shot.y >= enemy.y - 4 && shot.y <= enemy.y + 28)); destroyed.forEach(enemy => game.blasts.push({ x: enemy.x, y: enemy.y + 10, at: timestamp })); game.score += destroyed.length * 55; playVeniceGameSound(gameAsteroidAudio, .22); }
   if (hit || hitEnemy || game.playerY < 7) { playVeniceGameSound(gameAsteroidAudio, .35); endSellLavaGame(hit || hitEnemy ? `You hit ${hitEnemy ? 'a lava drone' : 'an obstacle'}. Score: ${Math.floor(game.score)}.` : `The lava caught you. Score: ${Math.floor(game.score)}.`); return; }
-  renderSellLavaGame(); game.frame = requestAnimationFrame(updateSellLavaGame);
+  if (shouldRenderMinigame(game, timestamp)) renderSellLavaGame(); game.frame = requestAnimationFrame(updateSellLavaGame);
 }
 function launchSellLavaGame() { clearTimeout(sellLavaGame.restartTimer); cancelAnimationFrame(sellLavaGame.frame); resetSellLavaGame(); sellLavaGame.started = true; renderSellLavaGame(); sellLavaGame.frame = requestAnimationFrame(updateSellLavaGame); }
 function stopSellLavaGame() { clearTimeout(sellLavaGame.restartTimer); cancelAnimationFrame(sellLavaGame.frame); sellLavaGame.frame = 0; sellLavaGame.started = false; sellLavaGame.host = null; }
@@ -252,7 +252,7 @@ function moveVeniceSailingShip(direction) { const game = veniceSailingGame; if (
 function endVeniceSailingGame(message) { const game = veniceSailingGame; game.started = false; game.highScore = Math.max(game.highScore, game.score); localStorage.setItem('collector-marketplace-venice-cannon-high-score', String(game.highScore)); submitPlatformScore('venice-cannon', game.highScore); game.message = `${message} Restarting…`; renderVeniceSailingGame(); clearTimeout(game.restartTimer); game.restartTimer = window.setTimeout(() => { if (game.host?.isConnected && document.body.classList.contains('app-section-account')) launchVeniceSailingGame(); }, 1600); }
 function updateVeniceSailingGame(timestamp) {
   const game = veniceSailingGame; if (!game.started || !game.host?.isConnected || !document.body.classList.contains('app-section-account')) return;
-  const delta = Math.min(40, timestamp - game.lastFrame || 16); game.lastFrame = timestamp;
+  const delta = Math.min(80, timestamp - game.lastFrame || 16); game.lastFrame = timestamp;
   if (game.enemyActive) {
     game.enemyAngle += game.enemyDirection * delta * .00075;
     if (Math.random() < .006) game.enemyDirection *= -1;
@@ -268,7 +268,7 @@ function updateVeniceSailingGame(timestamp) {
   if (hitEnemy) { game.score += 100; game.explosions.push({ x: enemy.x, y: enemy.y, at: timestamp }); game.enemyActive = false; game.enemyRespawnAt = now + 2000; game.enemyShots = []; game.playerShots = []; playVeniceGameSound(gameAsteroidAudio, .36); }
   const hitPlayer = game.enemyShots.find(item => distanceToVeniceShotPath(item, player) <= 4.8);
   if (hitPlayer) { game.enemyShots = game.enemyShots.filter(item => item !== hitPlayer); game.explosions.push({ x: player.x, y: player.y, at: timestamp }); if (now < game.invulnerableUntil || now < game.shieldUntil) { playVeniceGameSound(gameAsteroidAudio, .18); } else { playVeniceGameSound(gameAsteroidAudio, .4); endVeniceSailingGame(`Your ship was hit. Final score: ${game.score}. Press Play to sail again.`); return; } }
-  renderVeniceSailingGame(); game.frame = requestAnimationFrame(updateVeniceSailingGame);
+  if (shouldRenderMinigame(game, timestamp)) renderVeniceSailingGame(); game.frame = requestAnimationFrame(updateVeniceSailingGame);
 }
 function launchVeniceSailingGame() { clearTimeout(veniceSailingGame.restartTimer); cancelAnimationFrame(veniceSailingGame.frame); resetVeniceSailingGame(); veniceSailingGame.started = true; renderVeniceSailingGame(); veniceSailingGame.frame = requestAnimationFrame(updateVeniceSailingGame); }
 function stopVeniceSailingGame() { clearTimeout(veniceSailingGame.restartTimer); cancelAnimationFrame(veniceSailingGame.frame); veniceSailingGame.frame = 0; veniceSailingGame.started = false; veniceSailingGame.host = null; }
@@ -602,9 +602,14 @@ function zodiacSkyMarkup() {
   }).join('');
 }
 
-const conveyorRocket = { node: null, frame: 0, x: 50, y: 76, vx: .055, vy: -.025, angle: 0, keys: new Set() };
+const conveyorRocket = { node: null, frame: 0, x: 50, y: 76, vx: .055, vy: -.025, angle: 0, keys: new Set(), lastTick: 0 };
 const conveyorRocketGame = { layer: null, hud: null, started: false, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-star-run-high-score') || 0), hull: 3, asteroids: [], enemies: [], lasers: [], enemyLasers: [], lastAsteroid: 0, lastEnemy: 0, lastScore: 0, lastShot: 0, lastHit: 0, lastHud: 0, lastRender: 0 };
-const gameRenderCadence = () => window.innerWidth <= 640 ? 34 : 16;
+// Physics advances from elapsed time rather than browser frame count.  A
+// 120Hz desktop and a slower phone therefore cover the same distance per
+// second, while drawing is capped to protect lower-powered devices.
+const animationStep = (state, timestamp) => { const previous = state.lastTick || timestamp; state.lastTick = timestamp; return Math.max(.25, Math.min(3, (timestamp - previous) / (1000 / 60))); };
+const gameRenderCadence = () => window.innerWidth <= 680 ? 34 : 22;
+const shouldRenderMinigame = (game, timestamp) => { if (timestamp - (game.lastRender || 0) < gameRenderCadence()) return false; game.lastRender = timestamp; return true; };
 const rocketControlCodes = new Set(['Equal', 'BracketLeft', 'BracketRight', 'ArrowLeft', 'ArrowRight', 'Backquote']);
 const pauseRocketBoost = () => { if (!rocketBoostAudio) return; rocketBoostAudio.pause(); rocketBoostAudio.currentTime = 0; };
 const playRocketBoost = () => { if (!rocketBoostAudio || !rocketBoostAudio.paused || !soundEffectsEnabled()) return; rocketBoostAudio.volume = .46; rocketBoostAudio.play().catch(() => {}); };
@@ -616,7 +621,7 @@ function startRocketGame(node) {
   game.layer = node.parentElement?.querySelector('.rocket-game-layer') || null;
   game.hud = document.querySelector('.rocket-game-hud');
   game.started = false; node.parentElement?.classList.remove('is-running'); game.score = 0; game.hull = 3; game.asteroids = []; game.enemies = []; game.lasers = []; game.enemyLasers = [];
-  game.lastAsteroid = 0; game.lastEnemy = 0; game.lastScore = Date.now(); game.lastShot = 0; game.lastHit = 0; game.lastHud = 0; game.lastRender = 0;
+  game.lastAsteroid = 0; game.lastEnemy = 0; game.lastScore = Date.now(); game.lastShot = 0; game.lastHit = 0; game.lastHud = 0; game.lastRender = 0; conveyorRocket.lastTick = 0;
   renderRocketGameHud();
 }
 function renderRocketGameHud() {
@@ -627,7 +632,7 @@ function renderRocketGameHud() {
 function launchStarRun() {
   const game = conveyorRocketGame; if (!game.layer || game.started) return;
   game.started = true; conveyorRocket.node?.parentElement?.classList.add('is-running'); game.score = 0; game.hull = 3; game.asteroids = []; game.enemies = []; game.lasers = []; game.enemyLasers = [];
-  game.lastAsteroid = 0; game.lastEnemy = 0; game.lastScore = Date.now(); game.lastShot = 0; game.lastHit = 0; game.lastHud = 0; game.lastRender = 0;
+  game.lastAsteroid = 0; game.lastEnemy = 0; game.lastScore = Date.now(); game.lastShot = 0; game.lastHit = 0; game.lastHud = 0; game.lastRender = 0; conveyorRocket.lastTick = 0;
   renderRocketGameHud();
 }
 function spawnRocketAsteroid() { const radius = rocketRandom(1.3, 2.8); conveyorRocketGame.asteroids.push({ x: rocketRandom(2, 98), y: -radius * 2, vx: rocketRandom(-.055, .055), vy: rocketRandom(.045, .11), radius, spin: rocketRandom(-4, 4), rotation: rocketRandom(0, 360) }); }
@@ -645,21 +650,21 @@ function fireRocketLaser() {
   game.lastShot = now; playGameEffect(gameLaserAudio, .32); const radians = conveyorRocket.angle * Math.PI / 180;
   game.lasers.push({ x: conveyorRocket.x + Math.sin(radians) * 3, y: conveyorRocket.y - Math.cos(radians) * 3, vx: Math.sin(radians) * .92 + conveyorRocket.vx, vy: -Math.cos(radians) * .92 + conveyorRocket.vy, rotation: conveyorRocket.angle });
 }
-function updateRocketGame() {
+function updateRocketGame(step = 1) {
   const game = conveyorRocketGame; const now = Date.now(); if (!game.layer?.isConnected) return;
   if (now - game.lastAsteroid > 740 && game.asteroids.length < 15) { spawnRocketAsteroid(); game.lastAsteroid = now; }
   if (now - game.lastEnemy > 5200 && game.enemies.length < 3) { spawnRocketEnemy(); game.lastEnemy = now; }
   if (now - game.lastScore > 650) { game.score += 1; game.lastScore = now; }
-  game.asteroids.forEach(asteroid => { asteroid.x += asteroid.vx; asteroid.y += asteroid.vy; asteroid.rotation += asteroid.spin; });
+  game.asteroids.forEach(asteroid => { asteroid.x += asteroid.vx * step; asteroid.y += asteroid.vy * step; asteroid.rotation += asteroid.spin * step; });
   game.asteroids = game.asteroids.filter(asteroid => asteroid.y < 106 && asteroid.x > -7 && asteroid.x < 107);
-  game.enemies.forEach(enemy => { enemy.y += Math.sign(conveyorRocket.y - enemy.y) * .01 + enemy.vy; enemy.x += enemy.vx; if (now >= enemy.nextShot) { const length = Math.max(.01, rocketDistance(conveyorRocket, enemy)); game.enemyLasers.push({ x: enemy.x, y: enemy.y, vx: (conveyorRocket.x - enemy.x) / length * .36, vy: (conveyorRocket.y - enemy.y) / length * .36, rotation: Math.atan2(conveyorRocket.x - enemy.x, -(conveyorRocket.y - enemy.y)) * 180 / Math.PI }); enemy.nextShot = now + rocketRandom(2900, 5100); } });
+  game.enemies.forEach(enemy => { enemy.y += (Math.sign(conveyorRocket.y - enemy.y) * .01 + enemy.vy) * step; enemy.x += enemy.vx * step; if (now >= enemy.nextShot) { const length = Math.max(.01, rocketDistance(conveyorRocket, enemy)); game.enemyLasers.push({ x: enemy.x, y: enemy.y, vx: (conveyorRocket.x - enemy.x) / length * .36, vy: (conveyorRocket.y - enemy.y) / length * .36, rotation: Math.atan2(conveyorRocket.x - enemy.x, -(conveyorRocket.y - enemy.y)) * 180 / Math.PI }); enemy.nextShot = now + rocketRandom(2900, 5100); } });
   game.enemies = game.enemies.filter(enemy => enemy.x > -8 && enemy.x < 108 && enemy.y > -8 && enemy.y < 108);
-  game.lasers.forEach(laser => { laser.x += laser.vx; laser.y += laser.vy; }); game.enemyLasers.forEach(laser => { laser.x += laser.vx; laser.y += laser.vy; });
+  game.lasers.forEach(laser => { laser.x += laser.vx * step; laser.y += laser.vy * step; }); game.enemyLasers.forEach(laser => { laser.x += laser.vx * step; laser.y += laser.vy * step; });
   game.lasers = game.lasers.filter(laser => laser.x > -4 && laser.x < 104 && laser.y > -4 && laser.y < 104); game.enemyLasers = game.enemyLasers.filter(laser => laser.x > -4 && laser.x < 104 && laser.y > -4 && laser.y < 104);
   for (let index = game.lasers.length - 1; index >= 0; index--) { const laser = game.lasers[index]; const asteroidIndex = game.asteroids.findIndex(asteroid => rocketDistance(laser, asteroid) < asteroid.radius + .7); const enemyIndex = game.enemies.findIndex(enemy => rocketDistance(laser, enemy) < 2.5); if (asteroidIndex >= 0) { game.asteroids.splice(asteroidIndex, 1); game.lasers.splice(index, 1); playGameEffect(gameAsteroidAudio, .48); game.score += 10; continue; } if (enemyIndex >= 0) { game.enemies.splice(enemyIndex, 1); game.lasers.splice(index, 1); playGameEffect(gameSpaceshipExplosionAudio, .5); game.score += 50; } }
   if (game.asteroids.some(asteroid => rocketDistance(conveyorRocket, asteroid) < asteroid.radius + 1.8) || game.enemies.some(enemy => rocketDistance(conveyorRocket, enemy) < 3)) hitRocket();
   game.enemyLasers.forEach(laser => { if (rocketDistance(conveyorRocket, laser) < 1.7) hitRocket(); });
-  if (now - game.lastRender >= gameRenderCadence()) { game.layer.innerHTML = `${game.asteroids.map(asteroid => `<i class="rocket-game-asteroid" style="--x:${asteroid.x}%;--y:${asteroid.y}%;--size:${asteroid.radius * 10}px;--spin:${asteroid.rotation}deg"></i>`).join('')}${game.enemies.map(enemy => `<i class="rocket-game-enemy" style="--x:${enemy.x}%;--y:${enemy.y}%;--rotation:${enemy.rotation}deg"></i>`).join('')}${game.lasers.map(laser => `<i class="rocket-game-laser" style="--x:${laser.x}%;--y:${laser.y}%;--rotation:${laser.rotation}deg"></i>`).join('')}${game.enemyLasers.map(laser => `<i class="rocket-game-enemy-laser" style="--x:${laser.x}%;--y:${laser.y}%;--rotation:${laser.rotation}deg"></i>`).join('')}`; game.lastRender = now; }
+  if (shouldRenderMinigame(game, now)) game.layer.innerHTML = `${game.asteroids.map(asteroid => `<i class="rocket-game-asteroid" style="--x:${asteroid.x}%;--y:${asteroid.y}%;--size:${asteroid.radius * 10}px;--spin:${asteroid.rotation}deg"></i>`).join('')}${game.enemies.map(enemy => `<i class="rocket-game-enemy" style="--x:${enemy.x}%;--y:${enemy.y}%;--rotation:${enemy.rotation}deg"></i>`).join('')}${game.lasers.map(laser => `<i class="rocket-game-laser" style="--x:${laser.x}%;--y:${laser.y}%;--rotation:${laser.rotation}deg"></i>`).join('')}${game.enemyLasers.map(laser => `<i class="rocket-game-enemy-laser" style="--x:${laser.x}%;--y:${laser.y}%;--rotation:${laser.rotation}deg"></i>`).join('')}`;
   if (game.score > game.highScore) { game.highScore = game.score; localStorage.setItem('collector-marketplace-star-run-high-score', String(game.highScore)); }
   if (now - game.lastHud > 140) { renderRocketGameHud(); game.lastHud = now; }
 }
@@ -671,21 +676,22 @@ function stopConveyorRocket() {
   conveyorRocketGame.layer = null; conveyorRocketGame.hud = null;
   pauseRocketBoost();
 }
-function flyConveyorRocket() {
+function flyConveyorRocket(timestamp) {
   const rocket = conveyorRocket;
   if (!rocket.node?.isConnected) return stopConveyorRocket();
   if (!conveyorRocketGame.started) { rocket.node.classList.remove('is-thrusting'); rocket.node.style.setProperty('--rocket-x', `${rocket.x}%`); rocket.node.style.setProperty('--rocket-y', `${rocket.y}%`); rocket.node.style.setProperty('--rocket-tilt', `${rocket.angle}deg`); rocket.frame = requestAnimationFrame(flyConveyorRocket); return; }
-  if (rocket.keys.has('BracketLeft') || rocket.keys.has('ArrowLeft')) rocket.angle -= 4.25;
-  if (rocket.keys.has('BracketRight') || rocket.keys.has('ArrowRight')) rocket.angle += 4.25;
+  const step = animationStep(rocket, timestamp);
+  if (rocket.keys.has('BracketLeft') || rocket.keys.has('ArrowLeft')) rocket.angle -= 4.25 * step;
+  if (rocket.keys.has('BracketRight') || rocket.keys.has('ArrowRight')) rocket.angle += 4.25 * step;
   rocket.angle = (rocket.angle + 360) % 360;
   const radians = rocket.angle * Math.PI / 180;
   const thrust = rocket.keys.has('Equal') ? .014 : .0009;
-  rocket.vx = (rocket.vx + Math.sin(radians) * thrust) * .985;
-  rocket.vy = (rocket.vy - Math.cos(radians) * thrust) * .985;
+  rocket.vx = (rocket.vx + Math.sin(radians) * thrust * step) * Math.pow(.985, step);
+  rocket.vy = (rocket.vy - Math.cos(radians) * thrust * step) * Math.pow(.985, step);
   const speed = Math.hypot(rocket.vx, rocket.vy);
   if (speed > .27) { rocket.vx = rocket.vx / speed * .27; rocket.vy = rocket.vy / speed * .27; }
-  rocket.x = (rocket.x + rocket.vx + 100) % 100;
-  rocket.y += rocket.vy;
+  rocket.x = (rocket.x + rocket.vx * step + 100) % 100;
+  rocket.y += rocket.vy * step;
   if (rocket.y < 5) rocket.y = 91;
   if (rocket.y > 91) rocket.y = 5;
   rocket.node.style.setProperty('--rocket-x', `${rocket.x}%`);
@@ -693,7 +699,7 @@ function flyConveyorRocket() {
   rocket.node.style.setProperty('--rocket-tilt', `${rocket.angle}deg`);
   rocket.node.classList.add('is-cruising');
   rocket.node.classList.toggle('is-thrusting', rocket.keys.has('Equal'));
-  updateRocketGame();
+  updateRocketGame(step);
   rocket.frame = requestAnimationFrame(flyConveyorRocket);
 }
 function startConveyorRocket(node) {
@@ -730,7 +736,7 @@ document.addEventListener('pointercancel', clearRocketTouchControls);
 
 // Puppy Jump is a light Doodle-Jump-style counterpoint to the space game.
 // It only exists while collectors are browsing in Doomscroll mode.
-const puppyJump = { node: null, frame: 0, x: 50, y: 82, vx: 0, vy: 0, keys: new Set() };
+const puppyJump = { node: null, frame: 0, x: 50, y: 82, vx: 0, vy: 0, keys: new Set(), lastTick: 0 };
 const puppyJumpGame = { layer: null, hud: null, started: false, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-puppy-jump-high-score') || 0), platforms: [], angries: [], lasers: [], jumps: 2, lastHud: 0, lastRender: 0, lastAngry: 0, lastShot: 0, lastJump: 0, jumpHeld: false, invulnerableUntil: 0, combo: 0, restarting: false, restartTimer: 0 };
 const puppyControlCodes = new Set(['BracketLeft', 'BracketRight', 'Equal', 'Backquote']);
 const puppyRandom = (min, max) => min + Math.random() * (max - min);
@@ -758,7 +764,7 @@ function resetPuppyJump() {
   // Start just above the first cloud so Play immediately gives the puppy a
   // stable landing instead of dropping the player into an empty lane.
   puppyJump.x = 50; puppyJump.y = 84; puppyJump.vx = 0; puppyJump.vy = -1.08;
-  game.score = 0; game.platforms = puppyStartingPlatforms(); game.angries = []; game.lasers = []; game.jumps = 1; game.lastHud = 0; game.lastRender = 0; game.lastAngry = 0; game.lastShot = 0; game.lastJump = 0; game.jumpHeld = false; game.combo = 0; game.invulnerableUntil = Date.now() + 1800;
+  game.score = 0; game.platforms = puppyStartingPlatforms(); game.angries = []; game.lasers = []; game.jumps = 1; game.lastHud = 0; game.lastRender = 0; game.lastAngry = 0; game.lastShot = 0; game.lastJump = 0; game.jumpHeld = false; game.combo = 0; game.invulnerableUntil = Date.now() + 1800; puppyJump.lastTick = 0;
 }
 function startPuppyJump(node) {
   if (!node) return stopPuppyJump();
@@ -810,19 +816,19 @@ function jumpPuppy() {
   playGameEffect(puppyJumpAudio, .3);
   renderPuppyJumpHud();
 }
-function updatePuppyJump() {
+function updatePuppyJump(step = 1) {
   const game = puppyJumpGame; if (!game.layer) return;
   const priorY = puppyJump.y;
-  if (puppyJump.keys.has('BracketLeft')) puppyJump.vx -= .022;
-  if (puppyJump.keys.has('BracketRight')) puppyJump.vx += .022;
-  puppyJump.vx *= .9; puppyJump.vx = Math.max(-.38, Math.min(.38, puppyJump.vx));
-  puppyJump.vy += .039;
+  if (puppyJump.keys.has('BracketLeft')) puppyJump.vx -= .022 * step;
+  if (puppyJump.keys.has('BracketRight')) puppyJump.vx += .022 * step;
+  puppyJump.vx *= Math.pow(.9, step); puppyJump.vx = Math.max(-.38, Math.min(.38, puppyJump.vx));
+  puppyJump.vy += .039 * step;
   // Keep the puppy inside its visible game field. The old wrap-around could
   // make its hitbox cross from one edge/layer into the other.
-  puppyJump.x = Math.max(4, Math.min(96, puppyJump.x + puppyJump.vx));
-  puppyJump.y += puppyJump.vy;
+  puppyJump.x = Math.max(4, Math.min(96, puppyJump.x + puppyJump.vx * step));
+  puppyJump.y += puppyJump.vy * step;
   const cloudFall = .022 + Math.min(.04, game.score / 120000);
-  game.platforms.forEach(platform => { platform.x += platform.vx; platform.y += cloudFall; if (platform.x < platform.width / 2 + 3 || platform.x > 97 - platform.width / 2) { platform.x = Math.max(platform.width / 2 + 3, Math.min(97 - platform.width / 2, platform.x)); platform.vx *= -1; } });
+  game.platforms.forEach(platform => { platform.x += platform.vx * step; platform.y += cloudFall * step; if (platform.x < platform.width / 2 + 3 || platform.x > 97 - platform.width / 2) { platform.x = Math.max(platform.width / 2 + 3, Math.min(97 - platform.width / 2, platform.x)); platform.vx *= -1; } });
   if (puppyJump.vy > 0) {
     const landing = game.platforms.find(platform => {
       const acrossSeam = Math.min(Math.abs(puppyJump.x - platform.x), 100 - Math.abs(puppyJump.x - platform.x));
@@ -847,9 +853,9 @@ function updatePuppyJump() {
   }
   const now = Date.now();
   if (now - game.lastAngry > 4600 && game.angries.length < 2) { spawnPuppyAnger(); game.lastAngry = now; }
-  game.angries.forEach(angry => { angry.x += angry.vx; angry.y += cloudFall * 1.25 + angry.drift; if (angry.x < 7 || angry.x > 93) { angry.x = Math.max(7, Math.min(93, angry.x)); angry.vx *= -1; } });
+  game.angries.forEach(angry => { angry.x += angry.vx * step; angry.y += (cloudFall * 1.25 + angry.drift) * step; if (angry.x < 7 || angry.x > 93) { angry.x = Math.max(7, Math.min(93, angry.x)); angry.vx *= -1; } });
   game.angries = game.angries.filter(angry => angry.y < 109);
-  game.lasers.forEach(laser => { laser.y += laser.vy; });
+  game.lasers.forEach(laser => { laser.y += laser.vy * step; });
   game.lasers = game.lasers.filter(laser => laser.y > -7);
   for (let index = game.lasers.length - 1; index >= 0; index--) {
     const laser = game.lasers[index]; const hit = game.angries.findIndex(angry => Math.hypot(laser.x - angry.x, laser.y - angry.y) < 5.6);
@@ -860,13 +866,13 @@ function updatePuppyJump() {
   puppyJump.node.style.setProperty('--puppy-x', `${puppyJump.x}%`);
   puppyJump.node.style.setProperty('--puppy-y', `${puppyJump.y}%`);
   puppyJump.node.classList.toggle('is-hopping', puppyJump.vy < -.15);
-  if (now - game.lastRender >= gameRenderCadence()) { game.layer.innerHTML = `${game.platforms.map(platform => `<i class="puppy-game-cloud" style="--x:${platform.x}%;--y:${platform.y}%;--width:${platform.width}%"></i>`).join('')}${game.angries.map(angry => `<i class="puppy-game-anger" style="--x:${angry.x}%;--y:${angry.y}%"></i>`).join('')}${game.lasers.map(laser => `<i class="puppy-game-laser" style="--x:${laser.x}%;--y:${laser.y}%"></i>`).join('')}`; game.lastRender = now; }
+  if (shouldRenderMinigame(game, now)) game.layer.innerHTML = `${game.platforms.map(platform => `<i class="puppy-game-cloud" style="--x:${platform.x}%;--y:${platform.y}%;--width:${platform.width}%"></i>`).join('')}${game.angries.map(angry => `<i class="puppy-game-anger" style="--x:${angry.x}%;--y:${angry.y}%"></i>`).join('')}${game.lasers.map(laser => `<i class="puppy-game-laser" style="--x:${laser.x}%;--y:${laser.y}%"></i>`).join('')}`;
   if (game.score > game.highScore) { game.highScore = game.score; localStorage.setItem('collector-marketplace-puppy-jump-high-score', String(game.highScore)); }
   if (Date.now() - game.lastHud > 140) { renderPuppyJumpHud(); game.lastHud = Date.now(); }
 }
-function flyPuppyJump() {
+function flyPuppyJump(timestamp) {
   if (!puppyJump.node?.isConnected) return stopPuppyJump();
-  if (puppyJumpGame.started) updatePuppyJump();
+  if (puppyJumpGame.started) updatePuppyJump(animationStep(puppyJump, timestamp));
   puppyJump.frame = requestAnimationFrame(flyPuppyJump);
 }
 document.addEventListener('keydown', event => {
