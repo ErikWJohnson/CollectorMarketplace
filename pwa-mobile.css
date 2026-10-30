@@ -99,8 +99,8 @@
   .browse-doomscroll .tag-search-layout > .doomscroll-utility-dock > :is(.rocket-game-hud,.puppy-game-hud) small {
     display:none !important;
   }
-  .browse-conveyor .tag-search-layout > .conveyor-utility-dock > :is(.rocket-game-hud,.puppy-game-hud) button,
-  .browse-doomscroll .tag-search-layout > .doomscroll-utility-dock > :is(.rocket-game-hud,.puppy-game-hud) button {
+  .browse-conveyor .tag-search-layout > .conveyor-utility-dock > :is(.rocket-game-hud,.puppy-game-hud) > button,
+  .browse-doomscroll .tag-search-layout > .doomscroll-utility-dock > :is(.rocket-game-hud,.puppy-game-hud) > button {
     display:block !important;
     width:100% !important;
     min-height:44px !important;
@@ -112,6 +112,18 @@
     text-overflow:ellipsis;
     white-space:nowrap;
   }
+  .browse-conveyor .tag-search-layout > .conveyor-utility-dock > .rocket-game-hud[data-running="true"],
+  .browse-doomscroll .tag-search-layout > .doomscroll-utility-dock > .puppy-game-hud[data-running="true"] {
+    grid-column:1 / -1;
+    height:auto !important;
+    min-height:0 !important;
+    padding:7px !important;
+  }
+  .tag-search-layout :is(.rocket-game-hud,.puppy-game-hud)[data-running="true"] > :is(b,span,small,em) { display:none !important; }
+  .tag-search-layout .mobile-game-controls { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; width:100%; }
+  .tag-search-layout .mobile-game-controls button { min-width:0; min-height:42px; height:42px; border:1px solid currentColor; border-radius:8px; background:#122331; color:#dff4ff; font:900 1rem/1 system-ui,sans-serif; cursor:pointer; touch-action:manipulation; }
+  .browse-doomscroll .tag-search-layout .mobile-game-controls button { background:#fff0dc; color:#873d57; }
+  .tag-search-layout .mobile-game-controls button:active { transform:translateY(1px); filter:brightness(1.18); }
   .browse-conveyor .tag-search-layout > .conveyor-utility-dock + .tag-search,
   .browse-doomscroll .tag-search-layout > .doomscroll-utility-dock + .tag-search {
     grid-column:1 / -1;
@@ -142,7 +154,12 @@
   .app-section-intro h1 { font-size:clamp(1.55rem,7vw,2.15rem) !important; }
   .app-section-intro p { font-size:.88rem !important; line-height:1.5 !important; }
   .app-section-content { gap:12px !important; padding-top:12px !important; }
+  /* Every content tab gets the same predictable phone width and natural page
+     scroll. This prevents gallery, community, and chat panels from creating
+     a hidden horizontal canvas or a second trapped scroll area. */
+  .app-section-page,.app-section-content,.profile-workspace,.community-workspace,.voice-room-page,.wanted-board,.wanted-request-page,.conversation-workspace { min-width:0 !important; max-width:100% !important; }
   .profile-workspace,.community-workspace,.voice-room-page,.wanted-board,.wanted-request-page { border-radius:10px; }
+  .community-workspace,.voice-room-page,.wanted-board,.wanted-request-page { overflow-x:clip !important; }
   .profile-hero,.community-workspace > header { gap:12px !important; }
   .profile-footer,.account-actions { display:grid !important; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
   .profile-footer .entity-primary:last-child { grid-column:1/-1; }

@@ -619,9 +619,9 @@ function startRocketGame(node) {
   renderRocketGameHud();
 }
 function renderRocketGameHud() {
-  const game = conveyorRocketGame; if (!game.hud) return; game.hud.dataset.worldScore = String(platformWorldwideHighScore('star-run'));
+  const game = conveyorRocketGame; if (!game.hud) return; game.hud.dataset.worldScore = String(platformWorldwideHighScore('star-run')); game.hud.dataset.running = String(game.started);
   if (!game.started) { game.hud.innerHTML = `<button type="button" data-star-run-play title="Press Play to launch STAR RUN">▶ STAR RUN · PLAY</button><small>HIGH ${String(game.highScore).padStart(6, '0')} · WORLD ${String(platformWorldwideHighScore('star-run')).padStart(6, '0')}</small>`; return; }
-  game.hud.innerHTML = `<b>STAR RUN</b><span>SCORE ${String(game.score).padStart(6, '0')} · HIGH ${String(game.highScore).padStart(6, '0')} · WORLD ${String(platformWorldwideHighScore('star-run')).padStart(6, '0')}</span><small>HULL ${'●'.repeat(game.hull)}${'○'.repeat(3 - game.hull)}</small><em><strong>[</strong> <strong>]</strong> TURN · <strong>=</strong> BOOST · <strong>\`</strong> LASER</em>`;
+  game.hud.innerHTML = `<b>STAR RUN</b><span>SCORE ${String(game.score).padStart(6, '0')} · HIGH ${String(game.highScore).padStart(6, '0')} · WORLD ${String(platformWorldwideHighScore('star-run')).padStart(6, '0')}</span><small>HULL ${'●'.repeat(game.hull)}${'○'.repeat(3 - game.hull)}</small><em><strong>[</strong> <strong>]</strong> TURN · <strong>=</strong> BOOST · <strong>\`</strong> LASER</em><div class="mobile-game-controls" aria-label="Star Run touch controls"><button type="button" data-star-run-control="left" aria-label="Turn left">↶</button><button type="button" data-star-run-control="boost" aria-label="Boost">⇧</button><button type="button" data-star-run-control="laser" aria-label="Fire laser">✦</button><button type="button" data-star-run-control="right" aria-label="Turn right">↷</button></div>`;
 }
 function launchStarRun() {
   const game = conveyorRocketGame; if (!game.layer || game.started) return;
@@ -712,6 +712,20 @@ document.addEventListener('keydown', event => {
 document.addEventListener('keyup', event => { if (!rocketControlCodes.has(event.code) && event.key !== '`') return; conveyorRocket.keys.delete(event.code); if (event.code === 'Equal') pauseRocketBoost(); });
 window.addEventListener('blur', () => { conveyorRocket.keys.clear(); pauseRocketBoost(); });
 document.addEventListener('click', event => { if (event.target.closest('[data-star-run-play]')) launchStarRun(); });
+const clearRocketTouchControls = () => { conveyorRocket.keys.delete('BracketLeft'); conveyorRocket.keys.delete('BracketRight'); conveyorRocket.keys.delete('Equal'); pauseRocketBoost(); };
+document.addEventListener('pointerdown', event => {
+  const control = event.target.closest('[data-star-run-control]');
+  if (!control || !conveyorRocketGame.started || !document.body.classList.contains('browse-conveyor')) return;
+  event.preventDefault();
+  const action = control.dataset.starRunControl;
+  if (action === 'laser') return fireRocketLaser();
+  const code = action === 'left' ? 'BracketLeft' : action === 'right' ? 'BracketRight' : 'Equal';
+  const wasHeld = conveyorRocket.keys.has(code); conveyorRocket.keys.add(code);
+  if (code === 'Equal' && !wasHeld) playRocketBoost();
+  control.setPointerCapture?.(event.pointerId);
+});
+document.addEventListener('pointerup', clearRocketTouchControls);
+document.addEventListener('pointercancel', clearRocketTouchControls);
 
 // Puppy Jump is a light Doodle-Jump-style counterpoint to the space game.
 // It only exists while collectors are browsing in Doomscroll mode.
@@ -727,7 +741,7 @@ function puppyStartingPlatforms() {
   ];
 }
 function renderPuppyJumpHud() {
-  const game = puppyJumpGame; if (!game.hud) return; game.hud.dataset.worldScore = String(platformWorldwideHighScore('puppy-jump'));
+  const game = puppyJumpGame; if (!game.hud) return; game.hud.dataset.worldScore = String(platformWorldwideHighScore('puppy-jump')); game.hud.dataset.running = String(game.started);
   if (game.restarting) {
     game.hud.innerHTML = `<b>PUPPY JUMP</b><span>RUN COMPLETE · ${String(game.score).padStart(6, '0')} · WORLD ${String(platformWorldwideHighScore('puppy-jump')).padStart(6, '0')}</span><small>NEW CLOUD RUN STARTING…</small>`;
     return;
@@ -736,7 +750,7 @@ function renderPuppyJumpHud() {
     game.hud.innerHTML = `<button type="button" data-puppy-jump-play title="Start Puppy Jump">🐾 PUPPY JUMP · PLAY</button><small>HIGH ${String(game.highScore).padStart(6, '0')} · WORLD ${String(platformWorldwideHighScore('puppy-jump')).padStart(6, '0')}</small>`;
     return;
   }
-  game.hud.innerHTML = `<b>PUPPY JUMP</b><span>SCORE ${String(game.score).padStart(6, '0')} · HIGH ${String(game.highScore).padStart(6, '0')} · WORLD ${String(platformWorldwideHighScore('puppy-jump')).padStart(6, '0')}</span><small>☁ AUTO-BOUNCE · ${game.jumps ? '= AIR BOOST READY' : 'FIND A CLOUD'}</small><em><strong>[</strong> <strong>]</strong> MOVE · <strong>=</strong> AIR BOOST · <strong>\`</strong> LASER</em>`;
+  game.hud.innerHTML = `<b>PUPPY JUMP</b><span>SCORE ${String(game.score).padStart(6, '0')} · HIGH ${String(game.highScore).padStart(6, '0')} · WORLD ${String(platformWorldwideHighScore('puppy-jump')).padStart(6, '0')}</span><small>☁ AUTO-BOUNCE · ${game.jumps ? '= AIR BOOST READY' : 'FIND A CLOUD'}</small><em><strong>[</strong> <strong>]</strong> MOVE · <strong>=</strong> AIR BOOST · <strong>\`</strong> LASER</em><div class="mobile-game-controls" aria-label="Puppy Jump touch controls"><button type="button" data-puppy-jump-control="left" aria-label="Move left">←</button><button type="button" data-puppy-jump-control="jump" aria-label="Jump">⇧</button><button type="button" data-puppy-jump-control="laser" aria-label="Fire laser">✦</button><button type="button" data-puppy-jump-control="right" aria-label="Move right">→</button></div>`;
 }
 function resetPuppyJump() {
   const game = puppyJumpGame;
@@ -864,6 +878,19 @@ document.addEventListener('keydown', event => {
 document.addEventListener('keyup', event => { if (puppyControlCodes.has(event.code)) puppyJump.keys.delete(event.code); if (event.code === 'Equal') puppyJumpGame.jumpHeld = false; });
 window.addEventListener('blur', () => { puppyJump.keys.clear(); puppyJumpGame.jumpHeld = false; });
 document.addEventListener('click', event => { if (event.target.closest('[data-puppy-jump-play]')) launchPuppyJump(); });
+const clearPuppyTouchControls = () => { puppyJump.keys.delete('BracketLeft'); puppyJump.keys.delete('BracketRight'); puppyJumpGame.jumpHeld = false; };
+document.addEventListener('pointerdown', event => {
+  const control = event.target.closest('[data-puppy-jump-control]');
+  if (!control || !puppyJumpGame.started || !document.body.classList.contains('browse-doomscroll')) return;
+  event.preventDefault();
+  const action = control.dataset.puppyJumpControl;
+  if (action === 'laser') return firePuppyLaser();
+  if (action === 'jump') return jumpPuppy();
+  puppyJump.keys.add(action === 'left' ? 'BracketLeft' : 'BracketRight');
+  control.setPointerCapture?.(event.pointerId);
+});
+document.addEventListener('pointerup', clearPuppyTouchControls);
+document.addEventListener('pointercancel', clearPuppyTouchControls);
 
 // Auction Falls is a compact falling-block game that lives only on the
 // waterfall auction surface. It starts on demand so normal bidding controls
