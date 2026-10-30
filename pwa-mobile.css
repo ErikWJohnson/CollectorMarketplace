@@ -120,10 +120,16 @@
     padding:7px !important;
   }
   .tag-search-layout :is(.rocket-game-hud,.puppy-game-hud)[data-running="true"] > :is(b,span,small,em) { display:none !important; }
-  .tag-search-layout .mobile-game-controls { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; width:100%; }
-  .tag-search-layout .mobile-game-controls button { min-width:0; min-height:42px; height:42px; border:1px solid currentColor; border-radius:8px; background:#122331; color:#dff4ff; font:900 1rem/1 system-ui,sans-serif; cursor:pointer; touch-action:manipulation; }
-  .browse-doomscroll .tag-search-layout .mobile-game-controls button { background:#fff0dc; color:#873d57; }
-  .tag-search-layout .mobile-game-controls button:active { transform:translateY(1px); filter:brightness(1.18); }
+  .tag-search-layout .mobile-game-controls { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; width:100%; padding:4px; border:1px solid #34576d; border-radius:12px; background:linear-gradient(135deg,#0c1720e8,#13293aeb); box-shadow:inset 0 1px #ffffff12,0 8px 18px #0004; }
+  .tag-search-layout .mobile-game-controls button { display:grid; min-width:0; min-height:44px; height:44px; place-items:center; border:1px solid #4f829d; border-radius:9px; background:linear-gradient(145deg,#1d4155,#102331); box-shadow:inset 0 1px #ffffff20,0 2px 0 #071118; color:#ebf9ff; font:900 1.08rem/1 system-ui,sans-serif; cursor:pointer; touch-action:manipulation; transition:transform .12s ease,filter .12s ease,border-color .12s ease; }
+  .tag-search-layout .mobile-game-controls button[data-star-run-control="boost"],.tag-search-layout .mobile-game-controls button[data-puppy-jump-control="jump"] { border-color:#e4bd58; background:linear-gradient(145deg,#5a4618,#2b2511); color:#ffe69a; }
+  .tag-search-layout .mobile-game-controls button[data-star-run-control="laser"],.tag-search-layout .mobile-game-controls button[data-puppy-jump-control="laser"] { border-color:#a36ddc; background:linear-gradient(145deg,#3e1f61,#211437); color:#f0d9ff; }
+  .tag-search-layout .mobile-game-controls button:focus-visible { border-color:#fff1a6; outline:2px solid #fff1a6; outline-offset:2px; }
+  .tag-search-layout .mobile-game-controls button:active { transform:translateY(2px); box-shadow:inset 0 2px 7px #0008; filter:brightness(1.18); }
+  .browse-doomscroll .tag-search-layout .mobile-game-controls { border-color:#dc8d97; background:linear-gradient(135deg,#fff2df,#ffcfc8); box-shadow:inset 0 1px #ffffffa6,0 8px 18px #7a384433; }
+  .browse-doomscroll .tag-search-layout .mobile-game-controls button { border-color:#c8737f; background:linear-gradient(145deg,#fff8e9,#ffd9d4); box-shadow:inset 0 1px #ffffff,0 2px 0 #9f5864; color:#793849; }
+  .browse-doomscroll .tag-search-layout .mobile-game-controls button[data-star-run-control="boost"],.browse-doomscroll .tag-search-layout .mobile-game-controls button[data-puppy-jump-control="jump"] { border-color:#cf8b36; background:linear-gradient(145deg,#fff0b6,#ffd27c); color:#75430d; }
+  .browse-doomscroll .tag-search-layout .mobile-game-controls button[data-star-run-control="laser"],.browse-doomscroll .tag-search-layout .mobile-game-controls button[data-puppy-jump-control="laser"] { border-color:#b76a9f; background:linear-gradient(145deg,#ffd6ec,#f6a9d2); color:#762857; }
   .browse-conveyor .tag-search-layout > .conveyor-utility-dock + .tag-search,
   .browse-doomscroll .tag-search-layout > .doomscroll-utility-dock + .tag-search {
     grid-column:1 / -1;
