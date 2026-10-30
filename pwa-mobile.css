@@ -56,6 +56,66 @@
   .tag-search-layout .audience-quick-tags { grid-column:1/-1; }
   .tag-remove { min-height:42px; padding-inline:10px !important; }
   .tag-search { width:auto !important; margin:0 !important; }
+
+  /* Tags mode uses one compact tool row on phones. The matching game button
+     is always directly beside Remove tags instead of floating over discovery.
+     This applies to Star Run in Conveyor and Puppy Jump in Doomscroll. */
+  .browse-conveyor .tag-search-layout > .conveyor-utility-dock,
+  .browse-doomscroll .tag-search-layout > .doomscroll-utility-dock {
+    position:static !important;
+    z-index:auto !important;
+    display:grid !important;
+    grid-column:1 / -1;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    align-items:stretch !important;
+    gap:8px !important;
+    width:100% !important;
+    margin:0 !important;
+    overflow:visible !important;
+  }
+  .browse-conveyor .tag-search-layout > .conveyor-utility-dock > #remove-tags,
+  .browse-doomscroll .tag-search-layout > .doomscroll-utility-dock > #remove-tags {
+    order:1;
+    box-sizing:border-box !important;
+    width:100% !important;
+    min-width:0 !important;
+    min-height:44px !important;
+    height:44px !important;
+    margin:0 !important;
+  }
+  .browse-conveyor .tag-search-layout > .conveyor-utility-dock > .rocket-game-hud,
+  .browse-doomscroll .tag-search-layout > .doomscroll-utility-dock > .puppy-game-hud {
+    order:2;
+    display:block !important;
+    box-sizing:border-box !important;
+    width:100% !important;
+    min-width:0 !important;
+    min-height:44px !important;
+    height:44px !important;
+    margin:0 !important;
+    overflow:hidden !important;
+  }
+  .browse-conveyor .tag-search-layout > .conveyor-utility-dock > :is(.rocket-game-hud,.puppy-game-hud) small,
+  .browse-doomscroll .tag-search-layout > .doomscroll-utility-dock > :is(.rocket-game-hud,.puppy-game-hud) small {
+    display:none !important;
+  }
+  .browse-conveyor .tag-search-layout > .conveyor-utility-dock > :is(.rocket-game-hud,.puppy-game-hud) button,
+  .browse-doomscroll .tag-search-layout > .doomscroll-utility-dock > :is(.rocket-game-hud,.puppy-game-hud) button {
+    display:block !important;
+    width:100% !important;
+    min-height:44px !important;
+    height:44px !important;
+    padding:0 8px !important;
+    overflow:hidden;
+    font-size:.59rem !important;
+    line-height:1 !important;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .browse-conveyor .tag-search-layout > .conveyor-utility-dock + .tag-search,
+  .browse-doomscroll .tag-search-layout > .doomscroll-utility-dock + .tag-search {
+    grid-column:1 / -1;
+  }
   .popular-tags,.live-auction-rail,.popular-listing-rail,.popular-entity-rail { width:calc(100% - 24px) !important; margin-inline:auto !important; border-radius:11px !important; }
   .popular-tags { padding-block:8px !important; }
   .listing-filter-controls { width:calc(100% - 24px) !important; margin:9px auto 0 !important; scroll-snap-type:x proximity; }

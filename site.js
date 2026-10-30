@@ -1096,9 +1096,18 @@ function syncBrowseModeUi() {
   // The site masthead participates in page flow on some browse surfaces. Keep
   // these controls on the shell so their fixed positioning never scrolls away.
   const dockHost = document.querySelector('.app-shell');
+  // On phones the browse tools belong to the Tags layout instead of floating
+  // over the discovery surface. This keeps the current theme's game launch
+  // control and Remove tags together, touch-sized, and out of the way of the
+  // tag search field.
+  const mobileBrowseTools = window.matchMedia('(max-width: 680px)').matches;
+  const placeBrowseTools = dock => {
+    if (mobileBrowseTools && tagLayout) tagLayout.prepend(dock);
+    else dockHost?.append(dock);
+  };
   if (conveyor) {
     if (!utilityDock) { utilityDock = document.createElement('aside'); utilityDock.className = 'conveyor-utility-dock'; utilityDock.setAttribute('aria-label', 'Browse tools'); }
-    dockHost?.append(utilityDock);
+    placeBrowseTools(utilityDock);
     if (!gameHud) { gameHud = document.createElement('aside'); gameHud.className = 'rocket-game-hud'; gameHud.setAttribute('aria-live', 'off'); }
     utilityDock.append(gameHud);
     if (removeTagsButton) utilityDock.append(removeTagsButton);
@@ -1116,7 +1125,7 @@ function syncBrowseModeUi() {
   let doomUtilityDock = document.querySelector('.doomscroll-utility-dock');
   if (doomscrollGame) {
     if (!doomUtilityDock) { doomUtilityDock = document.createElement('aside'); doomUtilityDock.className = 'doomscroll-utility-dock'; doomUtilityDock.setAttribute('aria-label', 'Browse tools'); }
-    dockHost?.append(doomUtilityDock);
+    placeBrowseTools(doomUtilityDock);
     if (!puppyHud) { puppyHud = document.createElement('aside'); puppyHud.className = 'puppy-game-hud'; puppyHud.setAttribute('aria-live', 'off'); }
     doomUtilityDock.append(puppyHud);
     if (removeTagsButton) doomUtilityDock.append(removeTagsButton);
