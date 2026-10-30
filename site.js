@@ -604,11 +604,12 @@ function zodiacSkyMarkup() {
 
 const conveyorRocket = { node: null, frame: 0, x: 50, y: 76, vx: .055, vy: -.025, angle: 0, keys: new Set(), lastTick: 0 };
 const conveyorRocketGame = { layer: null, hud: null, started: false, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-star-run-high-score') || 0), hull: 3, asteroids: [], enemies: [], lasers: [], enemyLasers: [], lastAsteroid: 0, lastEnemy: 0, lastScore: 0, lastShot: 0, lastHit: 0, lastHud: 0, lastRender: 0 };
-// Physics advances from elapsed time rather than browser frame count.  A
+// Physics advances from elapsed time rather than browser frame count. A
 // 120Hz desktop and a slower phone therefore cover the same distance per
-// second, while drawing is capped to protect lower-powered devices.
+// second. Draw at the device refresh pace (up to 60fps) so touch games do not
+// feel artificially slowed on modern phones.
 const animationStep = (state, timestamp) => { const previous = state.lastTick || timestamp; state.lastTick = timestamp; return Math.max(.25, Math.min(3, (timestamp - previous) / (1000 / 60))); };
-const gameRenderCadence = () => window.innerWidth <= 680 ? 34 : 22;
+const gameRenderCadence = () => 16;
 const shouldRenderMinigame = (game, timestamp) => { if (timestamp - (game.lastRender || 0) < gameRenderCadence()) return false; game.lastRender = timestamp; return true; };
 const rocketControlCodes = new Set(['Equal', 'BracketLeft', 'BracketRight', 'ArrowLeft', 'ArrowRight', 'Backquote']);
 const pauseRocketBoost = () => { if (!rocketBoostAudio) return; rocketBoostAudio.pause(); rocketBoostAudio.currentTime = 0; };
