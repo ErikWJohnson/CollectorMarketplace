@@ -125,7 +125,7 @@
   }
   .listing-filter-controls > * { flex:0 0 auto !important; }
   .listing-filter-controls button { padding:6px 8px !important; letter-spacing:.02em !important; }
-  .listing-filter-controls .viewer-location { padding-inline:8px !important; font-size:0 !important; }
+  .listing-filter-controls .viewer-location { width:max-content !important; margin-left:0 !important; padding-inline:8px !important; font-size:0 !important; }
   .listing-filter-controls .viewer-location::after { content:"Near me"; font-size:.6rem; }
   .listing-filter-controls .sort-listings,
   .listing-filter-controls .price-range { gap:4px !important; color:transparent !important; font-size:0 !important; }
@@ -141,7 +141,7 @@
   .listing-filter-controls [data-checkout-payment]::after { content:"PayPal"; font-size:.6rem; }
   .listing-filter-controls [data-checkout-delivery]::after { content:"USPS"; font-size:.6rem; }
   .listing-filter-controls [data-checkout-estimate]::after { content:"EST"; font-size:.6rem; }
-  .listing-filter-controls .private-shipping-settings { flex:0 0 auto; max-width:none; overflow:visible; text-overflow:clip; font-size:0 !important; }
+  .listing-filter-controls .private-shipping-settings { width:max-content !important; margin-left:0 !important; flex:0 0 auto; max-width:none; overflow:visible; text-overflow:clip; font-size:0 !important; }
   .listing-filter-controls .private-shipping-settings::after { content:"Shipping"; font-size:.6rem; }
 }
 
