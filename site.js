@@ -603,7 +603,8 @@ function zodiacSkyMarkup() {
 }
 
 const conveyorRocket = { node: null, frame: 0, x: 50, y: 76, vx: .055, vy: -.025, angle: 0, keys: new Set() };
-const conveyorRocketGame = { layer: null, hud: null, started: false, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-star-run-high-score') || 0), hull: 3, asteroids: [], enemies: [], lasers: [], enemyLasers: [], lastAsteroid: 0, lastEnemy: 0, lastScore: 0, lastShot: 0, lastHit: 0, lastHud: 0 };
+const conveyorRocketGame = { layer: null, hud: null, started: false, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-star-run-high-score') || 0), hull: 3, asteroids: [], enemies: [], lasers: [], enemyLasers: [], lastAsteroid: 0, lastEnemy: 0, lastScore: 0, lastShot: 0, lastHit: 0, lastHud: 0, lastRender: 0 };
+const gameRenderCadence = () => window.innerWidth <= 640 ? 34 : 16;
 const rocketControlCodes = new Set(['Equal', 'BracketLeft', 'BracketRight', 'ArrowLeft', 'ArrowRight', 'Backquote']);
 const pauseRocketBoost = () => { if (!rocketBoostAudio) return; rocketBoostAudio.pause(); rocketBoostAudio.currentTime = 0; };
 const playRocketBoost = () => { if (!rocketBoostAudio || !rocketBoostAudio.paused || !soundEffectsEnabled()) return; rocketBoostAudio.volume = .46; rocketBoostAudio.play().catch(() => {}); };
@@ -615,7 +616,7 @@ function startRocketGame(node) {
   game.layer = node.parentElement?.querySelector('.rocket-game-layer') || null;
   game.hud = document.querySelector('.rocket-game-hud');
   game.started = false; node.parentElement?.classList.remove('is-running'); game.score = 0; game.hull = 3; game.asteroids = []; game.enemies = []; game.lasers = []; game.enemyLasers = [];
-  game.lastAsteroid = 0; game.lastEnemy = 0; game.lastScore = Date.now(); game.lastShot = 0; game.lastHit = 0; game.lastHud = 0;
+  game.lastAsteroid = 0; game.lastEnemy = 0; game.lastScore = Date.now(); game.lastShot = 0; game.lastHit = 0; game.lastHud = 0; game.lastRender = 0;
   renderRocketGameHud();
 }
 function renderRocketGameHud() {
@@ -626,7 +627,7 @@ function renderRocketGameHud() {
 function launchStarRun() {
   const game = conveyorRocketGame; if (!game.layer || game.started) return;
   game.started = true; conveyorRocket.node?.parentElement?.classList.add('is-running'); game.score = 0; game.hull = 3; game.asteroids = []; game.enemies = []; game.lasers = []; game.enemyLasers = [];
-  game.lastAsteroid = 0; game.lastEnemy = 0; game.lastScore = Date.now(); game.lastShot = 0; game.lastHit = 0; game.lastHud = 0;
+  game.lastAsteroid = 0; game.lastEnemy = 0; game.lastScore = Date.now(); game.lastShot = 0; game.lastHit = 0; game.lastHud = 0; game.lastRender = 0;
   renderRocketGameHud();
 }
 function spawnRocketAsteroid() { const radius = rocketRandom(1.3, 2.8); conveyorRocketGame.asteroids.push({ x: rocketRandom(2, 98), y: -radius * 2, vx: rocketRandom(-.055, .055), vy: rocketRandom(.045, .11), radius, spin: rocketRandom(-4, 4), rotation: rocketRandom(0, 360) }); }
@@ -658,7 +659,7 @@ function updateRocketGame() {
   for (let index = game.lasers.length - 1; index >= 0; index--) { const laser = game.lasers[index]; const asteroidIndex = game.asteroids.findIndex(asteroid => rocketDistance(laser, asteroid) < asteroid.radius + .7); const enemyIndex = game.enemies.findIndex(enemy => rocketDistance(laser, enemy) < 2.5); if (asteroidIndex >= 0) { game.asteroids.splice(asteroidIndex, 1); game.lasers.splice(index, 1); playGameEffect(gameAsteroidAudio, .48); game.score += 10; continue; } if (enemyIndex >= 0) { game.enemies.splice(enemyIndex, 1); game.lasers.splice(index, 1); playGameEffect(gameSpaceshipExplosionAudio, .5); game.score += 50; } }
   if (game.asteroids.some(asteroid => rocketDistance(conveyorRocket, asteroid) < asteroid.radius + 1.8) || game.enemies.some(enemy => rocketDistance(conveyorRocket, enemy) < 3)) hitRocket();
   game.enemyLasers.forEach(laser => { if (rocketDistance(conveyorRocket, laser) < 1.7) hitRocket(); });
-  game.layer.innerHTML = `${game.asteroids.map(asteroid => `<i class="rocket-game-asteroid" style="--x:${asteroid.x}%;--y:${asteroid.y}%;--size:${asteroid.radius * 10}px;--spin:${asteroid.rotation}deg"></i>`).join('')}${game.enemies.map(enemy => `<i class="rocket-game-enemy" style="--x:${enemy.x}%;--y:${enemy.y}%;--rotation:${enemy.rotation}deg"></i>`).join('')}${game.lasers.map(laser => `<i class="rocket-game-laser" style="--x:${laser.x}%;--y:${laser.y}%;--rotation:${laser.rotation}deg"></i>`).join('')}${game.enemyLasers.map(laser => `<i class="rocket-game-enemy-laser" style="--x:${laser.x}%;--y:${laser.y}%;--rotation:${laser.rotation}deg"></i>`).join('')}`;
+  if (now - game.lastRender >= gameRenderCadence()) { game.layer.innerHTML = `${game.asteroids.map(asteroid => `<i class="rocket-game-asteroid" style="--x:${asteroid.x}%;--y:${asteroid.y}%;--size:${asteroid.radius * 10}px;--spin:${asteroid.rotation}deg"></i>`).join('')}${game.enemies.map(enemy => `<i class="rocket-game-enemy" style="--x:${enemy.x}%;--y:${enemy.y}%;--rotation:${enemy.rotation}deg"></i>`).join('')}${game.lasers.map(laser => `<i class="rocket-game-laser" style="--x:${laser.x}%;--y:${laser.y}%;--rotation:${laser.rotation}deg"></i>`).join('')}${game.enemyLasers.map(laser => `<i class="rocket-game-enemy-laser" style="--x:${laser.x}%;--y:${laser.y}%;--rotation:${laser.rotation}deg"></i>`).join('')}`; game.lastRender = now; }
   if (game.score > game.highScore) { game.highScore = game.score; localStorage.setItem('collector-marketplace-star-run-high-score', String(game.highScore)); }
   if (now - game.lastHud > 140) { renderRocketGameHud(); game.lastHud = now; }
 }
@@ -730,7 +731,7 @@ document.addEventListener('pointercancel', clearRocketTouchControls);
 // Puppy Jump is a light Doodle-Jump-style counterpoint to the space game.
 // It only exists while collectors are browsing in Doomscroll mode.
 const puppyJump = { node: null, frame: 0, x: 50, y: 82, vx: 0, vy: 0, keys: new Set() };
-const puppyJumpGame = { layer: null, hud: null, started: false, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-puppy-jump-high-score') || 0), platforms: [], angries: [], lasers: [], jumps: 2, lastHud: 0, lastAngry: 0, lastShot: 0, lastJump: 0, jumpHeld: false, invulnerableUntil: 0, combo: 0, restarting: false, restartTimer: 0 };
+const puppyJumpGame = { layer: null, hud: null, started: false, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-puppy-jump-high-score') || 0), platforms: [], angries: [], lasers: [], jumps: 2, lastHud: 0, lastRender: 0, lastAngry: 0, lastShot: 0, lastJump: 0, jumpHeld: false, invulnerableUntil: 0, combo: 0, restarting: false, restartTimer: 0 };
 const puppyControlCodes = new Set(['BracketLeft', 'BracketRight', 'Equal', 'Backquote']);
 const puppyRandom = (min, max) => min + Math.random() * (max - min);
 function puppyStartingPlatforms() {
@@ -757,7 +758,7 @@ function resetPuppyJump() {
   // Start just above the first cloud so Play immediately gives the puppy a
   // stable landing instead of dropping the player into an empty lane.
   puppyJump.x = 50; puppyJump.y = 84; puppyJump.vx = 0; puppyJump.vy = -1.08;
-  game.score = 0; game.platforms = puppyStartingPlatforms(); game.angries = []; game.lasers = []; game.jumps = 1; game.lastHud = 0; game.lastAngry = 0; game.lastShot = 0; game.lastJump = 0; game.jumpHeld = false; game.combo = 0; game.invulnerableUntil = Date.now() + 1800;
+  game.score = 0; game.platforms = puppyStartingPlatforms(); game.angries = []; game.lasers = []; game.jumps = 1; game.lastHud = 0; game.lastRender = 0; game.lastAngry = 0; game.lastShot = 0; game.lastJump = 0; game.jumpHeld = false; game.combo = 0; game.invulnerableUntil = Date.now() + 1800;
 }
 function startPuppyJump(node) {
   if (!node) return stopPuppyJump();
@@ -859,7 +860,7 @@ function updatePuppyJump() {
   puppyJump.node.style.setProperty('--puppy-x', `${puppyJump.x}%`);
   puppyJump.node.style.setProperty('--puppy-y', `${puppyJump.y}%`);
   puppyJump.node.classList.toggle('is-hopping', puppyJump.vy < -.15);
-  game.layer.innerHTML = `${game.platforms.map(platform => `<i class="puppy-game-cloud" style="--x:${platform.x}%;--y:${platform.y}%;--width:${platform.width}%"></i>`).join('')}${game.angries.map(angry => `<i class="puppy-game-anger" style="--x:${angry.x}%;--y:${angry.y}%"></i>`).join('')}${game.lasers.map(laser => `<i class="puppy-game-laser" style="--x:${laser.x}%;--y:${laser.y}%"></i>`).join('')}`;
+  if (now - game.lastRender >= gameRenderCadence()) { game.layer.innerHTML = `${game.platforms.map(platform => `<i class="puppy-game-cloud" style="--x:${platform.x}%;--y:${platform.y}%;--width:${platform.width}%"></i>`).join('')}${game.angries.map(angry => `<i class="puppy-game-anger" style="--x:${angry.x}%;--y:${angry.y}%"></i>`).join('')}${game.lasers.map(laser => `<i class="puppy-game-laser" style="--x:${laser.x}%;--y:${laser.y}%"></i>`).join('')}`; game.lastRender = now; }
   if (game.score > game.highScore) { game.highScore = game.score; localStorage.setItem('collector-marketplace-puppy-jump-high-score', String(game.highScore)); }
   if (Date.now() - game.lastHud > 140) { renderPuppyJumpHud(); game.lastHud = Date.now(); }
 }
