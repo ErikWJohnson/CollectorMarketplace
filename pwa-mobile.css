@@ -143,6 +143,28 @@
   .listing-filter-controls [data-checkout-estimate]::after { content:"EST"; font-size:.6rem; }
   .listing-filter-controls .private-shipping-settings { width:max-content !important; margin-left:0 !important; flex:0 0 auto; max-width:none; overflow:visible; text-overflow:clip; font-size:0 !important; }
   .listing-filter-controls .private-shipping-settings::after { content:"Shipping"; font-size:.6rem; }
+
+  /* Older shared button rules load a full desktop label at this breakpoint.
+     Give the rail deterministic chip widths and paint only its short label. */
+  body .listing-filter-controls button.viewer-location,
+  body .listing-filter-controls button.checkout-preference,
+  body .listing-filter-controls button.private-shipping-settings {
+    box-sizing:border-box !important;
+    overflow:hidden !important;
+    color:transparent !important;
+    font-size:0 !important;
+    letter-spacing:0 !important;
+    white-space:nowrap !important;
+  }
+  body .listing-filter-controls button.viewer-location { width:68px !important; min-width:68px !important; max-width:68px !important; }
+  body .listing-filter-controls button[data-checkout-location] { width:66px !important; min-width:66px !important; max-width:66px !important; }
+  body .listing-filter-controls button[data-checkout-payment] { width:62px !important; min-width:62px !important; max-width:62px !important; }
+  body .listing-filter-controls button[data-checkout-delivery] { width:54px !important; min-width:54px !important; max-width:54px !important; }
+  body .listing-filter-controls button[data-checkout-estimate] { width:46px !important; min-width:46px !important; max-width:46px !important; }
+  body .listing-filter-controls button.private-shipping-settings { width:76px !important; min-width:76px !important; max-width:76px !important; }
+  body .listing-filter-controls button.viewer-location::after,
+  body .listing-filter-controls button.checkout-preference::after,
+  body .listing-filter-controls button.private-shipping-settings::after { color:#d8e3ea !important; font-size:.6rem !important; }
 }
 
 @media (max-width:420px) {
@@ -157,7 +179,7 @@
   .listing-filter-controls .private-shipping-settings { font-size:0 !important; }
   .listing-filter-controls .viewer-location::after,
   .listing-filter-controls .checkout-preference::after,
-  .listing-filter-controls .private-shipping-settings::after { font-size:.55rem; }
+  .listing-filter-controls .private-shipping-settings::after { font-size:.55rem !important; }
   .listing-filter-controls .sort-listings select { width:112px; min-width:112px !important; }
   .listing-filter-controls .price-range input { width:60px; min-width:60px !important; }
 }
