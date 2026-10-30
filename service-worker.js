@@ -1,14 +1,18 @@
 /* Static shell only: never cache account, chat, payment, delivery, or API data. */
-const CACHE_NAME = 'collector-marketplace-shell-v3';
+const CACHE_NAME = 'collector-marketplace-shell-v4';
 const SHELL_ASSETS = [
   '/', '/index.html', '/offline.html', '/site.js', '/site.css', '/layout-fixes.css',
   '/full-width.css', '/immersive-feed.css', '/persistent-dock.css', '/mobile-responsive.css',
-  '/pwa-mobile.css', '/professional-polish.css', '/favicon.png', '/favicon-512.png',
+  '/professional-polish.css', '/favicon.png', '/favicon-512.png',
   '/public/logo-three-cards.png'
 ];
 const SENSITIVE_PREFIXES = /^\/(?:api|auth|account|paypal|membership|trade|delivery|chat|voice|notifications|shipping|tax|listing\/[^/]+\/(?:statistics|promotion))/i;
 
 self.addEventListener('install', event => {
+  // This worker handles only the public shell. Activating promptly clears the
+  // former cache-first stylesheet behavior that trapped installed phones on
+  // older responsive layouts.
+  self.skipWaiting();
   event.waitUntil(caches.open(CACHE_NAME).then(cache => Promise.all(SHELL_ASSETS.map(asset => cache.add(asset).catch(() => undefined)))));
 });
 self.addEventListener('activate', event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)))).then(() => self.clients.claim())));
