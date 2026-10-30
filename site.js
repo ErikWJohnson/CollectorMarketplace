@@ -15,7 +15,7 @@ const priceMax = document.querySelector('#price-max');
 const sentinel = document.querySelector('#sentinel');
 const modal = document.querySelector('#modal');
 const modalContent = document.querySelector('#modal-content');
-let listings = [], wantedRequests = [], marketplaceEvents = [], auctions = [], accounts = [], galleries = [], collectives = [], brands = [], couriers = [], chatrooms = [], deliveries = [], uploadedListingImages = [], uploadedListingVideos = [], activeCategory = 'All', activeQuery = '', activeTags = [], searchScope = 'listings', sortMode = 'popular', marketMode = localStorage.getItem('collector-marketplace-mode') || 'all', page = 1, observer, searchRenderTimer, auctionClock;
+let listings = [], wantedRequests = [], marketplaceEvents = [], auctions = [], accounts = [], galleries = [], collectives = [], brands = [], couriers = [], chatrooms = [], deliveries = [], uploadedListingImages = [], uploadedListingVideos = [], activeCategory = 'All', activeQuery = '', activeTags = [], searchScope = 'listings', sortMode = 'popular', page = 1, observer, searchRenderTimer, auctionClock;
 const auctionWaterfallAudio = document.querySelector('#auction-waterfall-audio');
 const jungleChatAudio = document.querySelector('#jungle-chat-audio');
 const accountVeniceAudio = document.querySelector('#account-venice-audio');
@@ -1436,9 +1436,6 @@ tagGroups['Weights & Materials'] = ['Under 1 oz', '1–4 oz', '4–8 oz', '8–1
 tagGroups.Colors = ['Black', 'White', 'Gray', 'Silver', 'Charcoal', 'Ivory', 'Cream', 'Beige', 'Tan', 'Taupe', 'Brown', 'Chocolate', 'Espresso', 'Copper', 'Bronze', 'Gold', 'Rose Gold', 'Platinum', 'Red', 'Crimson', 'Scarlet', 'Burgundy', 'Maroon', 'Ruby', 'Coral', 'Orange', 'Burnt Orange', 'Amber', 'Yellow', 'Mustard', 'Gold Yellow', 'Lemon', 'Green', 'Lime', 'Olive', 'Sage', 'Mint', 'Emerald', 'Forest Green', 'Teal', 'Turquoise', 'Aqua', 'Cyan', 'Blue', 'Navy', 'Royal Blue', 'Sky Blue', 'Baby Blue', 'Powder Blue', 'Cobalt', 'Indigo', 'Purple', 'Violet', 'Lavender', 'Lilac', 'Plum', 'Eggplant', 'Magenta', 'Fuchsia', 'Pink', 'Rose', 'Blush', 'Peach', 'Salmon', 'Multi-Color', 'Rainbow', 'Clear', 'Transparent', 'Iridescent', 'Pearlescent', 'Holographic', 'Neon', 'Glow in the Dark'];
 tagGroups.Conditions = ['New', 'New with Tags', 'Sealed', 'Like New', 'Mint', 'Near Mint', 'Excellent', 'Very Good', 'Good', 'Fair', 'Poor', 'For Parts or Repair', 'Graded', 'Ungraded', 'Authenticated', 'Restored'];
 const categoryOptions = [...Object.values(tagGroups).flat(), ...audienceTagOptions];
-const marketplaceModes = { all: { label: 'All marketplace', terms: [] }, fashion: { label: 'Fashion', terms: ['fashion', 'luxury', 'clothing', 'shoe', 'sneaker', 'apparel', 'handbag', 'jewelry', 'style'] }, collectibles: { label: 'Collectibles', terms: ['collectible', 'memorabilia', 'autograph', 'sports', 'card', 'art', 'history', 'toy', 'game', 'media', 'vintage', 'coin', 'fossil'] }, technology: { label: 'Technology & gaming', terms: ['technology', 'gaming', 'computer', 'electronic', 'console', 'video game', 'rc', 'vr', 'phone'] }, home: { label: 'Home & design', terms: ['home', 'decor', 'kitchen', 'furniture', 'design', 'tapestry', 'tableware'] }, food: { label: 'Food & drink', terms: ['food', 'drink', 'beverage', 'cheese', 'alcohol', 'bread', 'meat', 'mastic'] } };
-if (!marketplaceModes[marketMode]) marketMode = 'all';
-const matchesMarketplaceMode = item => { const mode = marketplaceModes[marketMode] || marketplaceModes.all; if (!mode.terms.length) return true; const text = `${item.category || ''} ${(item.tags || []).join(' ')} ${item.title || ''} ${item.description || ''}`.toLowerCase(); return mode.terms.some(term => text.includes(term)); };
 const marketplaceRegions = {
   all: { label: 'Worldwide' },
   north_america: { label: 'North America' },
@@ -1476,23 +1473,19 @@ const matchesMarketplaceRegion = item => {
   if (marketplaceRegion.id === 'custom') return !marketplaceRegion.query || text.includes(String(marketplaceRegion.query).toUpperCase());
   return listingContinent(item) === marketplaceRegion.id;
 };
-function renderMarketplaceMode() { const mode = marketplaceModes[marketMode] || marketplaceModes.all; const label = document.querySelector('[data-market-mode-label]'); if (label) label.textContent = mode.label; document.querySelectorAll('[data-market-mode]').forEach(button => button.classList.toggle('active', button.dataset.marketMode === marketMode)); }
-function setMarketplaceMode(mode) { if (!marketplaceModes[mode]) return; marketMode = mode; localStorage.setItem('collector-marketplace-mode', mode); page = 1; renderMarketplaceMode(); renderFeed(); }
 function ensureMarketplaceRegionControl() {
-  const modeControl = document.querySelector('.market-mode-control');
-  if (!modeControl || document.querySelector('[data-market-region-toggle]')) return;
+  const brandGroup = document.querySelector('.masthead .brand-group');
+  if (!brandGroup || document.querySelector('[data-market-region-toggle]')) return;
   const choices = Object.entries(marketplaceRegions).map(([id, region]) => `<button type="button" data-market-region="${id}">${safe(region.label)}</button>`).join('');
   const control = document.createElement('section'); control.className = 'market-mode-control market-region-control';
   control.innerHTML = `<button type="button" data-market-region-toggle aria-expanded="false" aria-controls="market-region-menu"><span>REGION</span><b data-market-region-label>Worldwide</b><i>⌄</i></button><div id="market-region-menu" data-market-region-menu hidden>${choices}<button type="button" data-market-region="custom">Set country / area…</button></div>`;
-  modeControl.insertAdjacentElement('afterend', control);
+  brandGroup.insertAdjacentElement('afterend', control);
 }
 function renderMarketplaceRegion() { const label = document.querySelector('[data-market-region-label]'); if (label) label.textContent = marketplaceRegion.label || 'Worldwide'; document.querySelectorAll('[data-market-region]').forEach(button => button.classList.toggle('active', button.dataset.marketRegion === marketplaceRegion.id)); }
 function setMarketplaceRegion(id, query = '') { const preset = marketplaceRegions[id]; marketplaceRegion = preset ? { id, label: preset.label, query: '' } : { id: 'custom', label: query || 'Custom area', query: String(query || '').trim().slice(0, 48) }; localStorage.setItem('collector-marketplace-region', JSON.stringify(marketplaceRegion)); page = 1; renderMarketplaceRegion(); renderFeed(); }
-document.addEventListener('click', event => { const toggle = event.target.closest('[data-market-mode-toggle]'); const choice = event.target.closest('[data-market-mode]'); const menu = document.querySelector('[data-market-mode-menu]'); if (toggle && menu) { const opening = menu.hidden; menu.hidden = !opening; toggle.setAttribute('aria-expanded', String(opening)); return; } if (choice && menu) { setMarketplaceMode(choice.dataset.marketMode); menu.hidden = true; document.querySelector('[data-market-mode-toggle]')?.setAttribute('aria-expanded', 'false'); return; } if (!event.target.closest('.market-mode-control') && menu && !menu.hidden) { menu.hidden = true; document.querySelector('[data-market-mode-toggle]')?.setAttribute('aria-expanded', 'false'); } });
 document.addEventListener('click', event => { const toggle = event.target.closest('[data-market-region-toggle]'); const choice = event.target.closest('[data-market-region]'); const menu = document.querySelector('[data-market-region-menu]'); if (toggle && menu) { const opening = menu.hidden; menu.hidden = !opening; toggle.setAttribute('aria-expanded', String(opening)); return; } if (choice && menu) { menu.hidden = true; document.querySelector('[data-market-region-toggle]')?.setAttribute('aria-expanded', 'false'); if (choice.dataset.marketRegion === 'custom') { openModal('Set marketplace region', 'Choose a continent above, or use a country, city, or other public listing location. This setting stays in your browser.', `<form class="modal-form marketplace-region-form"><label>Country or area<input required name="region" maxlength="48" value="${safe(marketplaceRegion.id === 'custom' ? marketplaceRegion.query : '')}" placeholder="e.g. Japan, Brazil, London"></label><button>Save region</button></form>`); } else setMarketplaceRegion(choice.dataset.marketRegion); return; } if (!event.target.closest('.market-region-control') && menu && !menu.hidden) { menu.hidden = true; document.querySelector('[data-market-region-toggle]')?.setAttribute('aria-expanded', 'false'); } });
 document.addEventListener('submit', event => { const form = event.target.closest?.('.marketplace-region-form'); if (!form) return; event.preventDefault(); const query = String(new FormData(form).get('region') || '').trim(); if (!query) return; setMarketplaceRegion('custom', query); modal.close(); });
 ensureMarketplaceRegionControl();
-renderMarketplaceMode();
 renderMarketplaceRegion();
 function enableCarrierPicker(input) { if (!document.querySelector('#delivery-carriers')) { const list = document.createElement('datalist'); list.id = 'delivery-carriers'; list.innerHTML = deliveryCarriers.map(carrier => `<option value="${safe(carrier)}">`).join(''); document.body.append(list); } input.setAttribute('list', 'delivery-carriers'); input.placeholder = 'Choose a delivery company'; }
 const deviceId = (() => { const key = 'collector-marketplace-device-id'; let value = localStorage.getItem(key); if (!value) { value = crypto.randomUUID(); localStorage.setItem(key, value); } return value; })();
@@ -1796,7 +1789,7 @@ const filtered = () => {
     const itemTags = listingTags(item).map(tag => tag.toLowerCase()); const typedTags = searchedTagTerms();
     const matches = terms => !terms.length || (tagMatchMode === 'all' ? terms.every(term => itemTags.some(tag => tag.includes(term))) : terms.some(term => itemTags.some(tag => tag.includes(term))));
     const price = Number(item.price) || 0;
-    return matchesMarketplaceMode(item) && matchesMarketplaceRegion(item) && (activeCategory === 'All' || item.category === activeCategory) && `${item.title} ${item.description} ${item.location || ''} ${itemTags.join(' ')}`.toLowerCase().includes(activeQuery.toLowerCase()) && matches(activeTags) && matches(typedTags) && lockedTags.every(tag => itemTags.some(itemTag => itemTag.includes(tag))) && !voidTags.some(tag => itemTags.some(itemTag => itemTag.includes(tag))) && (minimumPrice === null || price >= minimumPrice) && (maximumPrice === null || price <= maximumPrice);
+    return matchesMarketplaceRegion(item) && (activeCategory === 'All' || item.category === activeCategory) && `${item.title} ${item.description} ${item.location || ''} ${itemTags.join(' ')}`.toLowerCase().includes(activeQuery.toLowerCase()) && matches(activeTags) && matches(typedTags) && lockedTags.every(tag => itemTags.some(itemTag => itemTag.includes(tag))) && !voidTags.some(tag => itemTags.some(itemTag => itemTag.includes(tag))) && (minimumPrice === null || price >= minimumPrice) && (maximumPrice === null || price <= maximumPrice);
   }).sort((left, right) => {
     const leftDate = new Date(left.createdAt || 0).valueOf(); const rightDate = new Date(right.createdAt || 0).valueOf();
     const promotionPriority = Number(right.promotion?.status === 'active') - Number(left.promotion?.status === 'active');
@@ -3329,7 +3322,6 @@ tagSearch.addEventListener('keydown', event => { if (event.key === 'Enter') setT
 async function loadMarket() {
   const listingData = await fetch('/listings').then(response => { if (!response.ok) throw new Error('Listings API unavailable'); return response.json(); });
   listings = listingData.filter(listing => listing.listingMode !== 'auction_only').map(asFeedListing).sort((a, b) => a.id === 'mantle' ? -1 : b.id === 'mantle' ? 1 : 0);
-  renderMarketplaceMode();
   renderTags();
   renderCategories();
   void hydrateListingDistances();
