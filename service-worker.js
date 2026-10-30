@@ -1,5 +1,5 @@
 /* Static shell only: never cache account, chat, payment, delivery, or API data. */
-const CACHE_NAME = 'collector-marketplace-shell-v2';
+const CACHE_NAME = 'collector-marketplace-shell-v3';
 const SHELL_ASSETS = [
   '/', '/index.html', '/offline.html', '/site.js', '/site.css', '/layout-fixes.css',
   '/full-width.css', '/immersive-feed.css', '/persistent-dock.css', '/mobile-responsive.css',
@@ -22,11 +22,11 @@ self.addEventListener('fetch', event => {
     return;
   }
   if (!SHELL_ASSETS.includes(url.pathname)) return;
-  event.respondWith(caches.match(url.pathname, { ignoreSearch: true }).then(cached => {
-    const refresh = fetch(request).then(response => {
-      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(url.pathname, response.clone()));
-      return response;
-    }).catch(() => cached);
-    return cached || refresh;
-  }));
+  // Keep static assets available offline, but prefer the network whenever it is
+  // available. This prevents installed phones from keeping an old stylesheet
+  // after a responsive UI update merely because its URL uses a new query token.
+  event.respondWith(fetch(request).then(response => {
+    if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(url.pathname, response.clone()));
+    return response;
+  }).catch(() => caches.match(url.pathname, { ignoreSearch: true })));
 });
