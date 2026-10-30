@@ -279,7 +279,7 @@ function syncAuctionWaterfallControl() {
   stream?.querySelector('[data-auction-waterfall-sound]')?.remove();
 }
 const savedBrowseMode = localStorage.getItem('collector-marketplace-browse-mode');
-let browseMode = ['conveyor', 'doomscroll', 'squared'].includes(savedBrowseMode) ? savedBrowseMode : 'conveyor', conveyorFrame = 0, conveyorTimer = 0;
+let browseMode = ['conveyor', 'doomscroll', 'squared'].includes(savedBrowseMode) ? savedBrowseMode : 'conveyor', conveyorFrame = 0, conveyorTimer = 0, conveyorLoopWidth = 0;
 // Keep the browse canvas focused on first visit; only persist an explicit user choice.
 let metadataVisible = localStorage.getItem('collector-marketplace-metadata-visible') === 'true';
 // Keep comma/period keyboard navigation in the same order as the visible scope bar.
@@ -546,12 +546,11 @@ const reverseAutoScroll = () => {
   autoScrollDirection *= -1;
   if (!autoScrollActive) toggleAutoScroll();
 };
-function stopConveyor() { if (conveyorFrame) cancelAnimationFrame(conveyorFrame); if (conveyorTimer) clearInterval(conveyorTimer); conveyorFrame = 0; conveyorTimer = 0; }
+function measureConveyorLoop() { const first = stream.querySelector('.listing:not([data-conveyor-copy]), .social-directory-card:not([data-conveyor-copy])'); const copy = stream.querySelector('[data-conveyor-copy]'); conveyorLoopWidth = first && copy ? Math.max(0, copy.offsetLeft - first.offsetLeft) : 0; }
+function stopConveyor() { if (conveyorFrame) cancelAnimationFrame(conveyorFrame); if (conveyorTimer) clearInterval(conveyorTimer); conveyorFrame = 0; conveyorTimer = 0; conveyorLoopWidth = 0; }
 function runConveyor() {
   if (browseMode !== 'conveyor' || modal.open || document.body.classList.contains('auction-mode')) { stopConveyor(); return; }
-  const first = stream.querySelector('.listing:not([data-conveyor-copy]), .social-directory-card:not([data-conveyor-copy])');
-  const copy = stream.querySelector('[data-conveyor-copy]');
-  const loopWidth = first && copy ? copy.offsetLeft - first.offsetLeft : 0;
+  const loopWidth = conveyorLoopWidth;
   if (loopWidth > 0) {
     const laneStart = loopWidth;
     const laneEnd = loopWidth * 2;
@@ -567,12 +566,12 @@ function runConveyor() {
 function startConveyor() {
   stopConveyor();
   if (browseMode === 'conveyor') {
-    const first = stream.querySelector('.listing:not([data-conveyor-copy]), .social-directory-card:not([data-conveyor-copy])');
-    const copy = stream.querySelector('[data-conveyor-copy]');
-    stream.scrollTo({ left: first && copy ? copy.offsetLeft - first.offsetLeft : 0, behavior: 'auto' });
-    conveyorTimer = setInterval(runConveyor, 16);
+    measureConveyorLoop();
+    stream.scrollTo({ left: conveyorLoopWidth || 0, behavior: 'auto' });
+    conveyorTimer = setInterval(runConveyor, window.innerWidth <= 680 ? 24 : 16);
   }
 }
+window.addEventListener('resize', () => { if (browseMode === 'conveyor') measureConveyorLoop(); }, { passive: true });
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden && browseMode === 'conveyor' && !modal.open && !document.body.classList.contains('auction-mode')) startConveyor();
 });

@@ -274,4 +274,12 @@
 @media (max-width:680px) {
   :is(.rocket-game-playfield,.puppy-game-playfield,.gothic-hunt-game,.sell-lava-game,.account-sailing-game,.auction-falls-game,.jungle-snake-game) { contain:layout paint style; }
   :is(.rocket-game-layer,.puppy-game-layer) { will-change:contents; }
+  /* Fixed blurs and large moving fog layers are costly on phone GPUs. Keep
+     the visual language, but simplify compositing while preserving gameplay. */
+  .mobile-app-nav,.pwa-update-banner,.voice-dock { backdrop-filter:none !important; }
+  .listing { content-visibility:auto; contain-intrinsic-size:520px; }
+  .browse-conveyor .conveyor-smog-layer { opacity:.5 !important; contain:paint; }
+  .browse-conveyor .conveyor-smog-layer span,.browse-conveyor .conveyor-smog-layer::before,.browse-conveyor .conveyor-smog-layer::after { filter:blur(22px) !important; animation-duration:18s !important; }
+  .conveyor-orbit-layer { contain:paint; opacity:.72; }
+  .conveyor-orbit-layer :is(i,b,svg) { animation-duration:28s !important; }
 }
