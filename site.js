@@ -603,7 +603,7 @@ function zodiacSkyMarkup() {
 }
 
 const conveyorRocket = { node: null, frame: 0, x: 50, y: 76, vx: .055, vy: -.025, angle: 0, keys: new Set() };
-const conveyorRocketGame = { layer: null, hud: null, started: false, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-star-run-high-score') || 0), hull: 3, asteroids: [], enemies: [], lasers: [], enemyLasers: [], lastAsteroid: 0, lastEnemy: 0, lastScore: 0, lastShot: 0, lastHit: 0 };
+const conveyorRocketGame = { layer: null, hud: null, started: false, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-star-run-high-score') || 0), hull: 3, asteroids: [], enemies: [], lasers: [], enemyLasers: [], lastAsteroid: 0, lastEnemy: 0, lastScore: 0, lastShot: 0, lastHit: 0, lastHud: 0 };
 const rocketControlCodes = new Set(['Equal', 'BracketLeft', 'BracketRight', 'ArrowLeft', 'ArrowRight', 'Backquote']);
 const pauseRocketBoost = () => { if (!rocketBoostAudio) return; rocketBoostAudio.pause(); rocketBoostAudio.currentTime = 0; };
 const playRocketBoost = () => { if (!rocketBoostAudio || !rocketBoostAudio.paused || !soundEffectsEnabled()) return; rocketBoostAudio.volume = .46; rocketBoostAudio.play().catch(() => {}); };
@@ -615,7 +615,7 @@ function startRocketGame(node) {
   game.layer = node.parentElement?.querySelector('.rocket-game-layer') || null;
   game.hud = document.querySelector('.rocket-game-hud');
   game.started = false; node.parentElement?.classList.remove('is-running'); game.score = 0; game.hull = 3; game.asteroids = []; game.enemies = []; game.lasers = []; game.enemyLasers = [];
-  game.lastAsteroid = 0; game.lastEnemy = 0; game.lastScore = Date.now(); game.lastShot = 0; game.lastHit = 0;
+  game.lastAsteroid = 0; game.lastEnemy = 0; game.lastScore = Date.now(); game.lastShot = 0; game.lastHit = 0; game.lastHud = 0;
   renderRocketGameHud();
 }
 function renderRocketGameHud() {
@@ -626,7 +626,7 @@ function renderRocketGameHud() {
 function launchStarRun() {
   const game = conveyorRocketGame; if (!game.layer || game.started) return;
   game.started = true; conveyorRocket.node?.parentElement?.classList.add('is-running'); game.score = 0; game.hull = 3; game.asteroids = []; game.enemies = []; game.lasers = []; game.enemyLasers = [];
-  game.lastAsteroid = 0; game.lastEnemy = 0; game.lastScore = Date.now(); game.lastShot = 0; game.lastHit = 0;
+  game.lastAsteroid = 0; game.lastEnemy = 0; game.lastScore = Date.now(); game.lastShot = 0; game.lastHit = 0; game.lastHud = 0;
   renderRocketGameHud();
 }
 function spawnRocketAsteroid() { const radius = rocketRandom(1.3, 2.8); conveyorRocketGame.asteroids.push({ x: rocketRandom(2, 98), y: -radius * 2, vx: rocketRandom(-.055, .055), vy: rocketRandom(.045, .11), radius, spin: rocketRandom(-4, 4), rotation: rocketRandom(0, 360) }); }
@@ -660,7 +660,7 @@ function updateRocketGame() {
   game.enemyLasers.forEach(laser => { if (rocketDistance(conveyorRocket, laser) < 1.7) hitRocket(); });
   game.layer.innerHTML = `${game.asteroids.map(asteroid => `<i class="rocket-game-asteroid" style="--x:${asteroid.x}%;--y:${asteroid.y}%;--size:${asteroid.radius * 10}px;--spin:${asteroid.rotation}deg"></i>`).join('')}${game.enemies.map(enemy => `<i class="rocket-game-enemy" style="--x:${enemy.x}%;--y:${enemy.y}%;--rotation:${enemy.rotation}deg"></i>`).join('')}${game.lasers.map(laser => `<i class="rocket-game-laser" style="--x:${laser.x}%;--y:${laser.y}%;--rotation:${laser.rotation}deg"></i>`).join('')}${game.enemyLasers.map(laser => `<i class="rocket-game-enemy-laser" style="--x:${laser.x}%;--y:${laser.y}%;--rotation:${laser.rotation}deg"></i>`).join('')}`;
   if (game.score > game.highScore) { game.highScore = game.score; localStorage.setItem('collector-marketplace-star-run-high-score', String(game.highScore)); }
-  renderRocketGameHud();
+  if (now - game.lastHud > 140) { renderRocketGameHud(); game.lastHud = now; }
 }
 function stopConveyorRocket() {
   if (conveyorRocket.frame) cancelAnimationFrame(conveyorRocket.frame);
