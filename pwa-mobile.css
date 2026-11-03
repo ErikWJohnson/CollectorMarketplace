@@ -287,6 +287,16 @@
 /* Phone browse tools: the game launcher and tag reset read as one compact,
    touch-first action strip instead of two unrelated utility buttons. */
 @media (max-width:680px) {
+  /* The HUD is a passive grouping element. Only its Play control is styled as
+     a button, avoiding a visually nested-button treatment on small screens. */
+  .browse-conveyor .tag-search-layout > .conveyor-utility-dock > .rocket-game-hud,
+  .browse-doomscroll .tag-search-layout > .doomscroll-utility-dock > .puppy-game-hud {
+    padding:0 !important;
+    border:0 !important;
+    border-radius:0 !important;
+    background:transparent !important;
+    box-shadow:none !important;
+  }
   .browse-conveyor .tag-search-layout > .conveyor-utility-dock,
   .browse-doomscroll .tag-search-layout > .doomscroll-utility-dock {
     padding:5px !important;

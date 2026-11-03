@@ -1142,7 +1142,7 @@ function syncBrowseModeUi() {
   if (conveyor) {
     if (!utilityDock) { utilityDock = document.createElement('aside'); utilityDock.className = 'conveyor-utility-dock'; utilityDock.setAttribute('aria-label', 'Browse tools'); }
     placeBrowseTools(utilityDock);
-    if (!gameHud) { gameHud = document.createElement('aside'); gameHud.className = 'rocket-game-hud'; gameHud.setAttribute('aria-live', 'off'); }
+    if (!gameHud) { gameHud = document.createElement('div'); gameHud.className = 'rocket-game-hud'; gameHud.setAttribute('role', 'group'); gameHud.setAttribute('aria-label', 'Star Run controls'); gameHud.setAttribute('aria-live', 'off'); }
     utilityDock.append(gameHud);
     if (removeTagsButton) utilityDock.append(removeTagsButton);
     startConveyorRocket(playfield?.querySelector('.conveyor-rocket'));
