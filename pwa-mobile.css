@@ -378,3 +378,101 @@
   .browse-doomscroll .tag-search-layout > .doomscroll-utility-dock > #remove-tags:hover,
   .browse-doomscroll .tag-search-layout > .doomscroll-utility-dock > #remove-tags:focus-visible { border-color:#a95367 !important; background:#fff0e4 !important; color:#572535 !important; }
 }
+
+/* Messaging and comments need a single, comfortable interaction rhythm on a
+   phone: conversation first, large hit areas second, and a composer that
+   remains reachable above the native app dock. */
+@media (max-width:680px) {
+  body.app-section-chat .app-section-content { padding:10px 10px calc(116px + env(safe-area-inset-bottom)) !important; }
+  body.app-section-chat .chat-command-center { gap:10px !important; }
+  body.app-section-chat .chat-sidebar,
+  body.app-section-chat .chat-secondary { border-radius:13px !important; }
+  body.app-section-chat .chat-sidebar { min-height:0 !important; }
+  body.app-section-chat .chat-section-heading { min-height:52px; padding:10px 11px !important; }
+  body.app-section-chat .chat-section-heading h3 { font-size:.92rem !important; }
+  body.app-section-chat .chat-conversation-row,
+  body.app-section-chat .suggestion-card { min-height:70px; padding:11px 10px !important; border-radius:10px !important; touch-action:manipulation; }
+  body.app-section-chat .chat-conversation-row:active,
+  body.app-section-chat .suggestion-card:active { transform:scale(.985); background:#173621 !important; }
+  body.app-section-chat .chat-avatar { width:40px; height:40px; }
+  body.app-section-chat .chat-conversation-row strong,
+  body.app-section-chat .suggestion-card strong { font-size:.86rem; }
+  body.app-section-chat .chat-conversation-row i { padding:6px 0 6px 6px; font-size:.56rem; }
+
+  body.app-section-chat .conversation-workspace {
+    display:flex !important;
+    flex-direction:column;
+    min-height:calc(100dvh - 138px) !important;
+    max-height:calc(100dvh - 94px) !important;
+    overflow:hidden !important;
+    border:1px solid #3a684b !important;
+    border-radius:14px !important;
+  }
+  body.app-section-chat .conversation-header {
+    display:flex !important;
+    flex-wrap:wrap;
+    align-items:center !important;
+    gap:7px !important;
+    min-height:0 !important;
+    padding:10px !important;
+  }
+  body.app-section-chat .conversation-header > [data-chat] { order:0; min-height:38px; padding-inline:9px; font-size:.58rem; }
+  body.app-section-chat .conversation-header .chat-avatar { order:1; width:34px; height:34px; margin:0; }
+  body.app-section-chat .conversation-identity { order:2; flex:1 1 120px; min-width:0 !important; margin:0 !important; }
+  body.app-section-chat .conversation-identity strong { display:block; overflow:hidden; font-size:.88rem; text-overflow:ellipsis; white-space:nowrap; }
+  body.app-section-chat .conversation-header .start-chat-trade,
+  body.app-section-chat .conversation-header .voice-start { order:3; flex:1 1 calc(33.333% - 6px); min-width:0; min-height:39px; padding:7px 5px; border-radius:8px; font-size:.55rem; line-height:1.15; text-align:center; white-space:normal; }
+  body.app-section-chat .collector-thread { flex:1 1 auto; min-height:180px; padding:13px 11px !important; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
+  body.app-section-chat .collector-thread .post-comment { max-width:92%; margin:7px 0; padding:10px 11px; font-size:.88rem; line-height:1.45; }
+  body.app-section-chat .collector-thread .post-comment.is-own-message { margin-left:auto; }
+  body.app-section-chat .chat-message-avatar { width:27px; height:27px; }
+  body.app-section-chat .chat-message-copy > img { max-width:100%; max-height:260px; }
+  body.app-section-chat .collector-message-form {
+    position:sticky;
+    bottom:0;
+    z-index:2;
+    display:grid !important;
+    grid-template-columns:42px minmax(0,1fr) 76px;
+    gap:7px !important;
+    padding:10px !important;
+    border-top:1px solid #3b6849 !important;
+    box-shadow:0 -10px 24px #0209058f;
+  }
+  body.app-section-chat .collector-message-form textarea { grid-column:1 / -1; min-height:52px !important; max-height:156px; padding:12px !important; font-size:16px !important; line-height:1.35; resize:none; }
+  body.app-section-chat .collector-message-form .chat-image-upload { grid-column:1; display:grid; width:42px; height:42px; place-items:center; overflow:hidden; border:1px solid #497555; border-radius:9px; background:#10271a; color:transparent; font-size:0; cursor:pointer; touch-action:manipulation; }
+  body.app-section-chat .collector-message-form .chat-image-upload::before { content:"＋"; color:#dfffa9; font:500 1.35rem/1 system-ui,sans-serif; }
+  body.app-section-chat .collector-message-form .chat-image-upload input { position:absolute; width:1px; height:1px; opacity:0; }
+  body.app-section-chat .collector-message-form .chat-compose-hint { grid-column:2; align-self:center; overflow:hidden; color:#9fcaa3; font-size:.58rem; text-overflow:ellipsis; white-space:nowrap; }
+  body.app-section-chat .collector-message-form button[type="submit"] { grid-column:3; width:76px; min-width:0 !important; min-height:42px; padding:0 8px; border-radius:9px; font-size:.67rem; touch-action:manipulation; }
+  body.app-section-chat .collector-message-form .chat-image-status { grid-column:1 / -1; min-height:0; color:#d9f2ac; font-size:.61rem; }
+
+  .comment-dialog { padding:62px 12px calc(20px + env(safe-area-inset-bottom)) !important; }
+  .comment-dialog #modal-content { padding-bottom:10px !important; }
+  .comment-dialog .modal-title { overflow:hidden; font-size:.77rem !important; text-overflow:ellipsis; white-space:nowrap; }
+  .comment-dialog .modal-copy { padding-bottom:11px !important; font-size:.7rem; }
+  .comment-workspace { padding-bottom:12px !important; }
+  .comment-workspace-head { gap:9px !important; padding-bottom:12px !important; }
+  .comment-workspace-head h3 { display:-webkit-box; overflow:hidden; -webkit-box-orient:vertical; -webkit-line-clamp:2; font-size:1rem !important; }
+  .comment-sort { gap:5px; }
+  .comment-sort button { min-height:36px; padding:7px 9px; font-size:.62rem; touch-action:manipulation; }
+  .comment-thread-list { margin-top:10px; }
+  .comment-workspace .post-comment { padding:13px 0; }
+  .comment-workspace .post-comment>header { gap:8px; }
+  .comment-workspace .post-comment>p { overflow-wrap:anywhere; font-size:.9rem; line-height:1.48; }
+  .comment-replies { margin-left:7px; padding-left:9px; }
+  .comment-workspace .comment-actions { min-height:34px; gap:8px; }
+  .comment-vote { width:34px; height:32px; border-radius:8px; touch-action:manipulation; }
+  .comment-workspace .comment-reply { min-height:32px; padding:7px 8px; }
+  .comment-dialog .comment-form { margin-top:18px !important; padding:11px !important; border-radius:13px 13px 0 0 !important; }
+  .comment-dialog .comment-form::before { font-size:.54rem; }
+  .comment-dialog .comment-form textarea { min-height:84px !important; max-height:156px; padding:11px 12px !important; font-size:16px !important; line-height:1.42; resize:none; }
+  .comment-dialog .comment-composer-tools { gap:7px !important; }
+  .comment-dialog .comment-quick-emoji { min-height:40px; padding:4px 5px; }
+  .comment-dialog .comment-composer-tools .comment-quick-emoji button { width:34px !important; height:34px !important; min-height:34px !important; }
+  .comment-dialog .comment-record { min-height:40px; padding:8px 10px !important; }
+  .comment-dialog .comment-media-field { min-height:40px; }
+  .comment-dialog .comment-workspace .comment-form footer button[type="submit"] { min-height:46px; font-size:.68rem !important; touch-action:manipulation; }
+  .comment-dialog .comment-emoji-picker { max-height:265px; padding:9px; }
+  .comment-dialog .comment-emoji-grid { grid-template-columns:repeat(auto-fill,minmax(38px,1fr)); max-height:175px; }
+  .comment-dialog .comment-emoji-grid button { min-height:38px; }
+}
