@@ -283,3 +283,88 @@
   .conveyor-orbit-layer { contain:paint; opacity:.72; }
   .conveyor-orbit-layer :is(i,b,svg) { animation-duration:28s !important; }
 }
+
+/* Phone browse tools: the game launcher and tag reset read as one compact,
+   touch-first action strip instead of two unrelated utility buttons. */
+@media (max-width:680px) {
+  .browse-conveyor .tag-search-layout > .conveyor-utility-dock,
+  .browse-doomscroll .tag-search-layout > .doomscroll-utility-dock {
+    padding:5px !important;
+    border:1px solid #365a70 !important;
+    border-radius:13px !important;
+    background:linear-gradient(135deg,#08131cfa,#102333f7) !important;
+    box-shadow:inset 0 1px #ffffff14,0 8px 20px #00000042 !important;
+  }
+  .browse-conveyor .tag-search-layout > .conveyor-utility-dock > #remove-tags,
+  .browse-doomscroll .tag-search-layout > .doomscroll-utility-dock > #remove-tags {
+    display:flex !important;
+    align-items:center;
+    justify-content:center;
+    gap:7px;
+    border:1px solid #4b6475 !important;
+    border-radius:9px !important;
+    background:linear-gradient(145deg,#162634,#0d1821) !important;
+    box-shadow:inset 0 1px #ffffff12,0 2px 0 #050b10 !important;
+    color:#d9eaf4 !important;
+    font:800 .6rem/1 "DM Mono",monospace !important;
+    letter-spacing:.065em !important;
+    text-transform:uppercase;
+    touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+    transition:transform .14s ease,background .14s ease,border-color .14s ease,color .14s ease;
+  }
+  .browse-conveyor .tag-search-layout > .conveyor-utility-dock > #remove-tags::before,
+  .browse-doomscroll .tag-search-layout > .doomscroll-utility-dock > #remove-tags::before {
+    content:"×";
+    display:grid;
+    width:17px;
+    height:17px;
+    place-items:center;
+    border:1px solid #cf7880;
+    border-radius:50%;
+    color:#ffc4c8;
+    font:900 .86rem/1 system-ui,sans-serif;
+  }
+  .browse-conveyor .tag-search-layout > .conveyor-utility-dock > #remove-tags:active,
+  .browse-doomscroll .tag-search-layout > .doomscroll-utility-dock > #remove-tags:active { transform:translateY(2px); box-shadow:inset 0 2px 8px #0009 !important; }
+  .browse-conveyor .tag-search-layout > .conveyor-utility-dock > #remove-tags:hover,
+  .browse-conveyor .tag-search-layout > .conveyor-utility-dock > #remove-tags:focus-visible { border-color:#d78a90 !important; background:#202737 !important; color:#fff; outline:0; }
+  .browse-conveyor .tag-search-layout > .conveyor-utility-dock > .rocket-game-hud > button,
+  .browse-doomscroll .tag-search-layout > .doomscroll-utility-dock > .puppy-game-hud > button {
+    display:flex !important;
+    align-items:center;
+    justify-content:center;
+    gap:7px;
+    border:1px solid #e3bf5a !important;
+    border-radius:9px !important;
+    background:linear-gradient(145deg,#f5d56a,#bc8926) !important;
+    box-shadow:inset 0 1px #fff6c2,0 2px 0 #6e4810 !important;
+    color:#18212a !important;
+    font:900 .61rem/1 "DM Mono",monospace !important;
+    letter-spacing:.045em !important;
+    text-shadow:0 1px #ffffff55;
+    touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+    transition:transform .14s ease,filter .14s ease,box-shadow .14s ease;
+  }
+  .browse-conveyor .tag-search-layout > .conveyor-utility-dock > .rocket-game-hud > button::before { content:"✦"; font:900 .85rem/1 system-ui,sans-serif; }
+  .browse-doomscroll .tag-search-layout > .doomscroll-utility-dock > .puppy-game-hud > button::before { content:"☁"; font:900 .85rem/1 system-ui,sans-serif; }
+  .browse-conveyor .tag-search-layout > .conveyor-utility-dock > .rocket-game-hud > button:active,
+  .browse-doomscroll .tag-search-layout > .doomscroll-utility-dock > .puppy-game-hud > button:active { transform:translateY(2px); box-shadow:inset 0 2px 9px #6b4812,0 0 0 transparent !important; filter:saturate(1.12); }
+  .browse-conveyor .tag-search-layout > .conveyor-utility-dock > .rocket-game-hud > button:focus-visible,
+  .browse-doomscroll .tag-search-layout > .doomscroll-utility-dock > .puppy-game-hud > button:focus-visible { outline:2px solid #fff1a8; outline-offset:2px; }
+  .browse-doomscroll .tag-search-layout > .doomscroll-utility-dock {
+    border-color:#d7878d !important;
+    background:linear-gradient(135deg,#fff0ddfa,#ffc9c1f7) !important;
+    box-shadow:inset 0 1px #ffffff9c,0 8px 20px #7838472e !important;
+  }
+  .browse-doomscroll .tag-search-layout > .doomscroll-utility-dock > #remove-tags {
+    border-color:#d18b94 !important;
+    background:linear-gradient(145deg,#fffaf0,#ffe0d5) !important;
+    box-shadow:inset 0 1px #fff,0 2px 0 #b86f79 !important;
+    color:#713747 !important;
+  }
+  .browse-doomscroll .tag-search-layout > .doomscroll-utility-dock > #remove-tags::before { border-color:#b96878; color:#a83d59; }
+  .browse-doomscroll .tag-search-layout > .doomscroll-utility-dock > #remove-tags:hover,
+  .browse-doomscroll .tag-search-layout > .doomscroll-utility-dock > #remove-tags:focus-visible { border-color:#a95367 !important; background:#fff0e4 !important; color:#572535 !important; }
+}
