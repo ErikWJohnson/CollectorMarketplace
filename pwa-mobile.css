@@ -215,7 +215,7 @@
   .listing-filter-controls .sort-listings,
   .listing-filter-controls .price-range { gap:4px !important; color:transparent !important; font-size:0 !important; }
   .listing-filter-controls .sort-listings { padding:0 !important; }
-  .listing-filter-controls .sort-listings select { width:126px; min-width:126px !important; padding:5px 24px 5px 8px !important; color:#d8e3ea !important; font-size:.62rem !important; }
+  .listing-filter-controls .sort-listings select { width:148px; min-width:148px !important; padding:5px 28px 5px 9px !important; color:#d8e3ea !important; font-size:.64rem !important; white-space:nowrap; }
   .listing-filter-controls .price-range { display:flex !important; align-items:center; padding:0 !important; }
   .listing-filter-controls .price-range input { width:68px; min-width:68px !important; padding:5px 7px !important; color:#d8e3ea !important; font-size:.6rem !important; }
   .listing-filter-controls .price-range span { color:#8998a4 !important; font-size:.7rem !important; }
@@ -265,7 +265,7 @@
   .listing-filter-controls .viewer-location::after,
   .listing-filter-controls .checkout-preference::after,
   .listing-filter-controls .private-shipping-settings::after { font-size:.55rem !important; }
-  .listing-filter-controls .sort-listings select { width:112px; min-width:112px !important; }
+  .listing-filter-controls .sort-listings select { width:140px; min-width:140px !important; padding-right:27px !important; font-size:.61rem !important; }
   .listing-filter-controls .price-range input { width:60px; min-width:60px !important; }
 }
 
