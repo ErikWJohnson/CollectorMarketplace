@@ -843,6 +843,12 @@ function cleanVoiceRooms() {
   }
 }
 setInterval(cleanVoiceRooms, 15000).unref();
+app.get('/voice/ice', required, (req, res) => {
+  const iceServers = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun.cloudflare.com:3478'] }];
+  const turnUrls = String(process.env.TURN_URLS || '').split(',').map(value => value.trim()).filter(Boolean);
+  if (turnUrls.length && process.env.TURN_USERNAME && process.env.TURN_CREDENTIAL) iceServers.push({ urls: turnUrls, username: process.env.TURN_USERNAME, credential: process.env.TURN_CREDENTIAL });
+  res.json({ iceServers });
+});
 app.post('/voice/:roomId/join', required, (req, res) => {
   const roomId = decodeURIComponent(req.params.roomId);
   if (!voiceRoomAllowed(roomId, req.user.id)) return res.status(403).json({ error: 'You cannot join this voice room.' });
