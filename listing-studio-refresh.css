@@ -1,0 +1,121 @@
+/* Final seller-studio pass: keeps the proven listing workflow but gives it one
+   consistent visual hierarchy across desktop browsers and the installed app. */
+body.app-section-listing.listing-page {
+  background:
+    radial-gradient(circle at 82% 6%, #c8793d1f, transparent 28rem),
+    linear-gradient(145deg, #100e10, #151517 52%, #0e1512);
+}
+body.app-section-listing.listing-page .app-section-intro {
+  max-width: 1380px;
+  margin: 0 auto;
+  border: 1px solid #6a4738;
+  border-radius: 18px 18px 0 0;
+  padding: clamp(28px, 4vw, 58px);
+  background: linear-gradient(110deg, #25130f, #181719 56%, #10201a);
+  box-shadow: 0 22px 55px #0007;
+}
+body.app-section-listing.listing-page .app-section-intro h1 { max-width: 720px; font-size: clamp(2.35rem, 5vw, 4.75rem); letter-spacing: -.055em; }
+body.app-section-listing.listing-page .app-section-intro p { max-width: 650px; color: #c9beb4; font-size: clamp(.9rem, 1.3vw, 1.05rem); }
+body.app-section-listing.listing-page .app-section-content { max-width: 1380px; margin: 0 auto; padding: 20px clamp(14px, 2vw, 30px) calc(154px + env(safe-area-inset-bottom)); }
+body.app-section-listing.listing-page .listing-form { max-width: none; gap: 16px; }
+body.app-section-listing.listing-page .listing-creation-progress {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  border: 1px solid #644638;
+  border-radius: 14px;
+  padding: 8px;
+  background: #131415e8;
+  box-shadow: 0 12px 30px #0005;
+}
+body.app-section-listing.listing-page .listing-creation-progress > i { display: none; }
+body.app-section-listing.listing-page .listing-creation-progress > div { min-height: 58px; border: 1px solid #343638; border-radius: 10px; padding: 10px; background: #17191a; }
+body.app-section-listing.listing-page .listing-creation-progress > div.is-current { border-color: #d99954; background: linear-gradient(135deg, #4b2818, #261d18); }
+body.app-section-listing.listing-page .listing-creation-progress b { background: #222528; color: #eac782; }
+body.app-section-listing.listing-page .listing-creation-progress .is-current b { background: #dfa34e; color: #21150c; }
+body.app-section-listing.listing-page .listing-workspace-assist {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #3d5e4b;
+  border-radius: 12px;
+  padding: 11px 14px;
+  background: linear-gradient(90deg, #112019, #121917);
+}
+body.app-section-listing.listing-page .listing-workspace-assist header { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 205px; }
+body.app-section-listing.listing-page .listing-workspace-assist span { border: 1px solid #345643; border-radius: 999px; padding: 6px 9px; background: #13231a; color: #bed3c2; }
+body.app-section-listing.listing-page .listing-workspace-assist span.is-complete { border-color: #62ba7b; background: #173724; color: #dcffe6; }
+body.app-section-listing.listing-page .listing-editor-grid { grid-template-columns: minmax(0, 1.18fr) minmax(340px, .82fr); gap: 16px; align-items: start; }
+body.app-section-listing.listing-page .listing-details,
+body.app-section-listing.listing-page .listing-media-panel {
+  border: 1px solid #3b3c3f;
+  border-radius: 15px;
+  background: linear-gradient(145deg, #191a1d, #111315 72%);
+  box-shadow: 0 20px 46px #0006;
+}
+body.app-section-listing.listing-page .listing-details { gap: 18px; padding: clamp(16px, 2vw, 26px); }
+body.app-section-listing.listing-page .listing-step { border-color: #6d4638; color: #e3af68; }
+body.app-section-listing.listing-page .listing-step small { color: #aaa39d; }
+body.app-section-listing.listing-page .listing-form-grid,
+body.app-section-listing.listing-page .listing-media-inputs,
+body.app-section-listing.listing-page .listing-location-panel,
+body.app-section-listing.listing-page .description-field {
+  border-color: #3b3d40;
+  border-radius: 12px;
+  padding: clamp(13px, 1.7vw, 19px);
+  background: #121416;
+}
+body.app-section-listing.listing-page .listing-form-grid::before,
+body.app-section-listing.listing-page .listing-media-inputs::before,
+body.app-section-listing.listing-page .listing-location-panel::before,
+body.app-section-listing.listing-page .description-field::before { background: #d99954; box-shadow: 0 0 12px #d9995477; }
+body.app-section-listing.listing-page .listing-location-panel { border-color: #376a54; }
+body.app-section-listing.listing-page .listing-location-panel::before { background: #72cd96; box-shadow: 0 0 12px #72cd9677; }
+body.app-section-listing.listing-page .listing-media-inputs { border-color: #4a5265; }
+body.app-section-listing.listing-page .listing-media-inputs::before { background: #a9b6e9; box-shadow: 0 0 12px #a9b6e977; }
+body.app-section-listing.listing-page .listing-form label { color: #d8d4ce; font-size: .73rem; letter-spacing: .02em; }
+body.app-section-listing.listing-page .listing-form input,
+body.app-section-listing.listing-page .listing-form select,
+body.app-section-listing.listing-page .listing-form textarea { border-color: #42464a; border-radius: 8px; background: #0c0e10; color: #f7f3ed; }
+body.app-section-listing.listing-page .listing-form input:focus,
+body.app-section-listing.listing-page .listing-form select:focus,
+body.app-section-listing.listing-page .listing-form textarea:focus { border-color: #e0a55d; box-shadow: 0 0 0 3px #d9995426; }
+body.app-section-listing.listing-page .listing-upload-field { border: 1px dashed #657080; border-radius: 10px; background: linear-gradient(145deg, #161b20, #111416); }
+body.app-section-listing.listing-page .listing-upload-field:hover { border-color: #dcb36d; background: #201a15; }
+body.app-section-listing.listing-page .listing-media-panel { position: sticky; top: 18px; overflow: hidden; padding: 0; }
+body.app-section-listing.listing-page .listing-media-panel > div:first-child { display: block; padding: 22px 22px 14px; border-bottom: 1px solid #3a3b3d; }
+body.app-section-listing.listing-page .listing-media-panel h3 { margin: 7px 0; color: #f4eee4; font-size: clamp(1.45rem, 2.6vw, 2.1rem); }
+body.app-section-listing.listing-page .listing-media-panel > div:first-child > p:last-child { color: #ada8a0; line-height: 1.45; }
+body.app-section-listing.listing-page .listing-image-preview { min-height: 390px; margin: 16px; border-color: #5b503d; border-radius: 11px; background: radial-gradient(circle at 50% 20%, #5c402033, transparent 48%), #0a0c0d; }
+body.app-section-listing.listing-page .preview-empty { padding: 28px; background: linear-gradient(135deg, #ffffff08 25%, transparent 25%) 0 0 / 24px 24px, linear-gradient(315deg, #ffffff06 25%, transparent 25%) 0 0 / 24px 24px, #0d1012; }
+body.app-section-listing.listing-page .listing-publish-bar { left: 50%; bottom: max(16px, env(safe-area-inset-bottom)); width: min(1100px, calc(100% - 32px)); transform: translateX(-50%); border: 1px solid #80583c; border-radius: 13px; padding: 12px 14px; background: #161515f5; box-shadow: 0 16px 42px #000b; backdrop-filter: blur(16px); }
+body.app-section-listing.listing-page .listing-publish-bar span { max-width: 580px; color: #c9c5be; }
+body.app-section-listing.listing-page .listing-publish-bar button { min-height: 50px; border-radius: 9px; padding-inline: 24px; background: linear-gradient(135deg, #edb855, #cf7e3e); color: #1f150d; box-shadow: inset 0 1px #fff5cc99; }
+body.app-section-listing.listing-page .listing-publish-bar button:hover { background: linear-gradient(135deg, #ffd274, #e9914a); }
+@media (max-width: 860px) {
+  body.app-section-listing.listing-page .listing-editor-grid { grid-template-columns: 1fr; }
+  body.app-section-listing.listing-page .listing-media-panel { position: static; order: 2; }
+  body.app-section-listing.listing-page .listing-image-preview { min-height: 270px; }
+}
+@media (max-width: 680px) {
+  body.app-section-listing.listing-page .app-section-intro { border-width: 0 0 1px; border-radius: 0; padding: 22px 16px 20px; }
+  body.app-section-listing.listing-page .app-section-intro h1 { font-size: clamp(2rem, 10vw, 2.7rem); }
+  body.app-section-listing.listing-page .app-section-content { padding: 10px 10px calc(132px + env(safe-area-inset-bottom)); }
+  body.app-section-listing.listing-page .listing-creation-progress { gap: 5px; padding: 6px; }
+  body.app-section-listing.listing-page .listing-creation-progress > div { min-height: 52px; padding: 7px 5px; }
+  body.app-section-listing.listing-page .listing-creation-progress small { display: none; }
+  body.app-section-listing.listing-page .listing-creation-progress strong { font-size: .58rem; }
+  body.app-section-listing.listing-page .listing-workspace-assist { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); padding: 10px; }
+  body.app-section-listing.listing-page .listing-workspace-assist header { grid-column: 1 / -1; min-width: 0; }
+  body.app-section-listing.listing-page .listing-workspace-assist span { min-width: 0; padding: 7px 4px; font-size: .6rem; text-align: center; }
+  body.app-section-listing.listing-page .listing-details { padding: 13px 11px; }
+  body.app-section-listing.listing-page .listing-form-grid,
+  body.app-section-listing.listing-page .listing-media-inputs,
+  body.app-section-listing.listing-page .listing-location-panel,
+  body.app-section-listing.listing-page .description-field { padding: 13px 11px; }
+  body.app-section-listing.listing-page .listing-media-panel > div:first-child { padding: 17px 15px 11px; }
+  body.app-section-listing.listing-page .listing-image-preview { min-height: 220px; margin: 10px; }
+  body.app-section-listing.listing-page .listing-publish-bar { bottom: calc(90px + env(safe-area-inset-bottom)); width: calc(100% - 20px); flex-direction: column; align-items: stretch; gap: 7px; padding: 9px 10px; }
+  body.app-section-listing.listing-page .listing-publish-bar span { font-size: .64rem; line-height: 1.3; }
+  body.app-section-listing.listing-page .listing-publish-bar button { width: 100%; min-height: 48px; }
+}
