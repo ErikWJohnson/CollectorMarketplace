@@ -1,9 +1,10 @@
 /* Static shell only: never cache account, chat, payment, delivery, or API data. */
-const CACHE_NAME = 'collector-marketplace-shell-v5';
+const CACHE_NAME = 'collector-marketplace-shell-v6';
 const SHELL_ASSETS = [
   '/', '/index.html', '/offline.html', '/site.js', '/site.css', '/layout-fixes.css',
   '/full-width.css', '/immersive-feed.css', '/persistent-dock.css', '/mobile-responsive.css',
   '/professional-polish.css', '/favicon.png', '/favicon-512.png',
+  '/messaging-polish.css',
   '/public/logo-three-cards.png'
 ];
 const SENSITIVE_PREFIXES = /^\/(?:api|auth|account|paypal|membership|trade|delivery|chat|voice|notifications|shipping|tax|listing\/[^/]+\/(?:statistics|promotion))/i;
@@ -17,6 +18,21 @@ self.addEventListener('install', event => {
 });
 self.addEventListener('activate', event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)))).then(() => self.clients.claim())));
 self.addEventListener('message', event => { if (event.data?.type === 'SKIP_WAITING') self.skipWaiting(); });
+self.addEventListener('push', event => {
+  let data = {};
+  try { data = event.data?.json() || {}; } catch { data = {}; }
+  const title = String(data.title || 'CollectorMarketplace');
+  const options = { body: String(data.body || 'You have a new marketplace update.'), icon: '/favicon-512.png', badge: '/favicon.png', tag: String(data.tag || 'collector-marketplace-alert'), renotify: true, data: { link: String(data.link || '#chat') } };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const url = new URL(String(event.notification.data?.link || '#chat'), self.location.origin).href;
+  event.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windows => {
+    const match = windows.find(client => client.url.startsWith(self.location.origin));
+    return match ? match.focus().then(() => match.navigate(url)) : clients.openWindow(url);
+  }));
+});
 self.addEventListener('fetch', event => {
   const request = event.request;
   const url = new URL(request.url);
