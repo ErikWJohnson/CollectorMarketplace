@@ -1,0 +1,202 @@
+/* Final responsive pass for the full-page seller studio.  This file is kept
+   last in the cascade so the publish workflow has one dependable layout on
+   both the website and installed mobile app. */
+body.app-section-listing.listing-page {
+  background: #0c0f13;
+}
+
+body.app-section-listing.listing-page .listing-creation-progress,
+body.app-section-listing.listing-page .listing-workspace-assist {
+  max-width: 1320px;
+}
+
+body.app-section-listing.listing-page .listing-editor-grid {
+  max-width: 1320px;
+}
+
+body.app-section-listing.listing-page .listing-details,
+body.app-section-listing.listing-page .listing-media-panel {
+  box-shadow: 0 18px 42px #0000002e;
+}
+
+body.app-section-listing.listing-page .listing-publish-bar {
+  z-index: 950;
+  bottom: 98px;
+}
+
+@media (min-width: 900px) {
+  body.app-section-listing.listing-page .listing-form-grid {
+    grid-template-columns: minmax(0, 1.45fr) repeat(2, minmax(170px, .8fr));
+  }
+
+  body.app-section-listing.listing-page .listing-editor-grid {
+    grid-template-columns: minmax(0, 1.4fr) minmax(340px, .6fr);
+    gap: 20px;
+  }
+
+  body.app-section-listing.listing-page .listing-media-panel {
+    top: 16px;
+  }
+
+  body.app-section-listing.listing-page .listing-publish-bar {
+    grid-template-columns: minmax(0, 1fr) minmax(240px, auto);
+  }
+}
+
+@media (max-width: 680px) {
+  body.app-section-listing.listing-page .app-section-page {
+    padding-bottom: calc(234px + env(safe-area-inset-bottom));
+  }
+
+  body.app-section-listing.listing-page .app-section-intro {
+    padding: 20px 16px 18px;
+  }
+
+  body.app-section-listing.listing-page .app-section-intro h1 {
+    font-size: clamp(1.65rem, 8vw, 2.15rem);
+    line-height: 1;
+  }
+
+  body.app-section-listing.listing-page .app-section-intro p {
+    margin-top: 8px;
+    font-size: .8rem;
+    line-height: 1.42;
+  }
+
+  body.app-section-listing.listing-page .app-section-content {
+    padding: 12px 10px 0;
+  }
+
+  body.app-section-listing.listing-page .listing-form {
+    gap: 12px;
+  }
+
+  body.app-section-listing.listing-page .listing-creation-progress {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px;
+    padding: 8px;
+  }
+
+  body.app-section-listing.listing-page .listing-creation-progress > i {
+    display: none;
+  }
+
+  body.app-section-listing.listing-page .listing-creation-progress > div {
+    min-width: 0;
+    padding: 6px 4px;
+  }
+
+  body.app-section-listing.listing-page .listing-creation-progress b {
+    width: 21px;
+    height: 21px;
+    font-size: .54rem;
+  }
+
+  body.app-section-listing.listing-page .listing-creation-progress strong,
+  body.app-section-listing.listing-page .listing-creation-progress small {
+    display: block;
+    overflow: hidden;
+    font-size: .57rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  body.app-section-listing.listing-page .listing-workspace-assist {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    padding: 10px;
+  }
+
+  body.app-section-listing.listing-page .listing-workspace-assist header {
+    grid-column: 1 / -1;
+  }
+
+  body.app-section-listing.listing-page .listing-workspace-assist span {
+    min-width: 0;
+    justify-content: center;
+    padding: 7px 5px;
+    font-size: .6rem;
+    text-align: center;
+  }
+
+  body.app-section-listing.listing-page .listing-details {
+    gap: 14px;
+    padding: 14px 12px;
+  }
+
+  body.app-section-listing.listing-page .listing-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  body.app-section-listing.listing-page .title-field,
+  body.app-section-listing.listing-page .listing-tag-field,
+  body.app-section-listing.listing-page .listing-gallery-placement,
+  body.app-section-listing.listing-page .listing-post-type,
+  body.app-section-listing.listing-page .listing-inventory-choice,
+  body.app-section-listing.listing-page .description-field {
+    grid-column: 1 / -1;
+  }
+
+  body.app-section-listing.listing-page .listing-form label {
+    gap: 6px;
+    font-size: .68rem;
+  }
+
+  body.app-section-listing.listing-page .listing-form input,
+  body.app-section-listing.listing-page .listing-form select,
+  body.app-section-listing.listing-page .listing-form textarea {
+    min-height: 48px;
+    padding: 11px 10px;
+    font-size: 16px;
+  }
+
+  body.app-section-listing.listing-page .listing-form textarea {
+    min-height: 112px;
+  }
+
+  body.app-section-listing.listing-page .listing-media-inputs {
+    grid-template-columns: 1fr;
+    gap: 9px;
+    padding: 12px;
+  }
+
+  body.app-section-listing.listing-page .listing-upload-field {
+    min-height: 96px;
+  }
+
+  body.app-section-listing.listing-page .listing-media-panel {
+    order: 2;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 13px;
+  }
+
+  body.app-section-listing.listing-page .listing-image-preview {
+    min-height: 220px;
+  }
+
+  body.app-section-listing.listing-page .listing-publish-bar {
+    bottom: calc(106px + env(safe-area-inset-bottom));
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  body.app-section-listing.listing-page .listing-publish-bar span {
+    font-size: .65rem;
+    line-height: 1.35;
+  }
+
+  body.app-section-listing.listing-page .listing-publish-bar button {
+    min-height: 48px;
+    font-size: .9rem;
+  }
+}
+
+@media (max-width: 390px) {
+  body.app-section-listing.listing-page .listing-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
