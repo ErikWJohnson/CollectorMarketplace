@@ -229,5 +229,31 @@ body.account-open .profile-footer .entity-primary { border-color:#d49c56 !import
   body.account-open { background-position: 43% top !important; background-attachment: scroll !important; }
   body.app-section-account .app-section-content { width:100% !important; margin-left:0 !important; padding-right:10px !important; padding-left:10px !important; }
   body.app-section-account .profile-workspace,
-  body.account-open .account-workspace { border-radius: 12px; }
+  body.account-open .account-workspace {
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    grid-template-columns:minmax(0,1fr) !important;
+    border-radius: 12px;
+  }
+  body.app-section-account .profile-workspace > *,
+  body.account-open .account-workspace > * { min-width:0; max-width:100%; }
+  body.app-section-account .profile-hero,
+  body.account-open .profile-hero { gap:14px; padding:22px 16px !important; }
+  body.app-section-account .profile-hero > div,
+  body.account-open .profile-hero > div { min-width:0; flex:1 1 180px; }
+  body.app-section-account .profile-hero h3,
+  body.account-open .profile-hero h3 { overflow-wrap:anywhere; font-size:clamp(1.7rem,8vw,2.4rem); }
+  body.app-section-account .profile-hero > div > span,
+  body.account-open .profile-hero > div > span { overflow-wrap:anywhere; }
+  body.app-section-account .profile-hero > button,
+  body.account-open .profile-hero > button { max-width:100%; margin-right:auto; }
+  body.app-section-account .profile-metrics,
+  body.account-open .profile-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  body.app-section-account .profile-listing-grid,
+  body.account-open .profile-listing-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  body.app-section-account .profile-listing-card,
+  body.account-open .profile-listing-card { min-width:0; overflow:hidden; }
+  body.app-section-account .profile-listing-card b,
+  body.account-open .profile-listing-card b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 }
