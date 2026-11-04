@@ -607,15 +607,37 @@ const conveyorRocket = { node: null, frame: 0, x: 50, y: 76, vx: .055, vy: -.025
 const conveyorRocketGame = { layer: null, hud: null, started: false, score: 0, highScore: Number(localStorage.getItem('collector-marketplace-star-run-high-score') || 0), hull: 3, asteroids: [], enemies: [], lasers: [], enemyLasers: [], lastAsteroid: 0, lastEnemy: 0, lastScore: 0, lastShot: 0, lastHit: 0, lastHud: 0, lastRender: 0 };
 // Physics advances from elapsed time rather than browser frame count. A
 // 120Hz desktop and a slower phone therefore cover the same distance per
-// second. Draw at the device refresh pace (up to 60fps) so touch games do not
-// feel artificially slowed on modern phones.
+// second. On touch/low-power devices we only reduce DOM paint frequency; game
+// simulation, input, collisions, and score timing continue at the same rate.
 const animationStep = (state, timestamp) => { const previous = state.lastTick || timestamp; state.lastTick = timestamp; return Math.max(.25, Math.min(3, (timestamp - previous) / (1000 / 60))); };
-const gameRenderCadence = () => 16;
+const minigamePerformance = {
+  touch: window.matchMedia?.('(pointer: coarse)').matches || navigator.maxTouchPoints > 0,
+  reducedMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches,
+  constrained: (navigator.deviceMemory && navigator.deviceMemory <= 4) || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4)
+};
+const gameRenderCadence = () => {
+  if (document.hidden) return 250;
+  if (minigamePerformance.reducedMotion) return 50;
+  // 30fps painting is considerably smoother than a janky 60fps DOM rebuild on
+  // phones, while the requestAnimationFrame physics loop remains uninterrupted.
+  if (minigamePerformance.touch || minigamePerformance.constrained) return 33;
+  return 16;
+};
 const shouldRenderMinigame = (game, timestamp) => { if (timestamp - (game.lastRender || 0) < gameRenderCadence()) return false; game.lastRender = timestamp; return true; };
 const rocketControlCodes = new Set(['Equal', 'BracketLeft', 'BracketRight', 'ArrowLeft', 'ArrowRight', 'Backquote']);
 const pauseRocketBoost = () => { if (!rocketBoostAudio) return; rocketBoostAudio.pause(); rocketBoostAudio.currentTime = 0; };
 const playRocketBoost = () => { if (!rocketBoostAudio || !rocketBoostAudio.paused || !soundEffectsEnabled()) return; rocketBoostAudio.volume = .46; rocketBoostAudio.play().catch(() => {}); };
-const playGameEffect = (source, volume = .5) => { if (!source?.src || !soundEffectsEnabled()) return; const effect = new Audio(source.currentSrc || source.src); effect.volume = volume; effect.play().catch(() => {}); };
+const gameEffectTimes = new WeakMap();
+const playGameEffect = (source, volume = .5) => {
+  if (!source?.src || !soundEffectsEnabled()) return;
+  const now = performance.now();
+  // Bursts of collision sounds can create many Audio instances at once on a
+  // phone. Keep the first hit responsive and coalesce only duplicate bursts.
+  const cooldown = minigamePerformance.touch || minigamePerformance.constrained ? 90 : 35;
+  if (now - (gameEffectTimes.get(source) || -Infinity) < cooldown) return;
+  gameEffectTimes.set(source, now);
+  const effect = new Audio(source.currentSrc || source.src); effect.volume = volume; effect.preload = 'none'; effect.play().catch(() => {});
+};
 const rocketDistance = (first, second) => Math.hypot(first.x - second.x, first.y - second.y);
 const rocketRandom = (min, max) => min + Math.random() * (max - min);
 function startRocketGame(node) {

@@ -29,4 +29,60 @@
 .puppy-game-layer { z-index: 1; }
 .conveyor-rocket,
 .puppy-game-pup { z-index: 2; }
+
+/* Mobile games keep their simulations running at the same speed as desktop,
+   but their decorative layers are intentionally cheaper to paint. This keeps
+   controls responsive on slower phones instead of letting filters and shadows
+   consume the frame budget. */
+.rocket-game-layer,
+.puppy-game-layer,
+.gothic-hunt-game,
+.sell-lava-game,
+.account-sailing-game,
+.auction-block-game,
+.jungle-chat-game {
+  transform:translateZ(0);
+  backface-visibility:hidden;
+}
+
+@media (pointer:coarse), (max-width:680px) {
+  .rocket-game-playfield,
+  .puppy-game-playfield,
+  .gothic-hunt-game,
+  .sell-lava-game,
+  .account-sailing-game,
+  .auction-block-game,
+  .jungle-chat-game { overscroll-behavior:contain; -webkit-user-select:none; user-select:none; }
+
+  .rocket-game-layer,
+  .puppy-game-layer { will-change:contents; }
+
+  .rocket-game-layer *,
+  .puppy-game-layer * { filter:none !important; box-shadow:none !important; }
+
+  .mobile-game-controls,
+  .canopy-snake-controls { touch-action:manipulation; }
+
+  .mobile-game-controls button,
+  .canopy-snake-controls button,
+  .gothic-hunt-game button,
+  .sell-lava-game button,
+  .account-sailing-game button,
+  .auction-block-game button,
+  .jungle-chat-game button {
+    min-width:44px;
+    min-height:44px;
+    touch-action:manipulation;
+  }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .rocket-game-layer *,
+  .puppy-game-layer *,
+  .gothic-hunt-game *,
+  .sell-lava-game *,
+  .account-sailing-game *,
+  .auction-block-game *,
+  .jungle-chat-game * { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
+}
 @media (pointer:coarse){.rocket-game-playfield,.puppy-game-playfield,.gothic-hunt-field,.sell-lava-field,.sailing-battlefield,.auction-block-game,.canopy-snake-field{touch-action:none}.gothic-hunt-game footer button,.sell-lava-game footer button,.account-sailing-game footer button,.jungle-chat-game button,.auction-block-game button{min-width:44px;min-height:44px}.gothic-hunt-game footer small,.sell-lava-game footer small,.account-sailing-game footer small{font-size:10px;line-height:1.35}.gothic-hunt-game footer>div,.sell-lava-game footer>div,.account-sailing-game footer>div{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}}
