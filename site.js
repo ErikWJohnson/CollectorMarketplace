@@ -283,10 +283,10 @@ let browseMode = ['conveyor', 'doomscroll', 'squared'].includes(savedBrowseMode)
 // Keep the browse canvas focused on first visit; only persist an explicit user choice.
 let metadataVisible = localStorage.getItem('collector-marketplace-metadata-visible') === 'true';
 // Keep comma/period keyboard navigation in the same order as the visible scope bar.
-const searchScopes = ['listings', 'wanted', 'accounts', 'galleries', 'collectives', 'brands', 'chatrooms', 'couriers'];
+const searchScopes = ['listings', 'wanted', 'events', 'accounts', 'galleries', 'collectives', 'brands', 'chatrooms', 'couriers'];
 const socialScopeMeta = {
   listings: { heading: 'Fresh drops', noun: 'listing' }, accounts: { heading: 'Collector network', noun: 'collector' },
-  wanted: { heading: 'Collector requests', noun: 'wanted request' },
+  wanted: { heading: 'Collector requests', noun: 'wanted request' }, events: { heading: 'Time-limited events', noun: 'event' },
   galleries: { heading: 'Public collector galleries', noun: 'gallery' },
   collectives: { heading: 'Collector groups', noun: 'group' }, brands: { heading: 'Brand communities', noun: 'brand' },
   couriers: { heading: 'Delivery network', noun: 'service' }, chatrooms: { heading: 'Live collector rooms', noun: 'room' }
@@ -295,11 +295,12 @@ const setSearchScope = (scope, syncRoute = true) => {
   if (!searchScopes.includes(scope)) return;
   searchScope = scope;
   document.querySelectorAll('[data-search-scope]').forEach(button => button.classList.toggle('active', button.dataset.searchScope === searchScope));
-  search.placeholder = searchScope === 'listings' ? 'Search collector finds' : searchScope === 'wanted' ? 'Search what collectors want to buy' : searchScope === 'accounts' ? 'Find collectors by name or interest' : searchScope === 'galleries' ? 'Find public collector galleries' : searchScope === 'collectives' ? 'Find collector groups and interests' : searchScope === 'brands' ? 'Find brands and their communities' : searchScope === 'couriers' ? 'Find collector-friendly delivery services' : 'Find live collector rooms';
+  search.placeholder = searchScope === 'listings' ? 'Search collector finds' : searchScope === 'wanted' ? 'Search what collectors want to buy' : searchScope === 'events' ? 'Search active collector events' : searchScope === 'accounts' ? 'Find collectors by name or interest' : searchScope === 'galleries' ? 'Find public collector galleries' : searchScope === 'collectives' ? 'Find collector groups and interests' : searchScope === 'brands' ? 'Find brands and their communities' : searchScope === 'couriers' ? 'Find collector-friendly delivery services' : 'Find live collector rooms';
   const marketHeading = document.querySelector('.market-head span');
   if (marketHeading) marketHeading.textContent = socialScopeMeta[searchScope].heading;
   syncBrowseModeUi();
   if (searchScope === 'wanted') loadWantedRequests().catch(() => {}).finally(() => renderFeed());
+  else if (searchScope === 'events') loadMarketplaceEvents().catch(() => {}).finally(() => renderFeed());
   else renderFeed();
   if (syncRoute && typeof syncTagRoute === 'function') syncTagRoute();
 };
@@ -1201,7 +1202,7 @@ document.addEventListener('keydown', event => {
   event.preventDefault();
   toggleAutoScroll();
 });
-const keyboardNavigation = { l: { selector: '[data-sell]', hash: 'list-item' }, a: { selector: '[data-auction]', hash: 'auction-house' }, b: { selector: '[data-home]', hash: 'browse' }, c: { selector: '[data-chat]', hash: 'chat' }, u: { selector: '[data-account]', hash: 'account' }, f: { selector: '[data-raffles]', hash: 'raffles' }, g: { selector: '[data-map]', hash: 'map' } };
+const keyboardNavigation = { l: { selector: '[data-sell]', hash: 'list-item' }, a: { selector: '[data-auction]', hash: 'auction-house' }, b: { selector: '[data-home]', hash: 'browse' }, c: { selector: '[data-chat]', hash: 'chat' }, u: { selector: '[data-account]', hash: 'account' }, f: { selector: '[data-raffles]', hash: 'raffles' } };
 const modalWorkspaceHashes = new Set(['list-item', 'vip-curator', 'fees']);
 let restoringWorkspaceHistory = false;
 // Async page loads must not be allowed to overwrite a page the visitor chose
@@ -1217,12 +1218,11 @@ const setWorkspaceHash = hash => {
 // Claim the destination before any asynchronous panel request begins. If a
 // previous request resolves later, openModal will ignore that stale result.
 document.addEventListener('click', event => {
-  const target = event.target.closest('[data-home],[data-market],[data-auction],[data-map],[data-chat],[data-sell],[data-account],[data-raffles],[data-curator],[data-help],[data-profile],[data-collector-chat],[data-conversation],[data-trade-chat],[data-delivery]');
+  const target = event.target.closest('[data-home],[data-market],[data-auction],[data-chat],[data-sell],[data-account],[data-raffles],[data-curator],[data-help],[data-profile],[data-collector-chat],[data-conversation],[data-trade-chat],[data-delivery]');
   if (!target) return;
   if (target.matches('[data-home],[data-market]')) { beginWorkspaceRoute('browse'); document.body.classList.remove('app-section-membership', 'listing-page'); }
   else if (target.matches('[data-auction]')) { beginWorkspaceRoute('auction'); document.body.classList.remove('app-section-listing', 'app-section-membership', 'listing-page'); }
   else if (target.matches('[data-chat],[data-collector-chat],[data-conversation],[data-trade-chat],[data-delivery]')) beginWorkspaceRoute('chat');
-  else if (target.matches('[data-map]')) beginWorkspaceRoute('map');
   else if (target.matches('[data-sell]')) beginWorkspaceRoute('listing');
   else if (target.matches('[data-raffles]')) beginWorkspaceRoute('raffles');
   else if (target.matches('[data-curator]')) beginWorkspaceRoute('membership');
@@ -1256,7 +1256,7 @@ document.addEventListener('keydown', event => {
   const direction = event.key === ',' ? -1 : 1;
   setSearchScope(searchScopes[(current + direction + searchScopes.length) % searchScopes.length]);
 });
-const bottomNavigation = ['home', 'auction', 'raffles', 'map', 'chat', 'sell', 'wanted-board', 'account'];
+const bottomNavigation = ['home', 'auction', 'raffles', 'chat', 'sell', 'wanted-board'];
 document.addEventListener('keydown', event => {
   const key = event.key.toLowerCase();
   if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || !canUseAutoScroll(event.target) || !['z', 'x'].includes(key)) return;
@@ -1288,7 +1288,7 @@ const applyHashLocation = () => {
   if (hash.startsWith('purchase/')) { const listingId = hash.slice('purchase/'.length); const item = listings.find(listing => String(listing.id).toLowerCase() === listingId); if (!item) return; if (!session) return openAuthPanel('login'); if (item.ownerId === session.user.id) return openModal('Your own listing', 'You cannot buy your own listing. Use your account page to edit, archive, or manage it instead.'); const routeId = beginWorkspaceRoute('purchase'); api('/account/shipping-profile').catch(() => ({})).then(profile => { if (routeId === workspaceRouteId && location.hash.slice(1).toLowerCase() === hash) openPurchasePage(item, profile, false); }).catch(showError); return; }
   if (hash === 'help') { openHelpPage(false); return; }
   if (hash === 'raffles') { openRaffleCenter(false).catch(showError); return; }
-  if (hash === 'map') { openMapCenter(false).catch(showError); return; }
+  if (hash === 'map') { openMapCenter(false); return; }
   if (hash === 'wanted-request') { openWantedRequestPage(false); return; }
   if (hash === 'wanted') { openWantedCenter(false).catch(showError); return; }
   if (hash === 'search' || hash === 'tags') { openDiscoveryShortcut(hash); return; }
@@ -1818,6 +1818,25 @@ const filteredWantedRequests = () => {
   const query = activeQuery.toLowerCase().trim();
   return wantedRequests.filter(request => `${request.title || ''} ${request.description || ''} ${request.category || ''} ${request.desiredCondition || ''} ${(request.tags || []).join(' ')}`.toLowerCase().includes(query) && tagsMatchDirectory((request.tags || []).map(tag => String(tag).toLowerCase())));
 };
+const eventTimeRemaining = value => {
+  const remaining = Math.max(0, new Date(value).valueOf() - Date.now());
+  if (!remaining) return 'Ended';
+  const total = Math.ceil(remaining / 1000); const days = Math.floor(total / 86400); const hours = Math.floor((total % 86400) / 3600); const minutes = Math.floor((total % 3600) / 60); const seconds = total % 60;
+  return days ? `${days}d ${hours}h ${minutes}m` : `${hours}h ${minutes}m ${seconds}s`;
+};
+const filteredMarketplaceEvents = () => {
+  const query = activeQuery.toLowerCase().trim();
+  return marketplaceEvents.filter(event => new Date(event.endsAt).valueOf() > Date.now() && `${event.title || ''} ${event.description || ''} ${event.location || ''} ${event.category || ''}`.toLowerCase().includes(query) && tagsMatchDirectory([event.title, event.category, event.location].map(value => String(value || '').toLowerCase())));
+};
+const eventBrowseCard = event => {
+  const mine = session?.user?.id === event.ownerId; const start = new Date(event.startsAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }); const end = new Date(event.endsAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+  return `<article class="event-browse-card" data-event-card="${safe(event.id)}"><header><span>${safe(event.category)}</span><time data-event-countdown="${safe(event.endsAt)}">${safe(eventTimeRemaining(event.endsAt))} left</time></header><h2>${safe(event.title)}</h2><b>⌖ ${safe(event.location)}</b><p>${safe(event.description)}</p><dl><div><dt>Starts</dt><dd>${safe(start)}</dd></div><div><dt>Ends</dt><dd>${safe(end)}</dd></div></dl><footer><button type="button" data-profile="${safe(event.ownerId)}">Hosted by @${safe(event.owner?.username || 'collector')}</button>${mine ? `<button type="button" data-event-cancel="${safe(event.id)}">Cancel event</button>` : session ? `<button type="button" data-collector-chat="${safe(event.ownerId)}">Message host</button>` : ''}</footer></article>`;
+};
+let eventCountdownTimer = 0;
+const updateEventCountdowns = () => {
+  document.querySelectorAll('[data-event-countdown]').forEach(node => { const remaining = eventTimeRemaining(node.dataset.eventCountdown); node.textContent = remaining === 'Ended' ? 'Ended' : `${remaining} left`; node.closest('[data-event-card]')?.classList.toggle('is-ended', remaining === 'Ended'); });
+};
+const startEventCountdowns = () => { clearInterval(eventCountdownTimer); if (searchScope !== 'events') return; updateEventCountdowns(); eventCountdownTimer = window.setInterval(updateEventCountdowns, 1000); };
 const wantedBrowseCard = request => {
   const mine = session?.user?.id === request.ownerId;
   const image = request.image ? `<img src="${safe(request.image)}" alt="">` : '<span class="wanted-card-mark" aria-hidden="true">⌕</span>';
@@ -1971,6 +1990,15 @@ function renderFeed(reset = true) {
   // Search, checkout, location, and tag events all refresh the feed. Those
   // updates belong only to Browse and must never replace an open workspace.
   if (!canRenderBrowseFeed()) return;
+  if (searchScope === 'events') {
+    const rows = filteredMarketplaceEvents();
+    const cards = rows.map(eventBrowseCard).join('') || '<section class="event-empty"><b>No active events match that search.</b><p>Try another term, or post a time-limited collector event.</p></section>';
+    stream.innerHTML = `<section class="event-browse-feed">${eventCreateFormMarkup()}<section class="event-browse-grid">${cards}</section></section>`;
+    document.querySelector('#result-count').textContent = `${rows.length} active event${rows.length === 1 ? '' : 's'}`;
+    sentinel.textContent = rows.length ? 'Time-limited collector events · countdowns update live' : 'No active events right now.';
+    syncBrowseModeUi(); startEventCountdowns(); return;
+  }
+  clearInterval(eventCountdownTimer);
   if (searchScope === 'wanted') {
     const rows = filteredWantedRequests();
     const cards = rows.map(wantedBrowseCard).join('') || '<section class="wanted-empty"><b>No wanted requests match that search.</b><p>Try another term, or be the first collector to post what you are seeking.</p></section>';
@@ -2006,39 +2034,21 @@ async function openRaffleCenter(updateRoute = true) {
   openAppSection('raffles', 'Raffle Center', 'Enter verified collector prize draws for free. No purchase or payment is required to enter; official rules and eligibility are shown with every raffle.', `${createForm}<section class="raffle-list">${cards || '<section class="raffle-empty"><b>No raffle is open yet.</b><p>Verified platform prize draws will appear here when their official rules are ready.</p></section>'}</section><p class="raffle-disclaimer">No purchase necessary. Void where prohibited. CollectorMarketplace raffles are free-entry prize promotions; review every raffle’s official rules before entering.</p>`);
 }
 
-const eventFinderLocation = () => localStorage.getItem('collector-marketplace-events-location') || '';
-const eventFinderDate = () => localStorage.getItem('collector-marketplace-events-date') || new Date().toISOString().slice(0, 10);
-const eventDateValue = value => new Date(value).toISOString().slice(0, 10);
-async function loadMarketplaceEvents(location = '', dateValue = eventFinderDate()) {
-  const selected = new Date(`${dateValue}T12:00:00`);
-  const from = new Date(selected.getFullYear(), selected.getMonth(), 1).toISOString();
-  const until = new Date(selected.getFullYear(), selected.getMonth() + 2, 1).toISOString();
+async function loadMarketplaceEvents(location = '') {
+  const from = new Date(Date.now() - 60 * 1000).toISOString();
+  const until = new Date(Date.now() + 366 * 86400000).toISOString();
   marketplaceEvents = await api(`/events?location=${encodeURIComponent(location)}&from=${encodeURIComponent(from)}&until=${encodeURIComponent(until)}`);
   return marketplaceEvents;
 }
-function eventCalendarMarkup(dateValue, events) {
-  const selected = new Date(`${dateValue}T12:00:00`);
-  const monthStart = new Date(selected.getFullYear(), selected.getMonth(), 1);
-  const gridStart = new Date(monthStart); gridStart.setDate(1 - monthStart.getDay());
-  const chosenDay = selected.toISOString().slice(0, 10);
-  const today = new Date().toISOString().slice(0, 10);
-  const cells = Array.from({ length: 42 }, (_, index) => { const day = new Date(gridStart); day.setDate(gridStart.getDate() + index); const value = day.toISOString().slice(0, 10); const count = events.filter(event => eventDateValue(event.startsAt) === value).length; return `<button type="button" class="${day.getMonth() === selected.getMonth() ? '' : 'is-outside'} ${value === chosenDay ? 'is-selected' : ''} ${value === today ? 'is-today' : ''} ${count ? 'has-events' : ''}" data-event-date="${value}" aria-label="${safe(day.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }))}${count ? `, ${count} event${count === 1 ? '' : 's'}` : ''}"><time datetime="${value}">${day.getDate()}</time>${count ? `<small>${count}</small>` : ''}</button>`; }).join('');
-  return `<section class="event-calendar" aria-label="${safe(monthStart.toLocaleString(undefined, { month: 'long', year: 'numeric' }))} event calendar"><header><b>${safe(monthStart.toLocaleString(undefined, { month: 'long', year: 'numeric' }))}</b><small>Select a day to filter posted events.</small></header><div class="event-weekdays"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div><div class="event-days">${cells}</div></section>`;
-}
-function eventCreateFormMarkup(location, dateValue) {
+function eventCreateFormMarkup() {
   if (!session) return '<button type="button" class="event-create-signin" data-event-create>Sign in to post an event</button>';
-  return `<details class="event-create-panel"><summary>＋ Post an event</summary><form class="event-create-form"><label>Event title<input required name="title" maxlength="140" placeholder="e.g. North County Card & Toy Swap"></label><label>Location<input required name="location" maxlength="120" value="${safe(location)}" placeholder="City, ZIP, venue, or area"></label><div><label>Category<select name="category"><option>Collector meetup</option><option>Card show</option><option>Antique fair</option><option>Toy convention</option><option>Estate sale</option><option>Flea market</option><option>Other</option></select></label><label>Starts<input required name="startsAt" type="datetime-local" value="${safe(`${dateValue}T12:00`)}"></label><label>Ends <small>Optional</small><input name="endsAt" type="datetime-local"></label></div><label>Description<textarea required name="description" minlength="10" maxlength="2000" placeholder="What collectors can expect, admission details, and any helpful information."></textarea></label><button class="transaction-submit">Publish event</button></form></details>`;
+  const now = new Date(); const start = new Date(now.getTime() + 5 * 60000); const end = new Date(now.getTime() + 2 * 3600000); const localTime = value => `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}T${String(value.getHours()).padStart(2, '0')}:${String(value.getMinutes()).padStart(2, '0')}`;
+  return `<details class="event-create-panel"><summary>＋ Create a time-limited event</summary><form class="event-create-form"><label>Event title<input required name="title" maxlength="140" placeholder="e.g. North County Card & Toy Swap"></label><label>Location<input required name="location" maxlength="120" placeholder="City, ZIP, venue, or area"></label><div><label>Category<select name="category"><option>Collector meetup</option><option>Card show</option><option>Antique fair</option><option>Toy convention</option><option>Estate sale</option><option>Flea market</option><option>Other</option></select></label><label>Starts<input required name="startsAt" type="datetime-local" value="${safe(localTime(start))}"></label><label>Countdown ends<input required name="endsAt" type="datetime-local" value="${safe(localTime(end))}"></label></div><label>Description<textarea required name="description" minlength="10" maxlength="2000" placeholder="What collectors can expect, admission details, and any helpful information."></textarea></label><button class="transaction-submit">Publish time-limited event</button></form></details>`;
 }
 async function openMapCenter(updateRoute = true) {
-  const routeId = beginWorkspaceRoute('map');
-  if (updateRoute) setWorkspaceHash('map');
-  const location = eventFinderLocation(); const date = eventFinderDate();
-  const events = await loadMarketplaceEvents(location, date);
-  if (routeId !== workspaceRouteId) return;
-  const filteredEvents = events.filter(event => eventDateValue(event.startsAt) === date);
-  const cards = filteredEvents.map(event => { const own = session?.user?.id === event.ownerId; const dateTime = new Date(event.startsAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }); return `<article class="event-card"><header><span>${safe(event.category)}</span><time datetime="${safe(event.startsAt)}">${safe(dateTime)}</time></header><h2>${safe(event.title)}</h2><b>⌖ ${safe(event.location)}</b><p>${safe(event.description)}</p><footer><button type="button" data-profile="${safe(event.ownerId)}">Hosted by @${safe(event.owner?.username || 'collector')}</button>${own ? `<button type="button" data-event-cancel="${safe(event.id)}">Cancel event</button>` : session ? `<button type="button" data-collector-chat="${safe(event.ownerId)}">Message host</button>` : ''}</footer></article>`; }).join('') || '<section class="event-empty"><b>No posted events match this date and location.</b><p>Try a broader area, choose another day, or be the first collector to post one.</p></section>';
-  openAppSection('map', 'Events', 'Find and post collector events directly on CollectorMarketplace. Filter the calendar by city, ZIP, or area—no third-party event feed required.', `<section class="event-finder"><section class="event-finder-controls"><form class="event-finder-form"><label>City, ZIP, or area<input required name="location" maxlength="120" value="${safe(location)}" placeholder="San Diego, CA or 92106"></label><label>Event date<input required name="date" type="date" value="${safe(date)}"></label><button class="transaction-submit">Filter events</button></form>${eventCalendarMarkup(date, events)}</section><section class="event-map-search"><header><span>COLLECTOR CALENDAR</span><h2>${location ? `Events near ${safe(location)}` : 'Choose an area to see events.'}</h2><p>Events are posted by CollectorMarketplace accounts. Check the host profile or message them for details before attending.</p></header>${eventCreateFormMarkup(location, date)}<section class="event-card-list">${cards}</section></section></section>`);
-  activateNav('map');
+  if (updateRoute) setWorkspaceHash('browse');
+  document.querySelector('[data-home]')?.click();
+  setSearchScope('events', false);
 }
 
 async function loadWantedRequests() {
@@ -2749,7 +2759,7 @@ const currentTagPath = () => {
   const mode = tagMatchMode === 'all' ? 'all' : 'any';
   const tagsPath = [...activeTags.map(tagSlug), ...lockedTags.map(tag => `l-${tagSlug(tag)}`), ...voidTags.map(tag => `v-${tagSlug(tag)}`)].filter(Boolean).join('+');
   const hasTagState = Boolean(tagsPath);
-  const resultCount = searchScope === 'listings' ? filtered().length : filteredDirectory().length;
+  const resultCount = searchScope === 'listings' ? filtered().length : searchScope === 'wanted' ? filteredWantedRequests().length : searchScope === 'events' ? filteredMarketplaceEvents().length : filteredDirectory().length;
   const postSuffix = hasTagState ? `posts+${resultCount}/` : '';
   const scopePrefix = searchScope === 'listings' ? '' : `${searchScope}/`;
   return `/${scopePrefix}${mode}/${tagsPath ? `${tagsPath}/` : ''}${postSuffix}`;
@@ -2851,10 +2861,9 @@ document.addEventListener('click', event => {
   if (event.target.closest('[data-browse-mode]')) { toggleBrowseMode(); return; }
   if (event.target.closest('[data-metadata-toggle]')) { toggleMetadata(); return; }
   const scopeButton = event.target.closest('[data-search-scope]'); if (scopeButton) { setSearchScope(scopeButton.dataset.searchScope); return; }
-  const tag = event.target.closest('[data-tag]'); const category = event.target.closest('[data-category]'); const trade = event.target.closest('[data-trade]'); const action = event.target.closest('[data-home],[data-market],[data-auction],[data-map],[data-chat],[data-sell],[data-account],[data-raffles],[data-curator],[data-help],[data-policy]');
-  const eventDate = event.target.closest('[data-event-date]'); if (eventDate) { localStorage.setItem('collector-marketplace-events-date', eventDate.dataset.eventDate); openMapCenter(false).catch(showError); return; }
+  const tag = event.target.closest('[data-tag]'); const category = event.target.closest('[data-category]'); const trade = event.target.closest('[data-trade]'); const action = event.target.closest('[data-home],[data-market],[data-auction],[data-chat],[data-sell],[data-account],[data-raffles],[data-curator],[data-help],[data-policy]');
   if (event.target.closest('[data-event-create]')) { if (!session) openAuthPanel('login'); return; }
-  const eventCancel = event.target.closest('[data-event-cancel]'); if (eventCancel) { api(`/events/${eventCancel.dataset.eventCancel}`, { method: 'DELETE' }).then(() => openMapCenter(false)).catch(showError); return; }
+  const eventCancel = event.target.closest('[data-event-cancel]'); if (eventCancel) { api(`/events/${eventCancel.dataset.eventCancel}`, { method: 'DELETE' }).then(async () => { await loadMarketplaceEvents(); renderFeed(); }).catch(showError); return; }
   const profile = event.target.closest('[data-profile]'); if (profile) openProfile(profile.dataset.profile).catch(showError);
   if (tag) {
     // Popular tags are quick Browse filters, not navigation into the Tags page.
@@ -2903,7 +2912,6 @@ document.addEventListener('click', event => {
   if (action?.matches('[data-chat]')) { setWorkspaceHash('chat'); activateNav('chat'); openChatCenter(); }
   if (action?.matches('[data-account]')) { if (session) startAccountVeniceAmbience(); setWorkspaceHash('account'); activateNav('account'); openAccountPanel(); }
   if (action?.matches('[data-raffles]')) { setWorkspaceHash('raffles'); activateNav('raffles'); openRaffleCenter(false).catch(showError); }
-  if (action?.matches('[data-map]')) { setWorkspaceHash('map'); openMapCenter(false).catch(showError); }
   if (action?.matches('[data-curator]')) { setWorkspaceHash('vip-curator'); openCuratorMembership().catch(showError); }
   if (action?.matches('[data-help]')) openHelpPage();
   if (action?.matches('[data-policy]')) { setWorkspaceHash('fees'); openModal('Marketplace fees', 'Standard purchase fees are 4% per side. Curator members pay 1% on their own side for $5/month. Buyers pay taxes and live UPS shipping, quoted through Shippo from the delivery address, seller origin, and package details before payment. Transaction and delivery terms are policy drafts pending legal review.'); }
@@ -3171,8 +3179,7 @@ document.addEventListener('submit', async event => {
 }, true);
 document.addEventListener('submit', async event => { const form = event.target; const appSection = form.closest('.app-section-page'); if (form.closest('#modal') || appSection) { event.preventDefault(); const showError = error => { const host = appSection?.querySelector('.app-section-content') || modalContent; host.querySelector('.form-submit-error')?.remove(); host.insertAdjacentHTML('afterbegin', `<p class="modal-copy form-submit-error" role="alert">${safe(error.message)}</p>`); };
   try {
-    const eventFinderForm = form.closest('.event-finder-form'); if (eventFinderForm) { const fields = new FormData(eventFinderForm); const location = String(fields.get('location') || '').trim(); const date = String(fields.get('date') || '').trim(); if (!location || !/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('Choose a location and event date.'); localStorage.setItem('collector-marketplace-events-location', location); localStorage.setItem('collector-marketplace-events-date', date); await openMapCenter(false); return; }
-    const eventCreateForm = form.closest('.event-create-form'); if (eventCreateForm) { if (!session) return openAuthPanel('login'); const fields = new FormData(eventCreateForm); const created = await api('/events', { method: 'POST', body: JSON.stringify({ title: fields.get('title'), location: fields.get('location'), category: fields.get('category'), startsAt: fields.get('startsAt'), endsAt: fields.get('endsAt'), description: fields.get('description') }) }); localStorage.setItem('collector-marketplace-events-location', String(created.location || '').trim()); localStorage.setItem('collector-marketplace-events-date', eventDateValue(created.startsAt)); await openMapCenter(false); return; }
+    const eventCreateForm = form.closest('.event-create-form'); if (eventCreateForm) { if (!session) return openAuthPanel('login'); const fields = new FormData(eventCreateForm); await api('/events', { method: 'POST', body: JSON.stringify({ title: fields.get('title'), location: fields.get('location'), category: fields.get('category'), startsAt: fields.get('startsAt'), endsAt: fields.get('endsAt'), description: fields.get('description') }) }); await loadMarketplaceEvents(); setSearchScope('events', false); renderFeed(); return; }
     const checkoutPreferencesForm = form.closest('.checkout-preferences-form'); if (checkoutPreferencesForm) { const fields = new FormData(checkoutPreferencesForm); if (checkoutPreferencesForm.dataset.preference === 'location') { const recipientAddress = { name: String(fields.get('name') || '').trim(), street1: String(fields.get('street1') || '').trim(), street2: String(fields.get('street2') || '').trim(), city: String(fields.get('city') || '').trim(), state: String(fields.get('state') || '').trim().toUpperCase(), zip: String(fields.get('zip') || '').trim(), country: 'US' }; if (!recipientAddress.name || !recipientAddress.street1 || !recipientAddress.city || !/^[A-Z]{2}$/.test(recipientAddress.state) || !/^\d{5}(?:-\d{4})?$/.test(recipientAddress.zip)) throw new Error('Enter a complete US delivery address.'); checkoutPreferences.recipientAddress = recipientAddress; checkoutPreferences.address = recipientAddress.zip; await refreshCheckoutEstimates(); } else if (checkoutPreferencesForm.dataset.preference === 'delivery') { const deliveryProvider = String(fields.get('deliveryProvider') || '').trim(); if (!deliveryProvider) throw new Error('Choose a delivery option before saving.'); checkoutPreferences.deliveryProvider = deliveryProvider; checkoutPreferences.deliveryPreferenceChosen = true; checkoutPreferences.estimateEnabled = false; } else checkoutPreferences.paymentMethod = String(fields.get('paymentMethod') || 'PayPal'); saveCheckoutPreferences(); renderCheckoutPreferenceButtons(); modal.close(); return; }
     const shippingProfileForm = form.closest('.shipping-profile-form'); if (shippingProfileForm) { const fields = new FormData(shippingProfileForm); await api('/account/shipping-profile', { method: 'PUT', body: JSON.stringify({ name: String(fields.get('name') || '').trim(), street1: String(fields.get('street1') || '').trim(), street2: String(fields.get('street2') || '').trim(), city: String(fields.get('city') || '').trim(), state: String(fields.get('state') || '').trim().toUpperCase(), zip: String(fields.get('zip') || '').trim(), country: 'US' }) }); modal.close(); return; }
     const authForm = form.closest('.auth-form'); if (authForm) { const fields = new FormData(authForm); const mode = authForm.dataset.mode; const body = mode === 'login' ? { email: fields.get('email'), password: fields.get('password') } : { username: fields.get('username'), email: fields.get('email'), password: fields.get('password'), confirmedAdult: fields.get('confirmedAdult') === 'on', acceptedTerms: fields.get('acceptedTerms') === 'on' }; const result = await api(mode === 'login' ? '/login' : '/signup', { method: 'POST', body: JSON.stringify(body) }); if (result.requiresTwoFactor) { openModal('Security check', 'Enter the six-digit code from your authenticator app to finish signing in.', `<form class="modal-form two-factor-login-form" data-challenge="${safe(result.challenge)}"><label>Authenticator code<input required name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="123456"></label><button>Verify and sign in</button></form>`); return; } saveSession(result); await loadDeliveries(); openAccountPanel(); return; }
