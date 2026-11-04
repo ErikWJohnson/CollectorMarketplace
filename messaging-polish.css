@@ -1,0 +1,83 @@
+/* A familiar, high-contrast messenger workspace for browser and app views.
+   Trade dialogs keep their separate checkout-focused layout. */
+.app-section-chat .messenger-workspace {
+  width: min(960px, 100%);
+  height: min(760px, calc(100dvh - 220px));
+  min-height: 560px;
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid #365547;
+  border-radius: 18px;
+  background: #101a14;
+  box-shadow: 0 30px 80px #000b;
+}
+.app-section-chat .messenger-workspace .conversation-header {
+  min-height: 74px;
+  padding: 12px 16px;
+  border-color: #315443;
+  background: linear-gradient(120deg, #163524, #102319 62%, #151a12);
+}
+.app-section-chat .messenger-workspace .conversation-header > [data-chat] {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 9px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: #ccebd5;
+}
+.app-section-chat .messenger-workspace .conversation-header > [data-chat]:hover,
+.app-section-chat .messenger-workspace .conversation-header > [data-chat]:focus-visible { border-color: #5f9974; background: #193624; outline: 0; }
+.app-section-chat .messenger-workspace .conversation-header .chat-avatar { width: 42px; height: 42px; margin-left: 4px; border-color: #75c58c; }
+.app-section-chat .messenger-workspace .conversation-identity { display: grid; gap: 3px; min-width: 0; }
+.app-section-chat .messenger-workspace .conversation-identity strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #f4fbf4; }
+.app-section-chat .messenger-workspace .conversation-identity small { display: flex; align-items: center; gap: 6px; color: #9dbaa6; font-size: .72rem; }
+.app-section-chat .messenger-workspace .conversation-identity small i { width: 7px; height: 7px; border-radius: 50%; background: #73d891; box-shadow: 0 0 10px #73d891; }
+.conversation-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-left: auto; }
+.app-section-chat .messenger-workspace .conversation-actions button { min-height: 36px; border-radius: 8px; padding: 8px 10px; font-size: .63rem; }
+.app-section-chat .messenger-workspace .conversation-actions .start-chat-trade { margin-left: 0; border-color: #5d966e; background: #193724; color: #d6f8de; }
+.app-section-chat .messenger-workspace .conversation-actions .voice-start { border-color: #cfac53; background: #dcb84f; color: #1a180f; }
+.app-section-chat .messenger-workspace .collector-thread { display: flex; flex-direction: column; gap: 6px; padding: 22px clamp(14px, 3vw, 34px); background: radial-gradient(circle at 10% 0, #2348332b, transparent 25rem), #0b130e; }
+.app-section-chat .messenger-workspace .collector-thread .chat-message { grid-template-columns: 32px minmax(0, 1fr); width: fit-content; max-width: min(76%, 620px); margin: 3px 0; padding: 0; border: 0; background: transparent; }
+.app-section-chat .messenger-workspace .collector-thread .chat-message-copy { gap: 4px; padding: 10px 13px; border: 1px solid #2c513a; border-radius: 4px 15px 15px 15px; background: #162a1d; box-shadow: 0 4px 15px #0003; }
+.app-section-chat .messenger-workspace .collector-thread .chat-message-copy b { color: #aeecc1; font-size: .68rem; }
+.app-section-chat .messenger-workspace .collector-thread .chat-message-copy span { color: #edf5ed; font: 400 .9rem/1.45 "DM Sans", sans-serif; white-space: pre-wrap; overflow-wrap: anywhere; }
+.app-section-chat .messenger-workspace .collector-thread .chat-message.is-own-message { grid-template-columns: minmax(0, 1fr) 32px; margin-left: auto; }
+.app-section-chat .messenger-workspace .collector-thread .chat-message.is-own-message .chat-message-avatar { grid-column: 2; }
+.app-section-chat .messenger-workspace .collector-thread .chat-message.is-own-message .chat-message-copy { grid-column: 1; grid-row: 1; border-color: #ad8731; border-radius: 15px 4px 15px 15px; background: linear-gradient(135deg, #594315, #3c2e12); }
+.app-section-chat .messenger-workspace .collector-thread .chat-message.is-own-message .chat-message-copy b { color: #ffdf86; }
+.chat-typing-status { display: none; align-items: center; gap: 8px; min-height: 34px; padding: 0 22px; border-top: 1px solid #263f30; background: #101c14; color: #abd4b6; font: .7rem/1 "DM Mono", monospace; }
+.chat-typing-status.is-visible { display: flex; }
+.chat-typing-status > span { display: flex; gap: 3px; align-items: center; min-width: 26px; }
+.chat-typing-status i { width: 5px; height: 5px; border-radius: 50%; background: #84dc9e; animation: chat-typing-pulse 1s infinite ease-in-out; }
+.chat-typing-status i:nth-child(2) { animation-delay: .14s; }
+.chat-typing-status i:nth-child(3) { animation-delay: .28s; }
+@keyframes chat-typing-pulse { 0%, 70%, 100% { opacity: .35; transform: translateY(0); } 35% { opacity: 1; transform: translateY(-3px); } }
+.app-section-chat .messenger-workspace .collector-message-form { grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 12px 14px; border-color: #315443; background: #122118; }
+.app-section-chat .messenger-workspace .collector-message-form textarea { grid-column: 2; min-height: 46px; max-height: 130px; border: 1px solid #426950; border-radius: 12px; padding: 12px 13px; background: #0b130e; font: 400 .9rem/1.35 "DM Sans", sans-serif; resize: none; }
+.app-section-chat .messenger-workspace .collector-message-form textarea:focus { border-color: #86d89d; box-shadow: 0 0 0 3px #70cb8833; }
+.app-section-chat .messenger-workspace .chat-image-upload { grid-column: 1; min-width: 42px; min-height: 42px; border-color: #496d56; border-radius: 11px; padding: 0 10px; background: #183021; color: #c5f0d0; font-size: 1.15rem; }
+.app-section-chat .messenger-workspace .chat-image-upload span { margin-left: 4px; font-size: .6rem; }
+.app-section-chat .messenger-workspace .collector-message-form button[type="submit"] { grid-column: 3; min-width: 82px; min-height: 42px; border-color: #b9953e; border-radius: 11px; background: #e0b94f; color: #1c170b; font: 800 .7rem/1 "DM Mono", monospace; }
+.app-section-chat .messenger-workspace .collector-message-form button[type="submit"] span { margin-left: 4px; font-size: 1rem; }
+.app-section-chat .messenger-workspace .chat-compose-hint { grid-column: 1 / -1; margin: 0 4px; color: #8fa996; font: .62rem/1.25 "DM Mono", monospace; }
+.app-section-chat .messenger-workspace .chat-image-status { grid-column: 1 / -1; min-height: 0; }
+@media (max-width: 700px) {
+  .app-section-chat .app-section-content { padding: 0 0 calc(92px + env(safe-area-inset-bottom)); }
+  .app-section-chat .messenger-workspace { width: 100%; height: calc(100dvh - 142px); min-height: 0; border: 0; border-radius: 0; }
+  .app-section-chat .messenger-workspace .conversation-header { flex-wrap: wrap; gap: 8px; min-height: 76px; padding: 10px 12px; }
+  .app-section-chat .messenger-workspace .conversation-header > [data-chat] { min-height: 32px; padding: 0 4px; }
+  .app-section-chat .messenger-workspace .conversation-header > [data-chat] span { display: none; }
+  .app-section-chat .messenger-workspace .conversation-header .chat-avatar { width: 36px; height: 36px; margin-left: 0; }
+  .conversation-actions { order: 4; width: 100%; margin-left: 0; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 1px; }
+  .app-section-chat .messenger-workspace .conversation-actions button { flex: 0 0 auto; min-height: 32px; white-space: nowrap; }
+  .app-section-chat .messenger-workspace .collector-thread { padding: 15px 12px; }
+  .app-section-chat .messenger-workspace .collector-thread .chat-message { max-width: 88%; }
+  .chat-typing-status { padding: 0 14px; }
+  .app-section-chat .messenger-workspace .collector-message-form { padding: 10px 10px max(10px, env(safe-area-inset-bottom)); }
+  .app-section-chat .messenger-workspace .chat-image-upload { min-width: 38px; min-height: 42px; padding: 0; }
+  .app-section-chat .messenger-workspace .chat-image-upload span { display: none; }
+  .app-section-chat .messenger-workspace .collector-message-form button[type="submit"] { min-width: 48px; padding: 0 8px; font-size: 0; }
+  .app-section-chat .messenger-workspace .collector-message-form button[type="submit"] span { margin: 0; font-size: 1.2rem; }
+}
+@media (prefers-reduced-motion: reduce) { .chat-typing-status i { animation: none; } }
