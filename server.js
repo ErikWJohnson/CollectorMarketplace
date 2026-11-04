@@ -211,18 +211,18 @@ const baseAccountAwards = user => {
   const barterLord = completedItemCount(user) >= 5000;
   const leaderboardChampion = isLeaderboardChampion(user);
   return [
-    { id: 'original-collector', name: 'Original Collector', earned: originalCollector, discount: .015, detail: 'Joined before 2027 or earned through a promotional event · 1.5% lifetime fee reduction.' },
+    { id: 'original-collector', name: 'Original Collector', earned: originalCollector, discount: .01, detail: 'Joined before 2027 or earned through a promotional event · up to 1% lifetime fee reduction.' },
     { id: 'barter-lord', name: 'Barter Lord', earned: barterLord, discount: .005, detail: `${completedItemCount(user).toLocaleString()} of 5,000 completed items · 0.5% lifetime fee reduction.` },
     { id: 'leaderboard-champion', name: 'Leaderboard Champion', earned: leaderboardChampion, discount: .01, detail: 'Currently holds at least one platform-wide high score · 1% temporary fee reduction.' }
   ];
 };
 const accountAwards = user => baseAccountAwards(user);
+const awardFeeReduction = user => Math.min(.01, accountAwards(user).filter(award => award.earned).reduce((total, award) => total + award.discount, 0));
 const marketplaceFeeRate = user => {
   if (hasDeveloperPass(user)) return 0;
   if (user?.brandPass === true) return .0075;
-  const awards = accountAwards(user);
   if (hasActiveCuratorMembership(user)) return .01;
-  return Math.max(0, .04 - awards.filter(award => award.earned).reduce((total, award) => total + award.discount, 0));
+  return Math.max(0, .05 - awardFeeReduction(user));
 };
 // Voice audio stays peer-to-peer. These short-lived rooms only carry WebRTC
 // signaling and presence, so no microphone audio is stored by the marketplace.
