@@ -411,6 +411,22 @@ html body.browse-conveyor #sentinel {
   }
 }
 
+/* Keep the discovery controls as one compact tool cluster. Metadata still
+   expands naturally when enabled, but there is no reserved blank lane between
+   the category chooser and tag / audience controls. */
+.discovery .search-scope { margin-bottom:0 !important; }
+.discovery.metadata-hidden .search-scope { margin-bottom:4px !important; }
+.discovery.metadata-hidden .tag-search-layout { margin-top:4px !important; }
+.discovery .tag-search-layout { margin-bottom:4px !important; }
+.discovery .tag-search-layout + .tag-row { margin-top:4px !important; }
+.discovery .audience-quick-tags:empty { display:none !important; }
+@media (max-width:760px) {
+  .discovery .search-scope { padding-bottom:2px !important; }
+  .discovery.metadata-hidden .search-scope { margin-bottom:2px !important; }
+  .discovery.metadata-hidden .tag-search-layout { margin-top:2px !important; }
+  .discovery .tag-search-layout { margin-bottom:2px !important; }
+}
+
 /* The Tags workspace always owns a visible tag query field. Several browse
    layouts reposition the utility dock, but it must never collapse the input
    that lets collectors search and add tags. */
