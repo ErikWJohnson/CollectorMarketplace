@@ -411,6 +411,92 @@ html body.browse-conveyor #sentinel {
   }
 }
 
+/* The Tags workspace always owns a visible tag query field. Several browse
+   layouts reposition the utility dock, but it must never collapse the input
+   that lets collectors search and add tags. */
+.discovery.mode-tags .tag-search-layout {
+  display:grid !important;
+  grid-template-columns:auto minmax(0, 1fr) auto;
+  align-items:stretch;
+  width:min(1180px, calc(100% - (var(--browse-gutter, 16px) * 2))) !important;
+  min-height:52px !important;
+  height:auto !important;
+  margin:12px auto !important;
+  visibility:visible !important;
+  opacity:1 !important;
+  overflow:visible !important;
+}
+.discovery.mode-tags .tag-search-layout > .tag-search {
+  display:flex !important;
+  position:relative !important;
+  width:100% !important;
+  min-width:0 !important;
+  min-height:52px !important;
+  height:52px !important;
+  visibility:visible !important;
+  opacity:1 !important;
+}
+.discovery.mode-tags .tag-search-layout > .tag-search input {
+  display:block !important;
+  min-width:0 !important;
+  color:#eef3f7 !important;
+  opacity:1 !important;
+}
+.browse-conveyor .discovery.mode-tags .tag-search-layout,
+.browse-doomscroll .discovery.mode-tags .tag-search-layout {
+  float:none !important;
+  padding-top:0 !important;
+}
+.discovery.mode-search .tag-search-layout {
+  display:grid !important;
+  grid-template-columns:auto minmax(0, 1fr);
+  align-items:stretch;
+  width:min(1180px, calc(100% - (var(--browse-gutter, 16px) * 2))) !important;
+  min-height:42px !important;
+  height:auto !important;
+  margin:10px auto !important;
+  visibility:visible !important;
+  opacity:1 !important;
+  overflow:visible !important;
+}
+.discovery.mode-search .tag-search-layout > .tag-search {
+  display:flex !important;
+  position:relative !important;
+  width:100% !important;
+  min-width:0 !important;
+  min-height:42px !important;
+  height:42px !important;
+  visibility:visible !important;
+  opacity:1 !important;
+}
+.discovery.mode-search .tag-search-layout > .audience-quick-tags { display:none !important; }
+.browse-conveyor .discovery.mode-search .tag-search-layout,
+.browse-doomscroll .discovery.mode-search .tag-search-layout { float:none !important; }
+@media (max-width:760px) {
+  .discovery.mode-tags .tag-search-layout {
+    grid-template-columns:1fr !important;
+    width:calc(100% - 24px) !important;
+    min-height:0 !important;
+    gap:8px !important;
+  }
+  .discovery.mode-tags .tag-search-layout > .tag-search {
+    grid-row:1;
+    min-height:46px !important;
+    height:46px !important;
+  }
+  .discovery.mode-search .tag-search-layout {
+    grid-template-columns:1fr !important;
+    width:calc(100% - 24px) !important;
+    min-height:0 !important;
+    margin:8px auto !important;
+  }
+  .discovery.mode-search .tag-search-layout > .tag-search {
+    grid-row:1;
+    min-height:46px !important;
+    height:46px !important;
+  }
+}
+
 /* Usability baseline: all page worlds share a clear reading column, predictable
    controls, and visible hierarchy without flattening their individual themes. */
 .app-section-page { width:100%; min-height:calc(100dvh - 150px); padding:clamp(18px,3vw,40px) clamp(16px,4vw,58px) calc(112px + env(safe-area-inset-bottom)); }
