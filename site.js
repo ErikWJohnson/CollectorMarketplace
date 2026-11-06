@@ -1155,7 +1155,7 @@ function syncBrowseModeUi() {
   // Browse tools belong with the other browse controls after the listing
   // stream. This keeps the top of Browse focused solely on search.
   const dockHost = document.querySelector('.browse-controls-dock');
-  const placeBrowseTools = dock => dockHost?.prepend(dock);
+  const placeBrowseTools = dock => dockHost?.append(dock);
   if (conveyor) {
     if (!utilityDock) { utilityDock = document.createElement('aside'); utilityDock.className = 'conveyor-utility-dock'; utilityDock.setAttribute('aria-label', 'Browse tools'); }
     placeBrowseTools(utilityDock);
