@@ -3037,9 +3037,33 @@ document.addEventListener('click', event => {
     capture.textContent = 'Approximate location saved';
   }, () => { capture.disabled = false; capture.textContent = 'Location permission was not granted'; }, { enableHighAccuracy: false, maximumAge: 300000, timeout: 10000 });
 });
-function setDiscoveryMode(mode) { const discovery = search.closest('.discovery'); const browseControls = document.querySelector('.browse-controls-dock'); const isSearch = mode === 'search'; discovery.classList.toggle('mode-search', isSearch); discovery.classList.toggle('mode-tags', !isSearch); browseControls?.classList.toggle('mode-search', isSearch); browseControls?.classList.toggle('mode-tags', !isSearch); document.querySelector('#search-tab').classList.toggle('is-active', isSearch); document.querySelector('#tags-tab').classList.toggle('is-active', !isSearch); document.querySelector('#search-tab').setAttribute('aria-selected', String(isSearch)); document.querySelector('#tags-tab').setAttribute('aria-selected', String(!isSearch)); }
+function setDiscoveryMode(mode) {
+  const discovery = search.closest('.discovery');
+  const browseControls = document.querySelector('.browse-controls-dock');
+  const isSearch = mode === 'search';
+  const tagLayout = document.querySelector('.tag-search-layout');
+  const tagRows = [document.querySelector('#tags'), document.querySelector('#categories')].filter(Boolean);
+  // Tags must remain a real top-of-page workspace.  Moving these nodes rather
+  // than trying to expose them from the lower filter dock prevents a blank
+  // Tags tab when metadata is hidden or Browse has not populated its rails.
+  if (!isSearch) {
+    if (tagLayout) discovery.append(tagLayout);
+    tagRows.forEach(row => discovery.append(row));
+  } else {
+    if (tagLayout) browseControls?.append(tagLayout);
+    tagRows.forEach(row => browseControls?.append(row));
+  }
+  discovery.classList.toggle('mode-search', isSearch);
+  discovery.classList.toggle('mode-tags', !isSearch);
+  browseControls?.classList.toggle('mode-search', isSearch);
+  browseControls?.classList.toggle('mode-tags', !isSearch);
+  document.querySelector('#search-tab').classList.toggle('is-active', isSearch);
+  document.querySelector('#tags-tab').classList.toggle('is-active', !isSearch);
+  document.querySelector('#search-tab').setAttribute('aria-selected', String(isSearch));
+  document.querySelector('#tags-tab').setAttribute('aria-selected', String(!isSearch));
+}
 document.querySelector('#search-tab').addEventListener('click', () => { setWorkspaceHash('search'); setDiscoveryMode('search'); search.focus(); });
-document.querySelector('#tags-tab').addEventListener('click', () => { setWorkspaceHash('tags'); setDiscoveryMode('tags'); const controls = document.querySelector('.browse-controls-dock'); controls?.scrollIntoView({ behavior: 'smooth', block: 'start' }); window.setTimeout(() => tagSearch.focus({ preventScroll: true }), 350); });
+document.querySelector('#tags-tab').addEventListener('click', () => { setWorkspaceHash('tags'); setDiscoveryMode('tags'); search.closest('.discovery')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); window.setTimeout(() => tagSearch.focus({ preventScroll: true }), 180); });
 modal.addEventListener('click', event => { if (event.target === modal && !modal.classList.contains('listing-dialog')) modal.close(); });
 modal.addEventListener('cancel', event => { if (modal.classList.contains('listing-dialog')) event.preventDefault(); });
 modal.addEventListener('close', () => {
@@ -3526,6 +3550,40 @@ openAccountPanel = async (...args) => {
   if (session?.user) injectProfileGalleries(session.user, true);
   return result;
 };
+const openAccountPanelWithSellerGrowth = openAccountPanel;
+openAccountPanel = async (...args) => {
+  const result = await openAccountPanelWithSellerGrowth(...args);
+  if (!session?.user) return result;
+  const onboarding = await api('/seller-onboarding').catch(() => null);
+  const profile = stream.querySelector('.profile-workspace');
+  const footer = profile?.querySelector('.profile-footer') || profile;
+  if (footer && onboarding && !footer.querySelector('[data-seller-onboarding]')) {
+    const complete = [onboarding.profileReady, onboarding.shippingReady, onboarding.paymentReady, onboarding.firstListingPublished].filter(Boolean).length;
+    const promotion = onboarding.earlySeller ? `<small>Early seller rate: ${(Number(onboarding.earlySeller.feeRate) * 100).toFixed(2)}% until ${new Date(onboarding.earlySeller.endsAt).toLocaleDateString()}.</small>` : '';
+    footer.insertAdjacentHTML('afterbegin', `<section class="seller-onboarding-summary"><b>Seller setup · ${complete}/4 ready</b><span>Finish your profile, shipping details, payment review, and first public listing.</span>${promotion}<button type="button" class="entity-primary" data-seller-onboarding>Open seller setup</button></section>`);
+  }
+  if (String(session.user.username || '').toLowerCase() === 'collectormarketplace' && footer && !footer.querySelector('[data-early-seller-admin]')) footer.insertAdjacentHTML('afterbegin', '<button type="button" class="entity-primary" data-early-seller-admin>Early Seller Admin</button>');
+  return result;
+};
+function sellerOnboardingMarkup(state) {
+  const tasks = [
+    ['Profile', state.profileReady, 'Add a profile image or seller description so collectors know who they are buying from.'],
+    ['Private shipping', state.shippingReady, state.guidance?.shipping || 'Add your private shipping address for delivery estimates.'],
+    ['Payment', state.paymentReady, state.guidance?.payment || 'Review protected PayPal checkout.'],
+    ['First listing', state.firstListingPublished, `${state.publishedListings || 0} active listing${state.publishedListings === 1 ? '' : 's'} published.`]
+  ];
+  return `<section class="listing-ad-page seller-onboarding-page"><nav><button type="button" data-account>← Back to account</button></nav><p class="eyebrow">SELLER ONBOARDING</p><h2>Launch your storefront</h2><p>These steps help new sellers publish clear, shippable inventory. PayPal transaction processing and taxes are shown separately at checkout.</p><div class="seller-onboarding-tasks">${tasks.map(([name, done, detail]) => `<article class="${done ? 'is-complete' : ''}"><b>${done ? '✓' : '○'} ${safe(name)}</b><span>${safe(detail)}</span></article>`).join('')}</div>${state.earlySeller ? `<section class="modal-copy"><b>Early Seller promotion</b><p>Your eligible marketplace fee is ${(Number(state.earlySeller.feeRate) * 100).toFixed(2)}% until ${safe(new Date(state.earlySeller.endsAt).toLocaleString())}. ${safe(state.earlySeller.terms || 'Transaction processing costs and other disclosed charges still apply.')}</p></section>` : ''}<form class="modal-form seller-feedback-form"><label>Seller feedback category<select name="category"><option value="bug">Bug report</option><option value="improvement">Improvement idea</option><option value="onboarding">Onboarding difficulty</option><option value="general">General feedback</option></select></label><label>Tell us what would make selling easier<textarea required name="message" maxlength="2000" placeholder="Share a problem, suggestion, or question."></textarea></label><button>Send seller feedback</button></form></section>`;
+}
+document.addEventListener('click', event => {
+  if (event.target.closest('[data-seller-onboarding]')) api('/seller-onboarding').then(state => openAppSection('account', 'Seller setup', 'Prepare your profile and your first public listing.', sellerOnboardingMarkup(state))).catch(showError);
+  if (event.target.closest('[data-early-seller-admin]')) api('/admin/early-seller-program').then(program => openAppSection('account', 'Early Seller Admin', 'Configure eligibility, timing, terms, and a server-enforced promotional marketplace fee.', `<section class="listing-ad-page"><nav><button type="button" data-account>← Back to account</button></nav><form class="modal-form early-seller-program-form"><label class="check"><input type="checkbox" name="enabled" ${program.enabled ? 'checked' : ''}> Enable program</label><label>Marketplace fee rate <input type="number" name="feeRate" min="0" max="5" step="0.01" value="${Number(program.feeRate || 0) * 100}"></label><label>Starts <input type="datetime-local" name="startsAt" value="${program.startsAt ? new Date(program.startsAt).toISOString().slice(0, 16) : ''}"></label><label>Expires <input type="datetime-local" name="endsAt" value="${program.endsAt ? new Date(program.endsAt).toISOString().slice(0, 16) : ''}"></label><label class="check"><input type="checkbox" name="eligibleAllNewSellers" ${program.eligibleAllNewSellers ? 'checked' : ''}> Include newly created seller accounts</label><label>Eligible account IDs, comma-separated <input name="eligibleUserIds" value="${safe((program.eligibleUserIds || []).join(', '))}"></label><label>Terms shown to sellers<textarea name="terms" maxlength="2000">${safe(program.terms || '')}</textarea></label><button>Save early seller program</button></form></section>`)).catch(showError);
+});
+document.addEventListener('submit', async event => {
+  const feedback = event.target.closest?.('.seller-feedback-form');
+  if (feedback) { event.preventDefault(); const fields = new FormData(feedback); try { await api('/seller-feedback', { method: 'POST', body: JSON.stringify({ category: fields.get('category'), message: fields.get('message') }) }); feedback.reset(); feedback.insertAdjacentHTML('beforeend', '<p class="modal-copy">Thanks — your seller feedback was sent.</p>'); } catch (error) { showError(error); } return; }
+  const program = event.target.closest?.('.early-seller-program-form');
+  if (program) { event.preventDefault(); const fields = new FormData(program); try { await api('/admin/early-seller-program', { method: 'PUT', body: JSON.stringify({ enabled: fields.get('enabled') === 'on', feeRate: Number(fields.get('feeRate') || 0) / 100, startsAt: fields.get('startsAt') || null, endsAt: fields.get('endsAt') || null, eligibleAllNewSellers: fields.get('eligibleAllNewSellers') === 'on', eligibleUserIds: String(fields.get('eligibleUserIds') || '').split(',').map(value => value.trim()).filter(Boolean), terms: fields.get('terms') }) }); await openAccountPanel(); } catch (error) { showError(error); } }
+});
 const openPublicProfileWithGalleries = openProfile;
 openProfile = async (...args) => {
   const result = await openPublicProfileWithGalleries(...args);
