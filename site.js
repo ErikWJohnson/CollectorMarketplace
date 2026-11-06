@@ -1140,6 +1140,7 @@ function syncBrowseModeUi() {
   document.body.classList.toggle('browse-doomscroll', doomscroll);
   document.body.classList.toggle('browse-squared', squared);
   document.querySelector('.discovery')?.classList.toggle('metadata-hidden', !metadataVisible);
+  document.querySelector('.browse-controls-dock')?.classList.toggle('metadata-hidden', !metadataVisible);
   let smog = document.querySelector('.conveyor-smog-layer');
   if (conveyor && !smog) { smog = document.createElement('div'); smog.className = 'conveyor-smog-layer'; smog.setAttribute('aria-hidden', 'true'); smog.innerHTML = '<span></span><span></span><span></span><span></span><span></span>'; document.querySelector('.app-shell')?.prepend(smog); }
   if (!conveyor) smog?.remove();
@@ -1151,18 +1152,10 @@ function syncBrowseModeUi() {
   let utilityDock = document.querySelector('.conveyor-utility-dock');
   const tagLayout = document.querySelector('.tag-search-layout');
   const removeTagsButton = document.querySelector('#remove-tags');
-  // The site masthead participates in page flow on some browse surfaces. Keep
-  // these controls on the shell so their fixed positioning never scrolls away.
-  const dockHost = document.querySelector('.app-shell');
-  // On phones the browse tools belong to the Tags layout instead of floating
-  // over the discovery surface. This keeps the current theme's game launch
-  // control and Remove tags together, touch-sized, and out of the way of the
-  // tag search field.
-  const mobileBrowseTools = window.matchMedia('(max-width: 680px)').matches;
-  const placeBrowseTools = dock => {
-    if (mobileBrowseTools && tagLayout) tagLayout.prepend(dock);
-    else dockHost?.append(dock);
-  };
+  // Browse tools belong with the other browse controls after the listing
+  // stream. This keeps the top of Browse focused solely on search.
+  const dockHost = document.querySelector('.browse-controls-dock');
+  const placeBrowseTools = dock => dockHost?.prepend(dock);
   if (conveyor) {
     if (!utilityDock) { utilityDock = document.createElement('aside'); utilityDock.className = 'conveyor-utility-dock'; utilityDock.setAttribute('aria-label', 'Browse tools'); }
     placeBrowseTools(utilityDock);
@@ -2932,13 +2925,6 @@ document.addEventListener('click', event => {
   const listingDelete = event.target.closest('[data-listing-delete]'); if (listingDelete) { if (!window.confirm('Delete this listing permanently? This cannot be undone.')) return; api(`/listing/${listingDelete.dataset.listingDelete}`, { method: 'DELETE' }).then(async () => { await loadMarket(); await openAccountPanel(); }).catch(showError); return; }
   if (event.target.closest('[data-browse-mode]')) { toggleBrowseMode(); return; }
   if (event.target.closest('[data-metadata-toggle]')) { toggleMetadata(); return; }
-  const filterShortcut = event.target.closest('[data-filter-shortcut]');
-  if (filterShortcut) {
-    const target = filterShortcut.dataset.filterShortcut === 'search' ? document.querySelector('.search-mode-bar') : document.querySelector('#market-filters');
-    target?.scrollIntoView({ behavior: 'smooth', block: filterShortcut.dataset.filterShortcut === 'search' ? 'start' : 'center' });
-    if (filterShortcut.dataset.filterShortcut !== 'search') window.setTimeout(() => document.querySelector('#listing-sort')?.focus({ preventScroll: true }), 350);
-    return;
-  }
   const scopeButton = event.target.closest('[data-search-scope]'); if (scopeButton) { setSearchScope(scopeButton.dataset.searchScope); return; }
   const tag = event.target.closest('[data-tag]'); const category = event.target.closest('[data-category]'); const trade = event.target.closest('[data-trade]'); const action = event.target.closest('[data-home],[data-market],[data-auction],[data-chat],[data-sell],[data-account],[data-raffles],[data-curator],[data-help],[data-policy]');
   if (event.target.closest('[data-event-create]')) { if (!session) openAuthPanel('login'); return; }
@@ -3051,7 +3037,7 @@ document.addEventListener('click', event => {
     capture.textContent = 'Approximate location saved';
   }, () => { capture.disabled = false; capture.textContent = 'Location permission was not granted'; }, { enableHighAccuracy: false, maximumAge: 300000, timeout: 10000 });
 });
-function setDiscoveryMode(mode) { const discovery = search.closest('.discovery'); const isSearch = mode === 'search'; discovery.classList.toggle('mode-search', isSearch); discovery.classList.toggle('mode-tags', !isSearch); document.querySelector('#search-tab').classList.toggle('is-active', isSearch); document.querySelector('#tags-tab').classList.toggle('is-active', !isSearch); document.querySelector('#search-tab').setAttribute('aria-selected', String(isSearch)); document.querySelector('#tags-tab').setAttribute('aria-selected', String(!isSearch)); }
+function setDiscoveryMode(mode) { const discovery = search.closest('.discovery'); const browseControls = document.querySelector('.browse-controls-dock'); const isSearch = mode === 'search'; discovery.classList.toggle('mode-search', isSearch); discovery.classList.toggle('mode-tags', !isSearch); browseControls?.classList.toggle('mode-search', isSearch); browseControls?.classList.toggle('mode-tags', !isSearch); document.querySelector('#search-tab').classList.toggle('is-active', isSearch); document.querySelector('#tags-tab').classList.toggle('is-active', !isSearch); document.querySelector('#search-tab').setAttribute('aria-selected', String(isSearch)); document.querySelector('#tags-tab').setAttribute('aria-selected', String(!isSearch)); }
 document.querySelector('#search-tab').addEventListener('click', () => { setWorkspaceHash('search'); setDiscoveryMode('search'); search.focus(); });
 document.querySelector('#tags-tab').addEventListener('click', () => { setWorkspaceHash('tags'); setDiscoveryMode('tags'); tagSearch.focus(); });
 modal.addEventListener('click', event => { if (event.target === modal && !modal.classList.contains('listing-dialog')) modal.close(); });
