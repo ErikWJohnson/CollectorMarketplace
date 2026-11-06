@@ -2932,6 +2932,13 @@ document.addEventListener('click', event => {
   const listingDelete = event.target.closest('[data-listing-delete]'); if (listingDelete) { if (!window.confirm('Delete this listing permanently? This cannot be undone.')) return; api(`/listing/${listingDelete.dataset.listingDelete}`, { method: 'DELETE' }).then(async () => { await loadMarket(); await openAccountPanel(); }).catch(showError); return; }
   if (event.target.closest('[data-browse-mode]')) { toggleBrowseMode(); return; }
   if (event.target.closest('[data-metadata-toggle]')) { toggleMetadata(); return; }
+  const filterShortcut = event.target.closest('[data-filter-shortcut]');
+  if (filterShortcut) {
+    const target = filterShortcut.dataset.filterShortcut === 'search' ? document.querySelector('.search-mode-bar') : document.querySelector('#market-filters');
+    target?.scrollIntoView({ behavior: 'smooth', block: filterShortcut.dataset.filterShortcut === 'search' ? 'start' : 'center' });
+    if (filterShortcut.dataset.filterShortcut !== 'search') window.setTimeout(() => document.querySelector('#listing-sort')?.focus({ preventScroll: true }), 350);
+    return;
+  }
   const scopeButton = event.target.closest('[data-search-scope]'); if (scopeButton) { setSearchScope(scopeButton.dataset.searchScope); return; }
   const tag = event.target.closest('[data-tag]'); const category = event.target.closest('[data-category]'); const trade = event.target.closest('[data-trade]'); const action = event.target.closest('[data-home],[data-market],[data-auction],[data-chat],[data-sell],[data-account],[data-raffles],[data-curator],[data-help],[data-policy]');
   if (event.target.closest('[data-event-create]')) { if (!session) openAuthPanel('login'); return; }
