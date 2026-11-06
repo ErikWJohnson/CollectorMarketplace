@@ -3039,7 +3039,7 @@ document.addEventListener('click', event => {
 });
 function setDiscoveryMode(mode) { const discovery = search.closest('.discovery'); const browseControls = document.querySelector('.browse-controls-dock'); const isSearch = mode === 'search'; discovery.classList.toggle('mode-search', isSearch); discovery.classList.toggle('mode-tags', !isSearch); browseControls?.classList.toggle('mode-search', isSearch); browseControls?.classList.toggle('mode-tags', !isSearch); document.querySelector('#search-tab').classList.toggle('is-active', isSearch); document.querySelector('#tags-tab').classList.toggle('is-active', !isSearch); document.querySelector('#search-tab').setAttribute('aria-selected', String(isSearch)); document.querySelector('#tags-tab').setAttribute('aria-selected', String(!isSearch)); }
 document.querySelector('#search-tab').addEventListener('click', () => { setWorkspaceHash('search'); setDiscoveryMode('search'); search.focus(); });
-document.querySelector('#tags-tab').addEventListener('click', () => { setWorkspaceHash('tags'); setDiscoveryMode('tags'); tagSearch.focus(); });
+document.querySelector('#tags-tab').addEventListener('click', () => { setWorkspaceHash('tags'); setDiscoveryMode('tags'); const controls = document.querySelector('.browse-controls-dock'); controls?.scrollIntoView({ behavior: 'smooth', block: 'start' }); window.setTimeout(() => tagSearch.focus({ preventScroll: true }), 350); });
 modal.addEventListener('click', event => { if (event.target === modal && !modal.classList.contains('listing-dialog')) modal.close(); });
 modal.addEventListener('cancel', event => { if (modal.classList.contains('listing-dialog')) event.preventDefault(); });
 modal.addEventListener('close', () => {
