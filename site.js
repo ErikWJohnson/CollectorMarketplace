@@ -15,6 +15,33 @@ const priceMax = document.querySelector('#price-max');
 const sentinel = document.querySelector('#sentinel');
 const modal = document.querySelector('#modal');
 const modalContent = document.querySelector('#modal-content');
+const browseToolsDock = document.querySelector('.browse-controls-dock');
+const initializeBrowseToolsOverlay = () => {
+  if (!browseToolsDock) return;
+  browseToolsDock.id = 'browse-tools-overlay';
+  browseToolsDock.setAttribute('aria-hidden', 'true');
+  const switches = browseToolsDock.querySelector('.browse-controls-switches');
+  if (switches && !switches.querySelector('[data-browse-tools-close]')) switches.insertAdjacentHTML('afterbegin', '<button type="button" class="browse-tools-close" data-browse-tools-close>Close</button>');
+  const masthead = document.querySelector('.masthead');
+  const account = masthead?.querySelector('[data-account]');
+  if (masthead && account && !masthead.querySelector('[data-browse-tools-toggle]')) account.insertAdjacentHTML('beforebegin', '<button type="button" class="header-browse-tools" data-browse-tools-toggle aria-controls="browse-tools-overlay" aria-expanded="false"><span aria-hidden="true">☷</span><b>Browse tools</b></button>');
+};
+const setBrowseToolsOverlay = open => {
+  if (!browseToolsDock) return;
+  const isOpen = Boolean(open);
+  browseToolsDock.classList.toggle('is-overlay-open', isOpen);
+  browseToolsDock.setAttribute('aria-hidden', String(!isOpen));
+  document.body.classList.toggle('browse-tools-overlay-open', isOpen);
+  const toggle = document.querySelector('[data-browse-tools-toggle]');
+  toggle?.setAttribute('aria-expanded', String(isOpen));
+  if (isOpen) requestAnimationFrame(() => browseToolsDock.querySelector('button, input, select')?.focus({ preventScroll: true }));
+};
+initializeBrowseToolsOverlay();
+document.addEventListener('click', event => {
+  if (event.target.closest('[data-browse-tools-toggle]')) { setBrowseToolsOverlay(!browseToolsDock?.classList.contains('is-overlay-open')); return; }
+  if (event.target.closest('[data-browse-tools-close]')) { setBrowseToolsOverlay(false); return; }
+});
+document.addEventListener('keydown', event => { if (event.key === 'Escape' && browseToolsDock?.classList.contains('is-overlay-open')) { event.preventDefault(); setBrowseToolsOverlay(false); document.querySelector('[data-browse-tools-toggle]')?.focus(); } });
 let listings = [], wantedRequests = [], marketplaceEvents = [], auctions = [], accounts = [], galleries = [], collectives = [], brands = [], couriers = [], chatrooms = [], deliveries = [], uploadedListingImages = [], uploadedListingVideos = [], activeCategory = 'All', activeQuery = '', activeTags = [], searchScope = 'listings', sortMode = 'popular', page = 1, observer, searchRenderTimer, auctionClock;
 let activeConversationId = '', conversationPresenceTimer = 0, conversationTypingTimer = 0, conversationTypingSent = false;
 const auctionWaterfallAudio = document.querySelector('#auction-waterfall-audio');
