@@ -30,13 +30,14 @@
 @media (max-width:680px) {
   .masthead { display:flex !important; justify-content:space-between !important; gap:9px; height:58px !important; min-height:58px !important; padding:0 12px !important; }
   .masthead .market-mode-control,.masthead .header-nav,.masthead .header-sell,.masthead .header-wanted { display:none !important; }
-  .masthead .brand-group { flex:1 1 auto; overflow:hidden; }
+  /* The brand remains recognizable at a glance on a phone, while the account
+     action stays a compact avatar target instead of competing with it. */
+  .masthead .brand-group { flex:1 1 auto; min-width:0; overflow:visible; }
   .masthead .brand-group img { width:31px !important; height:31px !important; }
   .masthead .mast-word { margin-left:7px !important; }
-  .masthead .mast-word a { display:block; overflow:hidden; font-size:.78rem !important; letter-spacing:.02em !important; text-overflow:ellipsis; white-space:nowrap; }
-  .masthead .header-account { flex:0 0 auto; min-height:38px !important; margin-left:auto !important; padding:3px 7px 3px 3px !important; }
-  .masthead .header-account-identity small { display:none; }
-  .masthead .header-account [data-header-account-label] { max-width:92px; font-size:.66rem !important; overflow:hidden; text-overflow:ellipsis; }
+  .masthead .mast-word a { display:block; overflow:visible; font-size:clamp(.62rem,3.2vw,.78rem) !important; letter-spacing:.01em !important; text-overflow:clip; white-space:nowrap; }
+  .masthead .header-account { flex:0 0 38px; width:38px; min-width:38px; min-height:38px !important; height:38px; margin-left:auto !important; padding:3px !important; justify-content:center; }
+  .masthead .header-account-identity,.masthead .header-account-chevron { display:none !important; }
   .masthead .header-account-mark { flex-basis:30px; width:30px; height:30px; }
   .masthead .header-signout { display:none !important; }
 
